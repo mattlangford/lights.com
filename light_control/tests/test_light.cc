@@ -1,7 +1,7 @@
-#include "lights/litake_basic_light.hh"
-#include "light_universe_controller.hh"
-#include "dmx.hh"
-#include "serial.hh"
+#include "light_types/litake_basic_light.hh"
+#include "serial_control/ftd2xx_serial_interface.hh"
+#include "light_control/light_universe_controller.hh"
+#include "light_control/dmx.hh"
 
 #include <iostream>
 #include <thread>
@@ -37,7 +37,7 @@ int main()
     constexpr size_t START_ADDRESS = 1;
     lights::litake_basic_light::ptr light = std::make_shared<lights::litake_basic_light>(START_ADDRESS);
 
-    serial::serial_connection connection(dmx::BAUDRATE);
+    serial::ftd2xx_serial_interface connection(dmx::BAUDRATE);
 
     lights::light_universe_controller::controller_params params;
     params.control = lights::light_universe_controller::control_type::MANUAL;

@@ -8,7 +8,7 @@
 namespace lights
 {
 
-class litake_basic_light final : public light_base
+class litake_basic_light final : public abstract_light
 {
 public: // types //////////////////////////////////////////////////////////////
     typedef std::shared_ptr<litake_basic_light> ptr;
