@@ -10,5 +10,5 @@ cc_library(
     srcs=["ftd2xx_serial_interface.cc"],
     hdrs=["ftd2xx_serial_interface.hh"],
     deps=[":abstract_serial_interface",
-          "@ftd2xx_libs//:ftd2xx"]
+          "@ftd2xx_libs//:ftd2xx"],
 )

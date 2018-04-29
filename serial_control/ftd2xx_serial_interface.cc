@@ -1,4 +1,4 @@
-#include "serial_control/abstract_serial_interface.hh"
+#include "serial_control/ftd2xx_serial_interface.hh"
 
 #include <assert.h>
 #include <iostream>
@@ -12,7 +12,7 @@ namespace serial
 // ### constructor ############################################################
 //
 
-serial_connection::serial_connection(const size_t baudrate, const size_t device_number)
+ftd2xx_serial_interface::ftd2xx_serial_interface(const size_t baudrate, const size_t device_number)
 {
     DWORD number_of_devices;
     assert(FT_CreateDeviceInfoList(&number_of_devices) == FT_OK);
@@ -49,16 +49,7 @@ serial_connection::serial_connection(const size_t baudrate, const size_t device_
 // ############################################################################
 //
 
-serial_connection::serial_connection(const serial_connection &s)
-{
-    ft_handle = s.ft_handle;
-}
-
-//
-// ############################################################################
-//
-
-serial_connection::~serial_connection()
+ftd2xx_serial_interface::~ftd2xx_serial_interface()
 {
     FT_SetBitMode(ft_handle, 0x0, 0x00);
     FT_Close(ft_handle);
@@ -68,7 +59,7 @@ serial_connection::~serial_connection()
 // ### public methods #########################################################
 //
 
-bool serial_connection::write_data(ByteVector_t data) const
+bool ftd2xx_serial_interface::write_data(ByteVector_t data) const
 {
     const unsigned int bytes_to_send = data.size();
     unsigned int bytes_sent = 0;
@@ -86,7 +77,7 @@ bool serial_connection::write_data(ByteVector_t data) const
 // ### private methods ########################################################
 //
 
-inline bool serial_connection::status_okay(const FT_STATUS ft_status) const
+inline bool ftd2xx_serial_interface::status_okay(const FT_STATUS ft_status) const
 {
     if (ft_status != FT_OK)
     {

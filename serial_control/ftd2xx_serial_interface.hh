@@ -1,7 +1,7 @@
 #pragma once
 
 #include "serial_control/abstract_serial_interface.hh"
-#include "third_party/ftd2xx_libs/ftd2xx.h"
+#include "ftd2xx.h"
 
 #include <memory>
 #include <vector>
@@ -13,21 +13,21 @@ namespace serial
 // Connects to an FTDI serial connection and has some nice wrappers C++11 around the
 // gross C
 //
-class ftd2xx_serial
+class ftd2xx_serial_interface : public abstract_serial_interface
 {
 public: // constructor ////////////////////////////////////////////////////////
-    serial_connection(const size_t baudrate, const size_t device_number = 0);
+    ftd2xx_serial_interface(const size_t baudrate, const size_t device_number = 0);
 
-    serial_connection(const serial_connection &s);
+    ftd2xx_serial_interface(const ftd2xx_serial_interface &s) = delete;
 
-    ~serial_connection();
+    virtual ~ftd2xx_serial_interface();
 
 public: // public methods /////////////////////////////////////////////////////
     //
     // Simple c++11 wrapper to write some data and check that it went through.
     // Give it a byte vector that you don't care about since it'll eat it
     //
-    bool write_data(ByteVector_t data) const;
+    virtual bool write_data(ByteVector_t data) const;
 
 private: // methods ///////////////////////////////////////////////////////////
     //
