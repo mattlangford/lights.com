@@ -1,4 +1,4 @@
-#include "light_universe_controller.hh"
+#include "light_control/light_universe_controller.hh"
 #include "light_control/dmx.hh"
 
 #include <iostream>
@@ -6,7 +6,7 @@
 namespace lights
 {
 
-light_universe_controller::light_universe_controller(serial::serial_connection& connection, const controller_params& params)
+light_universe_controller::light_universe_controller(serial::abstract_serial_interface& connection, const controller_params& params)
     : connection_(connection),
       last_update_time_(std::chrono::high_resolution_clock::now())
 {
@@ -41,7 +41,7 @@ light_universe_controller::~light_universe_controller()
 // ############################################################################
 //
 
-void light_universe_controller::add_light_to_universe(light_base::ptr light)
+void light_universe_controller::add_light_to_universe(abstract_light::ptr light)
 {
     for (size_t i = light->get_start_address(); i <= light->get_end_address(); ++i)
     {
@@ -65,7 +65,7 @@ void light_universe_controller::do_update()
     dmx::dmx_helper::channels_t channels;
     channels.reserve(dmx::MAX_NUM_CHANNELS);
 
-    for (std::shared_ptr<light_base>& light : lights_)
+    for (abstract_light::ptr& light : lights_)
     {
         for (auto&& channel : light->get_channels())
         {

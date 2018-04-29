@@ -1,4 +1,4 @@
-#include "dmx_control/light_effects.hh"
+#include "light_control/light_effects.hh"
 #include <assert.h>
 #include <iostream>
 
@@ -54,18 +54,18 @@ void test_linear_fade(test_fixture f)
 
 void test_smooth_fade(test_fixture f)
 {
-    constexpr uint8_t num_steps = 0;
+    constexpr uint8_t num_steps = 10;
     const auto smooth = generate_transition<num_steps, smooth_transition_strategy>(f.c0, f.c1);
 
     //
     // The middlemost element should be the average of the two input colors
     //
-    assert(colors_are_equal(linear[num_steps / 2], {100, 50, 0}));
+    assert(colors_are_equal(smooth[num_steps / 2], {100, 50, 0}));
 
     //
     // The last color should always be the ending one we gave
     //
-    assert(colors_are_equal(linear.back(), f.c1));
+    assert(colors_are_equal(smooth.back(), f.c1));
 }
 
 int main()

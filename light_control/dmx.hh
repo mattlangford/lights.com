@@ -1,5 +1,5 @@
 #pragma once
-#include "serial.hh"
+#include "serial_control/abstract_serial_interface.hh"
 
 #include <bitset>
 #include <vector>

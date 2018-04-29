@@ -1,6 +1,6 @@
 #pragma once
+#include "serial_control/abstract_serial_interface.hh"
 #include "light_types/abstract_light.hh"
-#include "serial.hh"
 
 #include <atomic>
 #include <memory>
@@ -39,13 +39,13 @@ public:
     };
 
 public:
-    light_universe_controller(serial::serial_connection& connection, const controller_params& params);
+    light_universe_controller(serial::abstract_serial_interface& connection, const controller_params& params);
 
     ~light_universe_controller();
 
 public:
     // add a new light, return if the add was successful
-    void add_light_to_universe(light_base::ptr light);
+    void add_light_to_universe(abstract_light::ptr light);
 
     // preform an update
     void do_update();
@@ -61,7 +61,7 @@ private:
     controller_params params_;
 
     // connection to the board that interfaces with the lights
-    serial::serial_connection& connection_;
+    serial::abstract_serial_interface& connection_;
 
     // how long to sleep after each update
     std::chrono::duration<double> update_period_;
@@ -70,7 +70,7 @@ private:
     std::chrono::high_resolution_clock::time_point last_update_time_;
 
     // all of the lights registered, each timestep will get
-    std::vector<abtract_light::ptr> lights_;
+    std::vector<abstract_light::ptr> lights_;
     std::array<bool, dmx::MAX_NUM_CHANNELS> valid_addresses_;
 
     // handle to the main executive runner thread

@@ -1,8 +1,7 @@
 cc_library(
     name="abstract_serial_interface",
-    srcs=[],
     hdrs=["abstract_serial_interface.hh"],
-    deps=[]
+    visibility = ["//visibility:public"]
 )
 
 cc_library(
@@ -11,4 +10,5 @@ cc_library(
     hdrs=["ftd2xx_serial_interface.hh"],
     deps=[":abstract_serial_interface",
           "@ftd2xx_libs//:ftd2xx"],
+    visibility = ["//visibility:public"]
 )

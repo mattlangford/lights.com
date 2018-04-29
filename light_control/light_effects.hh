@@ -72,7 +72,7 @@ struct linear_transition_strategy
 struct smooth_transition_strategy
 {
     ///
-    /// I'm using a cosine here, but it's range needs to be changed to [0, 1] - as well as doing a half
+    /// I'm using a cos here, but it's range needs to be changed to [0, 1] - as well as doing a half
     /// period between [0, 1] (instead of [0, pi] like usual)
     ///
     constexpr static double map(const double x)

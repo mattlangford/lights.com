@@ -2,21 +2,20 @@ cc_library(
     name="dmx",
     srcs=["dmx.cc"],
     hdrs=["dmx.hh"],
-    visibility = ["//visibility:public"],
-    deps=["//serial_control:serial_comms"]
+    deps=["//serial_control:ftd2xx_serial_interface"],
+    visibility = ["//visibility:public"]
+)
+
+cc_library(
+    name="light_effects",
+    hdrs=["light_effects.hh"],
+    visibility = ["//visibility:public"]
 )
 
 cc_library(
     name="light_universe_controller",
     srcs=["light_universe_controller.cc"],
     hdrs=["light_universe_controller.hh"],
-    visibility = ["//visibility:public"],
-    deps=["//light_types:light_base"]
-)
-
-cc_library(
-    name="light_effects",
-    srcs=[],
-    hdrs=["light_effects.hh"],
-    visibility = ["//visibility:public"],
+    deps=["//light_types:abstract_light"],
+    visibility = ["//visibility:public"]
 )

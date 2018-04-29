@@ -1,8 +1,8 @@
 #pragma once
 
-#include <memory>
+#include "light_control/dmx.hh"
 
-#include "../dmx.hh"
+#include <memory>
 
 //
 // Base light, allows the light manager to get channels from each light and
@@ -15,13 +15,13 @@
 namespace lights
 {
 
-class light_base
+class abstract_light
 {
 public: // types //////////////////////////////////////////////////////////////
-    typedef std::shared_ptr<light_base> ptr;
+    typedef std::shared_ptr<abstract_light> ptr;
 
 public: // destructor /////////////////////////////////////////////////////////
-    virtual ~light_base() = default;
+    virtual ~abstract_light() = default;
 
 public: // methods ////////////////////////////////////////////////////////////
     // get the start and end DMX address for this light, used to make sure
