@@ -75,7 +75,7 @@ struct smooth_transition_strategy
     /// I'm using a cos here, but it's range needs to be changed to [0, 1] - as well as doing a half
     /// period between [0, 1] (instead of [0, pi] like usual)
     ///
-    constexpr static double map(const double x)
+    static double map(const double x)
     {
         constexpr double VERTICAL_OFFSET = 1;
         constexpr double SCALE_FACTOR = 0.5;
@@ -100,7 +100,7 @@ struct instant_transition_strategy
 /// is correct
 ///
 template <uint8_t num_steps, typename transition_strategy = linear_transition_strategy>
-constexpr std::array<Color, num_steps> generate_transition(const Color& c1, const Color& c2)
+std::array<Color, num_steps> generate_transition(const Color& c1, const Color& c2)
 {
     constexpr double step_size = 1.0 / num_steps;
 
