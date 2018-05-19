@@ -35,7 +35,11 @@ public: // methods ////////////////////////////////////////////////////////////
     inline size_t get_start_address() const override { return start_address_; }
     inline size_t get_end_address() const override { return start_address_ + NUM_CHANNELS - 1; }
 
-    std::vector<dmx::dmx_helper::channel_t> get_channels() override;
+    std::vector<dmx::dmx_helper::channel_t> get_channels() const override;
+
+    // Set or get this light as a json object
+    json::json get_json_light_state() const override;
+    void set_json_light_state(const json::json& j) override;
 
 private: // members ///////////////////////////////////////////////////////////
     size_t start_address_;

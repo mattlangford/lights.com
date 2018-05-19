@@ -1,6 +1,7 @@
 #pragma once
 
 #include "light_control/dmx.hh"
+#include "json/json.hh"
 
 #include <memory>
 
@@ -30,9 +31,13 @@ public: // methods ////////////////////////////////////////////////////////////
     virtual size_t get_end_address() const = 0;
 
     // get the channels this light has to offer
-    virtual std::vector<dmx::dmx_helper::channel_t> get_channels() = 0;
+    virtual std::vector<dmx::dmx_helper::channel_t> get_channels() const = 0;
 
     // every light should be able to turn off
     virtual void set_off() = 0;
+
+    // Set or get this light as a json object
+    virtual json::json get_json_light_state() const = 0;
+    virtual void set_json_light_state(const json::json& j) = 0;
 };
 }

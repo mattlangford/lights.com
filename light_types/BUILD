@@ -1,7 +1,8 @@
 cc_library(
     name="abstract_light",
     hdrs=["abstract_light.hh"],
-    deps=["//light_control:dmx"],
+    deps=["//light_control:dmx",
+          "@server//json:json"],
     visibility = ["//visibility:public"]
 )
 
