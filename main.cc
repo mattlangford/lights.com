@@ -1,9 +1,14 @@
-#include "json/json.hh"
-#include "json/parser.hh"
+// For controlling lights
 #include "light_control/light_universe_controller.hh"
 #include "light_types/virtual_light.hh"
-#include "server_hooks/universe_resource.hh"
 #include "serial_control/virtual_serial_interface.hh"
+
+// For hosting webserver
+#include "http_server/http_server.hh"
+#include "resources/file_resource.hh"
+#include "server_hooks/universe_resource.hh"
+#include "json/json.hh"
+#include "json/parser.hh"
 
 #include <random>
 #include <iostream>
@@ -11,6 +16,7 @@
 #include <map>
 #include <memory>
 
+constexpr auto ROOT_PATH = "/home/matt/Documents/dmx_control";
 
 int main()
 {
@@ -34,23 +40,23 @@ int main()
     builder.add_light_to_universe(light1);
     builder.add_light_to_universe(light2);
 
-    universe_resource resource = builder.finalize();
-    std::cout << resource.get_json_resource().get_value_as_string() << "\n";
+    auto resource = std::make_shared<universe_resource>(builder.finalize());
 
     //
     // Make sure changing the lights themselves results in a change in the JSON output
     //
     light1->set_channel(2, 100);
     light2->set_channel(1, 77);
-
-    std::cout << resource.get_json_resource().get_value_as_string() << "\n";
+    std::cout << resource->get_json_resource().get_value_as_string() << "\n";
 
     //
-    // Now let's try pushing new JSON update
+    // Now spin a web server up, see if the client can access it
     //
-    json::json universe_state = resource.get_json_resource();
-    universe_state[0]["state"][1] = json::json{23.0};
-    resource.handle_universe_update(universe_state);
+    http_server server(8080);
+    server.add_resource(resource);
+    server.add_resource(std::make_shared<resources::file_resource>(std::string(ROOT_PATH) + "/server_hooks/test_server", "/index.html"));
 
-    std::cout << resource.get_json_resource().get_value_as_string() << "\n";
+    server.start_server();
+    while (true)
+        std::this_thread::sleep_for(std::chrono::duration<double>(1.0));
 }
