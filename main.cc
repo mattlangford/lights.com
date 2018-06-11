@@ -37,8 +37,20 @@ int main()
     universe_resource resource = builder.finalize();
     std::cout << resource.get_json_resource().get_value_as_string() << "\n";
 
+    //
+    // Make sure changing the lights themselves results in a change in the JSON output
+    //
     light1->set_channel(2, 100);
     light2->set_channel(1, 77);
+
+    std::cout << resource.get_json_resource().get_value_as_string() << "\n";
+
+    //
+    // Now let's try pushing new JSON update
+    //
+    json::json universe_state = resource.get_json_resource();
+    universe_state[0]["state"][1] = json::json{23.0};
+    resource.handle_universe_update(universe_state);
 
     std::cout << resource.get_json_resource().get_value_as_string() << "\n";
 }
