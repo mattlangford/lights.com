@@ -13,3 +13,11 @@ cc_library(
     deps=[":abstract_light"],
     visibility = ["//visibility:public"]
 )
+
+cc_library(
+    name="virtual_light",
+    srcs=["virtual_light.cc"],
+    hdrs=["virtual_light.hh"],
+    deps=[":abstract_light"],
+    visibility = ["//visibility:public"]
+)

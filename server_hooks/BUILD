@@ -5,5 +5,6 @@ cc_library(
     deps = ["//light_control:light_universe_controller",
             "@server//json:json",
             "@server//resources:json_resource",
-            "@server//:logging"]
+            "@server//:logging"],
+    visibility = ["//visibility:public"]
 )
