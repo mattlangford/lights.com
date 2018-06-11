@@ -44,7 +44,7 @@ public:
     ~light_universe_controller();
 
 public:
-    // add a new light, return if the add was successful
+    // add a new light
     void add_light_to_universe(abstract_light::ptr light);
 
     // preform an update

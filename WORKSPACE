@@ -10,8 +10,13 @@ git_repository(
     commit = "87ccc6c46ad6f88efe985ca7b409f7e675685397"
 )
 
-git_repository(
+local_repository(
     name = "server",
-    remote = "https://github.com/mattlangford/server.git",
-    commit = "cabb4ea6cf854d39ccda50507724626a9413faf2"
+    path = "/home/matt/Documents/server/"
 )
+
+#git_repository(
+#    name = "server",
+#    remote = "https://github.com/mattlangford/server.git",
+#    commit = "2e2a113cc3a6993ee2f0342e919f0535f6eb6107"
+#)

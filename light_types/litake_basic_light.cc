@@ -120,7 +120,7 @@ void litake_basic_light::set_json_light_state(const json::json& j)
     uint8_t green = 0;
     uint8_t blue = 0;
 
-    const auto& result_map = j.get<json::json::map_type>();
+    const auto& result_map = j.get<json::map_type>();
 
     const auto& red_channel = result_map.find("red");
     if (red_channel != result_map.cend())

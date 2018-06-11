@@ -20,6 +20,7 @@ class abstract_light
 {
 public: // types //////////////////////////////////////////////////////////////
     typedef std::shared_ptr<abstract_light> ptr;
+    typedef std::weak_ptr<abstract_light> weak_ptr;
 
 public: // destructor /////////////////////////////////////////////////////////
     virtual ~abstract_light() = default;
