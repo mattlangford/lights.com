@@ -13,6 +13,9 @@ public: // constructor/destructor /////////////////////////////////////////////
     virtual ~virtual_light() = default;
 
 public: ///////////////////////////////////////////////////////////////////////
+    //
+    // Set the relative channel, 0 will be the channel at start_address
+    //
     void set_channel(const uint8_t channel, const uint8_t level);
 
 public: // methods ////////////////////////////////////////////////////////////

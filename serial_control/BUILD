@@ -12,3 +12,10 @@ cc_library(
           "@ftd2xx_libs//:ftd2xx"],
     visibility = ["//visibility:public"]
 )
+
+cc_library(
+    name="virtual_serial_interface",
+    hdrs=["virtual_serial_interface.hh"],
+    deps=[":abstract_serial_interface"],
+    visibility = ["//visibility:public"]
+)

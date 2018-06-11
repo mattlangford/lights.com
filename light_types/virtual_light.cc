@@ -13,7 +13,7 @@ virtual_light::virtual_light(const uint8_t start_address, const uint8_t num_chan
     uint8_t address = start_address;
     for (auto& channel : channels)
     {
-        channel.address = ++address;
+        channel.address = address++;
         channel.level = 0;
     }
 }
@@ -24,14 +24,7 @@ virtual_light::virtual_light(const uint8_t start_address, const uint8_t num_chan
 
 void virtual_light::set_channel(const uint8_t channel, const uint8_t level)
 {
-    for (auto& this_channel : channels)
-    {
-        if (this_channel.address == channel)
-        {
-            this_channel.level = level;
-            return;
-        }
-    }
+    channels.at(channel).level = level;
 }
 
 //
