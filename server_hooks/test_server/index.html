@@ -14,7 +14,13 @@ function loadDoc() {
       if (this.readyState == 4 && this.status == 200)
       {
           var response = JSON.parse(this.responseText);
-          console.log(response);
+          console.log(response)
+
+          var this_light = response[0];
+          this_light.state[0] = 77;
+
+          xhttp.open("POST", "/universe_state", true);
+          xhttp.send("[\"test\"]");
       }
   };
 

@@ -1,4 +1,5 @@
 #include <random>
+#include "json/parser.hh"
 #include "server_hooks/universe_resource.hh"
 
 #include "logging.hh"
@@ -28,8 +29,10 @@ json::json universe_resource::get_json_resource()
 // ############################################################################
 //
 
-void universe_resource::handle_universe_update(const json::json& update)
+bool universe_resource::handle_post_request(requests::POST post_request)
 {
+    json::json update = json::parse(post_request.post_data);
+
     for (const auto& entry : update.get<json::vector_type>())
     {
         const json::json& json_entry = entry;
@@ -44,6 +47,8 @@ void universe_resource::handle_universe_update(const json::json& update)
 
         light_found->second->set_json_light_state(json_entry["state"]);
     }
+
+    return true;
 }
 
 //

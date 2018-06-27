@@ -22,7 +22,7 @@ public: ///////////////////////////////////////////////////////////////////////
 
     json::json get_json_resource() override;
 
-    void handle_universe_update(const json::json& update);
+    bool handle_post_request(requests::POST post_request) override;
 
 private: //////////////////////////////////////////////////////////////////////
     universe_map light_map;
