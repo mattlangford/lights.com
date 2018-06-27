@@ -48,7 +48,6 @@ int main()
     //
     light1->set_channel(2, 100);
     light2->set_channel(1, 77);
-    std::cout << resource->get_json_resource().get_value_as_string() << "\n";
 
     //
     // Now spin a web server up, see if the client can access it
@@ -59,5 +58,8 @@ int main()
 
     server.start_server();
     while (true)
+    {
         std::this_thread::sleep_for(std::chrono::duration<double>(1.0));
+        std::cout << resource->get_json_resource().get_value_as_string() << "\n";
+    }
 }

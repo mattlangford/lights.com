@@ -7,16 +7,17 @@ new_http_archive(
 git_repository(
     name = "variant",
     remote = "https://github.com/mattlangford/variant.git",
-    commit = "87ccc6c46ad6f88efe985ca7b409f7e675685397"
+    commit = "a88daadb9c45b7304bcb4f4d422e669e83ce387e"
 )
 
-local_repository(
+# TEMP TEST REPO
+# local_repository(
+#     name = "server",
+#     path = "/home/matt/Documents/server/"
+# )
+
+git_repository(
     name = "server",
-    path = "/home/matt/Documents/server/"
+    remote = "https://github.com/mattlangford/server.git",
+    commit = "8e5d50ed50be1d5be2594dacbb261f45cc98a31d"
 )
-
-#git_repository(
-#    name = "server",
-#    remote = "https://github.com/mattlangford/server.git",
-#    commit = "2e2a113cc3a6993ee2f0342e919f0535f6eb6107"
-#)

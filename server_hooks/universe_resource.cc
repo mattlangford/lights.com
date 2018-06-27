@@ -33,7 +33,23 @@ bool universe_resource::handle_post_request(requests::POST post_request)
 {
     json::json update = json::parse(post_request.post_data);
 
-    for (const auto& entry : update.get<json::vector_type>())
+    std::cout << "parsing update: " << update.get_value_as_string() << "\n";
+
+    json::vector_type updates;
+
+    //
+    // check if the request has multiple light updates in it
+    //
+    if (update.has_type<json::vector_type>())
+    {
+        updates = update.get<json::vector_type>();
+    }
+    else
+    {
+        updates.emplace_back(update.get<json::map_type>());
+    }
+
+    for (const auto& entry : updates)
     {
         const json::json& json_entry = entry;
         std::string id = json_entry["id"].get<std::string>();

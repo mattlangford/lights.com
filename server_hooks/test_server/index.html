@@ -20,7 +20,8 @@ function loadDoc() {
           this_light.state[0] = 77;
 
           xhttp.open("POST", "/universe_state", true);
-          xhttp.send("[\"test\"]");
+          console.log(JSON.stringify(this_light));
+          xhttp.send(JSON.stringify(this_light));
       }
   };
 
