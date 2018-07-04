@@ -1,0 +1,73 @@
+#update_bar {
+    height: 100px;
+    width: calc(100% - 10px);
+    border: 1px solid black;
+    position: fixed;
+
+    margin-left: 5px;
+    margin-right: 5px;
+    left: 0px;
+    right: 0px;
+}
+
+#update_button_holder {
+    height: 80%;
+    width: 100%;
+    background-color: blue;
+}
+#update_button {
+    width: 100%;
+    height: 100%;
+}
+
+#live_updates {
+    height: 20%;
+}
+
+#light_entries {
+    margin-top: 110px;
+    margin-left: 5px;
+    margin-right: 5px;
+    right: 0px;
+    left: 0px;
+    position: fixed;
+    background-color: blue;
+    width: calc(100% - 10px);
+    height: calc(100% - 110px);
+    overflow-y: scroll;
+}
+
+.light_entry{
+    margin: 10px;
+    background-color: blue;
+    width: calc(100% - 20px);
+    border: 1px solid black;
+}
+
+.light_entry_title{
+    background-color: red;
+    padding-top: 5px;
+    padding-left: 5px;
+    height: 25px;
+    font-weight: bold;
+}
+
+.light_entry_slider_holder {
+    width: 100%;
+    height: 25px;
+    padding-top: 5px;
+    background-color: green;
+    font-weight: bold;
+}
+.light_entry_slider_title{
+    width: 30px;
+    position: relative;
+    float: left;
+    padding-left: 5px;
+}
+.light_slider {
+    width: calc(100% - 75px);
+    margin-right: 10px;
+    position: relative;
+    float: right;
+}

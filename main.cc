@@ -17,7 +17,7 @@
 #include <map>
 #include <memory>
 
-constexpr auto ROOT_PATH = "/home/matt/Documents/dmx_control";
+constexpr auto ROOT_PATH = "/home/matt/Documents/dmx_control/server_hooks/test_server";
 
 int main()
 {
@@ -54,7 +54,9 @@ int main()
     //
     http_server server(8080);
     server.add_resource(resource);
-    server.add_resource(std::make_shared<resources::file_resource>(std::string(ROOT_PATH) + "/server_hooks/test_server", "/index.html"));
+    server.add_resource(std::make_shared<resources::file_resource>(std::string(ROOT_PATH), "/index.html"));
+    server.add_resource(std::make_shared<resources::file_resource>(std::string(ROOT_PATH), "/styles.css"));
+    server.add_resource(std::make_shared<resources::file_resource>(std::string(ROOT_PATH), "/scripts.js"));
 
     server.start_server();
     while (true)
