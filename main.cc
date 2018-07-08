@@ -44,12 +44,6 @@ int main()
     auto resource = std::make_shared<universe_resource>(builder.finalize());
 
     //
-    // Make sure changing the lights themselves results in a change in the JSON output
-    //
-    light1->set_channel(2, 100);
-    light2->set_channel(1, 77);
-
-    //
     // Now spin a web server up, see if the client can access it
     //
     http_server server(8080);

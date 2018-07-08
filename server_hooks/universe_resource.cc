@@ -10,17 +10,33 @@
 
 json::json universe_resource::get_json_resource()
 {
-    json::vector_type json_universe_state;
+    json::map_type json_universe_state;
+    json::map_type json_lights;
     for (const auto& entry : light_map)
     {
         json::json json_light;
         json_light.set_map();
 
-        json_light["id"] = entry.first;
-        json_light["state"] = entry.second->get_json_light_state();
+        json_light["light_name"] = std::string("test_name");
 
-        json_universe_state.emplace_back(std::move(json_light));
+        json::vector_type json_channel_values;
+        for (const auto& channel : entry.second->get_channels())
+        {
+            json_channel_values.emplace_back(static_cast<double>(channel.level));
+        }
+        json_light["channel_values"] = std::move(json_channel_values);
+
+        json::vector_type json_channel_names;
+        for (const auto& name : entry.second->get_channel_names())
+        {
+            json_channel_names.emplace_back(static_cast<std::string>(name));
+        }
+        json_light["channel_names"] = std::move(json_channel_names);
+
+        json_lights[entry.first] = std::move(json_light);
     }
+
+    json_universe_state["lights"] = std::move(json_lights);
 
     return json::json{json_universe_state};
 }
@@ -31,37 +47,38 @@ json::json universe_resource::get_json_resource()
 
 bool universe_resource::handle_post_request(requests::POST post_request)
 {
-    json::json update = json::parse(post_request.post_data);
+    json::map_type update = json::parse(post_request.post_data).get<json::map_type>();
 
-    std::cout << "parsing update: " << update.get_value_as_string() << "\n";
+    json::map_type lights = update["lights"].get<json::map_type>();
 
-    json::vector_type updates;
-
-    //
-    // check if the request has multiple light updates in it
-    //
-    if (update.has_type<json::vector_type>())
+    for (const std::pair<std::string, json::json>& entry : lights)
     {
-        updates = update.get<json::vector_type>();
-    }
-    else
-    {
-        updates.emplace_back(update.get<json::map_type>());
-    }
-
-    for (const auto& entry : updates)
-    {
-        const json::json& json_entry = entry;
-        std::string id = json_entry["id"].get<std::string>();
+        const std::string id = entry.first;
 
         auto light_found = light_map.find(id);
         if (light_found == light_map.end())
         {
-            LOG_WARN("Got a JSON response with a light ID that wasn't found in the database");
+            LOG_WARN("Got a JSON response with a light ID that wasn't found in the database.");
+            continue;
+        }
+        lights::abstract_light::ptr light = light_found->second;
+
+        json::vector_type channel_update = entry.second.get<json::vector_type>();
+        const size_t expected_count = light->get_channel_count();
+
+        if (channel_update.size() != expected_count)
+        {
+            LOG_WARN("JSON response has an invalid number of channels (" << expected_count << " != " << channel_update.size() << "). Ignoring.");
             continue;
         }
 
-        light_found->second->set_json_light_state(json_entry["state"]);
+        std::vector<uint8_t> channel_update_processed;
+        for (const json::json& v : channel_update)
+        {
+            channel_update_processed.emplace_back(v.get<double>());
+        }
+
+        light->set_channels(channel_update_processed);
     }
 
     return true;

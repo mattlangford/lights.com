@@ -2,15 +2,16 @@
 /// Called when the page is loaded - find out and set the state of each light
 ///
 function on_page_load() {
+    $("#light_entries").text("");
+
     var success = function(data) {
-        var json_data = JSON.parse(data);
-        for (l in json_data['lights']) {
-            create_light_entry(l, lights[l])
+        for (l in data.lights) {
+            create_light_entry(l, data.lights[l])
         }
     }
 
     $.ajax({
-      url: '/universe_state/',
+      url: '/universe_state',
       type: "GET",
       success: success
     })
@@ -27,7 +28,7 @@ function get_state_of_light(light_id) {
     var values = []
     for (var i = 0; i < this_light_value_elements.length; i++) {
         var element = this_light_value_elements[i];
-        values.push(element.value)
+        values.push(parseFloat(element.value))
     }
 
     return values
@@ -39,7 +40,7 @@ function get_state_of_light(light_id) {
 function update_single_light(light_id)  {
     var data_to_send = JSON.stringify(get_state_of_light(light_id));
     $.ajax({
-      url: '/universe_state/set_light/' + light_id,
+      url: '/universe_state/' + light_id,
       type: "POST",
       data: data_to_send,
       contentType: "application/json; charset=utf-8",
@@ -61,13 +62,13 @@ function update_lights(light_ids)  {
         light_values[light_entry.id] = get_state_of_light(light_entry.id);
     }
 
-    var data_to_send = JSON.stringify(light_values);
+    var data_to_send = {lights: light_values};
     console.log(data_to_send)
 
     $.ajax({
-      url: '/universe_state/set_lights',
+      url: '/universe_state',
       type: "POST",
-      data: data_to_send,
+      data: JSON.stringify(data_to_send),
       contentType: "application/json; charset=utf-8",
       dataType: "json"
     })
@@ -93,12 +94,12 @@ function create_light_entry(light_id, light_attrs) {
     light_entry.find('.light_entry')
                .attr('id', light_id)
                .find('.light_entry_title')
-               .text(light_attrs['name']);
+               .text(light_attrs.light_name);
 
     // Add a slider for each property, make it so it'll update the state on change
-    for (p in light_attrs['property_keys']) {
-        var property_name = light_attrs['property_keys'][p];
-        var property_value = light_attrs['property_values'][p];
+    for (p in light_attrs.channel_names) {
+        var property_name = light_attrs.channel_names[p];
+        var property_value = light_attrs.channel_values[p];
 
         var this_slider = $('#light_entry_slider_holder_template').clone();
         this_slider.find('.light_entry_slider_title')

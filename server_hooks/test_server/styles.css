@@ -66,7 +66,7 @@
     padding-left: 5px;
 }
 .light_slider {
-    width: calc(100% - 75px);
+    width: 80%;
     margin-right: 10px;
     position: relative;
     float: right;
