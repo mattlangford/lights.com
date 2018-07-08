@@ -1,4 +1,5 @@
 #include "light_types/virtual_light.hh"
+#include <iostream>
 
 namespace lights
 {
@@ -8,13 +9,17 @@ namespace lights
 //
 
 virtual_light::virtual_light(const uint8_t start_address, const uint8_t num_channels)
-    : channels(num_channels)
+    : channels_(num_channels), channel_names_(num_channels)
 {
-    uint8_t address = start_address;
-    for (auto& channel : channels)
+    for (size_t i = 0; i < num_channels; ++i)
     {
-        channel.address = address++;
+        dmx::dmx_helper::channel_t& channel = channels_.at(i);
+        std::string& channel_name = channel_names_.at(i);
+
+        channel.address = i + start_address;
         channel.level = 0;
+
+        channel_name = "channel_" + std::to_string(i);
     }
 }
 
@@ -24,7 +29,7 @@ virtual_light::virtual_light(const uint8_t start_address, const uint8_t num_chan
 
 void virtual_light::set_channel(const uint8_t channel, const uint8_t level)
 {
-    channels.at(channel).level = level;
+    channels_.at(channel).level = level;
 }
 
 //
@@ -33,7 +38,7 @@ void virtual_light::set_channel(const uint8_t channel, const uint8_t level)
 
 void virtual_light::set_off()
 {
-    for (auto& this_channel : channels)
+    for (auto& this_channel : channels_)
     {
         this_channel.level = 0;
     }
@@ -43,33 +48,17 @@ void virtual_light::set_off()
 // ############################################################################
 //
 
-json::json virtual_light::get_json_light_state() const
+void virtual_light::set_channels(std::vector<uint8_t> channels)
 {
-    json::vector_type this_light;
-    for (const auto& this_channel : channels)
+    if (channels.size() != channels_.size())
     {
-        this_light.push_back(json::json{static_cast<double>(this_channel.level)});
-    }
-
-    return json::json{this_light};
-}
-
-//
-// ############################################################################
-//
-
-void virtual_light::set_json_light_state(const json::json& j)
-{
-    json::vector_type desired_channels = j.get<json::vector_type>();
-    if (desired_channels.size() != channels.size())
-    {
-        std::cout << "Invalid light state size!\n";
+        std::cout << "Trying to set channels with an invalid length vector!\n";
         return;
     }
 
     for (size_t i = 0; i < channels.size(); ++i)
     {
-        channels[i].level = desired_channels[i].get<double>();
+        channels_.at(i).level = channels.at(i);
     }
 }
 }

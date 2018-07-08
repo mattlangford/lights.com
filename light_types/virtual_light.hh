@@ -19,17 +19,18 @@ public: ///////////////////////////////////////////////////////////////////////
     void set_channel(const uint8_t channel, const uint8_t level);
 
 public: // methods ////////////////////////////////////////////////////////////
-    inline size_t get_start_address() const override { return channels.front().address; }
-    inline size_t get_end_address() const override { return channels.back().address; }
+    inline size_t get_start_address() const override { return channels_.front().address; }
+    inline size_t get_end_address() const override { return channels_.back().address; }
 
-    inline std::vector<dmx::dmx_helper::channel_t> get_channels() const override { return channels; }
+    void set_channels(std::vector<uint8_t> channels) override;
+
+    inline std::vector<dmx::dmx_helper::channel_t> get_channels() const override { return channels_; }
+    inline const std::vector<std::string>& get_channel_names() const override { return channel_names_; }
 
     void set_off() override;
 
-    json::json get_json_light_state() const override;
-    void set_json_light_state(const json::json& j) override;
-
 private: //////////////////////////////////////////////////////////////////////
-    std::vector<dmx::dmx_helper::channel_t> channels;
+    std::vector<dmx::dmx_helper::channel_t> channels_;
+    std::vector<std::string> channel_names_;
 };
 }

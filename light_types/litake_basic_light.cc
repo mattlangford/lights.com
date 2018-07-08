@@ -83,55 +83,25 @@ std::vector<dmx::dmx_helper::channel_t> litake_basic_light::get_channels() const
 // ############################################################################
 //
 
-json::json litake_basic_light::get_json_light_state() const
+void litake_basic_light::set_channels(std::vector<uint8_t> channels)
 {
-    json::json state;
-    state.set_map();
-    state["light_name"] = std::string("litake_basic_light");
+    if (channels.size() != NUM_CHANNELS)
+    {
+        std::cout << "Trying to set channels with an invalid length vector for litake_basic_light!\n";
+        return;
+    }
 
-    state["channel_state"].set_map();
-    auto &channel_state = state["channel_state"];
+    uint8_t mod_value = channels[0];
+    uint8_t red = channels[1];
+    uint8_t green = channels[2];
+    uint8_t blue = channels[2];
 
-    const auto channels = get_channels();
-    channel_state["mod"].set_map();
-    channel_state["red"].set_map();
-    channel_state["green"].set_map();
-    channel_state["blue"].set_map();
-
-    channel_state["mod"]["address"] = (double)channels[0].address;
-    channel_state["mod"]["level"] = (double)channels[0].level;
-    channel_state["red"]["address"] = (double)channels[1].address;
-    channel_state["red"]["level"] = (double)channels[1].level;
-    channel_state["green"]["address"] = (double)channels[2].address;
-    channel_state["green"]["level"] = (double)channels[2].level;
-    channel_state["blue"]["address"] = (double)channels[3].address;
-    channel_state["blue"]["level"] = (double)channels[3].level;
-
-    return state;
+    mod_state_value_ = mod_value;
+    set_color(red, green, blue);
 }
 
 //
 // ############################################################################
 //
 
-void litake_basic_light::set_json_light_state(const json::json& j)
-{
-    uint8_t red = 0;
-    uint8_t green = 0;
-    uint8_t blue = 0;
-
-    const auto& result_map = j.get<json::map_type>();
-
-    const auto& red_channel = result_map.find("red");
-    if (red_channel != result_map.cend())
-        red = red_channel->second.get<double>();
-    const auto& green_channel = result_map.find("green");
-    if (green_channel != result_map.cend())
-        green = green_channel->second.get<double>();
-    const auto& blue_channel = result_map.find("blue");
-    if (blue_channel != result_map.cend())
-        blue = blue_channel->second.get<double>();
-
-    set_color(red, green, blue);
-}
 }
