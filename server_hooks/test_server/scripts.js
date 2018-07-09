@@ -38,11 +38,15 @@ function get_state_of_light(light_id) {
 /// Update a single light state, this can be faster than updating the whole universe state
 ///
 function update_single_light(light_id)  {
-    var data_to_send = JSON.stringify(get_state_of_light(light_id));
+    var light_data = {};
+    light_data[light_id] = get_state_of_light(light_id);
+    var data_to_send = {lights: light_data};
+
+    console.log(data_to_send)
     $.ajax({
-      url: '/universe_state/' + light_id,
+      url: '/universe_state',
       type: "POST",
-      data: data_to_send,
+      data: JSON.stringify(data_to_send),
       contentType: "application/json; charset=utf-8",
       dataType: "json"
     })
@@ -79,7 +83,6 @@ function update_lights(light_ids)  {
 /// update the single light if so
 ///
 function update_single_light_live(light_id) {
-    // Don't write if we're not supposed to do live updates
     if ($("#do_live_updates").is(":checked")) {
         update_single_light(light_id);
     }
@@ -108,7 +111,7 @@ function create_light_entry(light_id, light_attrs) {
         this_slider.find('.light_slider')
                    .attr('id', property_name)
                    .attr('value', property_value)
-                   .attr('oninput', 'update_single_light(' + light_id + ')');
+                   .attr('oninput', 'update_single_light_live(' + light_id + ')');
 
         light_entry.find('.light_entry_sliders_holder')
                    .append(this_slider.html());

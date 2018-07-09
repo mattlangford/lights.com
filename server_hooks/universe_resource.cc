@@ -90,10 +90,8 @@ bool universe_resource::handle_post_request(requests::POST post_request)
 
 static std::string generate_identifier()
 {
-    static std::mt19937 rng{std::random_device{}()};
-    static std::uniform_int_distribution<std::mt19937::result_type> dist(0, std::numeric_limits<uint16_t>::max());
-
-    return std::to_string(dist(rng));
+    static uint16_t counter = 0;
+    return std::to_string(counter++);
 }
 
 //

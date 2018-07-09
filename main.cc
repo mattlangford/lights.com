@@ -1,7 +1,8 @@
 // For controlling lights
+#include "light_control/dmx.hh"
 #include "light_control/light_universe_controller.hh"
-#include "light_types/virtual_light.hh"
-#include "serial_control/virtual_serial_interface.hh"
+#include "light_types/litake_basic_light.hh"
+#include "serial_control/ftd2xx_serial_interface.hh"
 
 // For hosting webserver
 #include "http_server/http_server.hh"
@@ -21,17 +22,16 @@ constexpr auto ROOT_PATH = "/home/matt/Documents/dmx_control/server_hooks/test_s
 
 int main()
 {
-    auto light1 = std::make_shared<lights::virtual_light>(1, 5);
-    auto light2 = std::make_shared<lights::virtual_light>(light1->get_end_address() + 1, 2);
+    auto light1 = std::make_shared<lights::litake_basic_light>(1);
+    auto light2 = std::make_shared<lights::litake_basic_light>(5);
 
     //
-    // Configure the universe controller to not care what we do to it
+    // Configure the universe controller and serial interface
     //
     lights::light_universe_controller::controller_params params;
-    params.enforce_44hz = false;
-    params.control = lights::light_universe_controller::control_type::MANUAL;
+    params.control = lights::light_universe_controller::control_type::EXECUTIVE_AUTO;
 
-    serial::virtual_serial_interface interface;
+    serial::ftd2xx_serial_interface interface(dmx::BAUDRATE);
     lights::light_universe_controller universe{interface, params};
 
     //
