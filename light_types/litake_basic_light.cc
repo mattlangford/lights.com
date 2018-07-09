@@ -5,7 +5,7 @@ namespace lights
 {
 
 litake_basic_light::litake_basic_light(size_t start_address)
-    : start_address_(start_address), mod_state_value_(255)
+    : start_address_(start_address), mod_state_value_(255), light_state_(0)
 {
 }
 
@@ -94,7 +94,7 @@ void litake_basic_light::set_channels(std::vector<uint8_t> channels)
     uint8_t mod_value = channels[0];
     uint8_t red = channels[1];
     uint8_t green = channels[2];
-    uint8_t blue = channels[2];
+    uint8_t blue = channels[3];
 
     mod_state_value_ = mod_value;
     set_color(red, green, blue);

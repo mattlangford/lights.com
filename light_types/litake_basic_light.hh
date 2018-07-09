@@ -49,7 +49,6 @@ private: // members ///////////////////////////////////////////////////////////
 
     // The state of the light (RGB) is kept as a single uint32_t so that atomic operations
     // can be done at once. The assumption is the mod value won't produce unwanted results
-
     std::atomic<uint8_t> mod_state_value_;
     std::atomic<uint32_t> light_state_;
 };
