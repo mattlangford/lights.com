@@ -4,6 +4,60 @@
 
 #include "logging.hh"
 
+#include <chrono>
+
+template <size_t STEPS>
+void perform_fade(lights::abstract_light::ptr light, std::vector<uint8_t> new_values)
+{
+    constexpr auto WAIT = std::chrono::duration<double>{1E-2};
+
+    const auto& old_values = light->get_channels();
+
+    // Check if the thing really needs to fade, if the change is small, just jump right to it (for live updates)
+    constexpr double FADE_THRESHOLD = 10;
+    bool needs_to_fade = false;
+
+    // Keep track of the channel values and the amount we should add to each channel for each update
+    std::vector<double> channel_values;
+    std::vector<double> units_per_step;
+    for (size_t i = 0; i < new_values.size(); ++i)
+    {
+        const uint8_t old_value = old_values.at(i).level;
+
+        double delta = new_values.at(i) - old_value;
+        units_per_step.emplace_back(delta / STEPS);
+
+        if (std::abs(delta) > FADE_THRESHOLD)
+        {
+            needs_to_fade = true;
+        }
+
+        channel_values.emplace_back(old_value);
+    }
+
+    if (needs_to_fade == false)
+    {
+        light->set_channels(new_values);
+        return;
+    }
+
+    for (size_t i = 0; i < STEPS; ++i)
+    {
+        // We need to have a uint8_t vector to update with
+        std::vector<uint8_t> to_update_with(channel_values.size());
+        for (size_t c = 0; c < channel_values.size(); ++c)
+        {
+            channel_values[c] += units_per_step[c];
+            to_update_with[c] = channel_values[c];
+        }
+
+        light->set_channels(to_update_with);
+        std::this_thread::sleep_for(WAIT);
+    }
+
+    light->set_channels(new_values);
+}
+
 //
 // ############################################################################
 //
@@ -78,7 +132,7 @@ bool universe_resource::handle_post_request(requests::POST post_request)
             channel_update_processed.emplace_back(v.get<double>());
         }
 
-        light->set_channels(channel_update_processed);
+        perform_fade<20>(light, channel_update_processed);
     }
 
     return true;

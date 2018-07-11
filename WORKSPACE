@@ -19,5 +19,5 @@ git_repository(
 git_repository(
     name = "server",
     remote = "https://github.com/mattlangford/server.git",
-    commit = "1b8e7534b27f1fa67556f92fdef8ed26161058c1"
+    commit = "b5a8f95cbe21c7789874519e5e98156a4c54837b"
 )
