@@ -22,7 +22,6 @@ light_universe_controller::light_universe_controller(serial::abstract_serial_int
     {
         dmx::channel_t& channel = channels_->at(i);
         channel.address = i;
-        std::cout << "address: " << channel.address << "\n";
         channel.level = 0;
     }
 
