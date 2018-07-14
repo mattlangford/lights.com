@@ -11,6 +11,7 @@
 #include "json/parser.hh"
 #include "resources/file_resource.hh"
 #include "server_hooks/universe_resource.hh"
+#include "logging.hh"
 
 #include <random>
 #include <iostream>
@@ -24,6 +25,8 @@ int main()
 {
     const config::universe universe_config = config::generate_living_room_universe();
 
+    LOG_DEBUG("Universe configuration loaded.")
+
     //
     // Configure the universe controller and serial interface
     //
@@ -33,12 +36,15 @@ int main()
     serial::ftd2xx_serial_interface interface(dmx::BAUDRATE);
     lights::light_universe_controller universe{interface, params, universe_config};
 
+    LOG_DEBUG("Universe controller constructed.")
+
     //
     // Build the universe using the resource builder
     //
-    universe_resource_builder builder{universe};
+    std::shared_ptr<server_hooks::universe_resource> resource
+        = std::make_shared<server_hooks::universe_resource>(universe_config, universe.get_underlying_channels());
 
-    auto resource = std::make_shared<universe_resource>(builder.finalize());
+    LOG_DEBUG("Universe resource constructed.")
 
     //
     // Now spin a web server up, see if the client can access it
@@ -49,7 +55,12 @@ int main()
     server.add_resource(std::make_shared<resources::file_resource>(std::string(ROOT_PATH), "/styles.css"));
     server.add_resource(std::make_shared<resources::file_resource>(std::string(ROOT_PATH), "/scripts.js"));
 
+    LOG_DEBUG("HTTP Server constructed.")
+
     server.start_server();
+
+    LOG_DEBUG("HTTP Server started!")
+
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::duration<double>(1.0));

@@ -1,12 +1,11 @@
+#include "config/universe.hh"
 #include "light_control/light_universe_controller.hh"
 
 #include "json/json.hh"
 #include "resources/json_resource.hh"
 
-// TODO: Make this a weak_ptr
-using universe_map = std::map<std::string, lights::abstract_light::ptr>;
-
-class universe_resource_builder;
+namespace server_hooks
+{
 
 ///
 ///
@@ -14,6 +13,11 @@ class universe_resource_builder;
 class universe_resource final : public resources::json_resource
 {
 public: ///////////////////////////////////////////////////////////////////////
+    //
+    // Construct with a config for a universe and a pointer to channels that the universe is configured for
+    //
+    universe_resource(const config::universe& universe, std::shared_ptr<std::vector<dmx::channel_t>> channels);
+
     inline const std::string& get_resource_identifier() const override
     {
         static std::string resource_name = "/universe_state";
@@ -25,42 +29,8 @@ public: ///////////////////////////////////////////////////////////////////////
     bool handle_post_request(requests::POST post_request) override;
 
 private: //////////////////////////////////////////////////////////////////////
-    universe_map light_map;
+    const config::universe universe_;
 
-    friend class universe_resource_builder;
+    std::shared_ptr<std::vector<dmx::channel_t>> channels_;
 };
-
-///
-///
-///
-class universe_resource_builder
-{
-public: ///////////////////////////////////////////////////////////////////////
-    ///
-    ///
-    ///
-    universe_resource_builder(lights::light_universe_controller& controller);
-
-public: ///////////////////////////////////////////////////////////////////////
-
-    ///
-    /// Registers the light with this resource builder AND with the controller
-    ///
-    void add_light_to_universe(lights::abstract_light::ptr light);
-
-    ///
-    /// Finish building the universe, this resource can be used to service HTTP Requests
-    ///
-    universe_resource finalize();
-
-private: //////////////////////////////////////////////////////////////////////
-    ///
-    /// Controller we'll add lights to
-    ///
-    lights::light_universe_controller& controller;
-
-    ///
-    /// The map that we're building, as lights get added, they get identifiers added and put here
-    ///
-    universe_map building_map;
-};
+}

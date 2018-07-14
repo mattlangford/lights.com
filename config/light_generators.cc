@@ -31,7 +31,7 @@ light generate_litake_basic_light(std::string light_name, uint16_t& address)
 
     config::channel red;
     red.name = "red";
-    red.base_offset = 0;
+    red.base_offset = 1;
     red.min_value = 0;
     red.max_value = 255;
     red.role = channel_role::RED;
@@ -40,7 +40,7 @@ light generate_litake_basic_light(std::string light_name, uint16_t& address)
 
     config::channel green;
     green.name = "green";
-    green.base_offset = 0;
+    green.base_offset = 2;
     green.min_value = 0;
     green.max_value = 255;
     green.role = channel_role::GREEN;
@@ -49,7 +49,7 @@ light generate_litake_basic_light(std::string light_name, uint16_t& address)
 
     config::channel blue;
     blue.name = "blue";
-    blue.base_offset = 0;
+    blue.base_offset = 3;
     blue.min_value = 0;
     blue.max_value = 255;
     blue.role = channel_role::BLUE;

@@ -6,7 +6,7 @@ namespace config
 
 universe generate_living_room_universe()
 {
-    uint16_t address = 0;
+    uint16_t address = 1;
 
     universe living_room;
     living_room.lights.emplace_back(generate_litake_basic_light("Right Side", address));

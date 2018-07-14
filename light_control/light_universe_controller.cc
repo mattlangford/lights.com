@@ -16,10 +16,10 @@ light_universe_controller::light_universe_controller(serial::abstract_serial_int
                                                      const config::universe& universe)
     : connection_(connection),
       universe_(universe),
-      channels_(std::make_shared<std::vector<dmx::channel_t>>(utils::get_num_channels(universe))),
+      channels_(std::make_shared<std::vector<dmx::channel_t>>(utils::get_num_channels(universe) + 1)),
       last_update_time_(std::chrono::high_resolution_clock::now())
 {
-    for (size_t i = 0; channels_->size(); ++i)
+    for (size_t i = 0; i < channels_->size(); ++i)
     {
         dmx::channel_t& channel = channels_->at(i);
         channel.address = i;

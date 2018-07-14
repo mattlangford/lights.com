@@ -1,20 +1,20 @@
+#include <chrono>
+#include <exception>
 #include <random>
+
 #include "json/parser.hh"
 #include "server_hooks/universe_resource.hh"
+#include "utils/universe_utilities.hh"
 
 #include "logging.hh"
 
-#include <chrono>
-
 template <size_t STEPS>
-void perform_fade(lights::abstract_light::ptr light, std::vector<uint8_t> new_values)
+static void perform_fade(const config::light& light, std::vector<dmx::channel_t>& channels, std::vector<uint8_t> new_values)
 {
     constexpr auto WAIT = std::chrono::duration<double>{1E-2};
 
-    const auto& old_values = light->get_channels();
-
     // Check if the thing really needs to fade, if the change is small, just jump right to it (for live updates)
-    constexpr double FADE_THRESHOLD = 10;
+    constexpr double FADE_THRESHOLD = 20;
     bool needs_to_fade = false;
 
     // Keep track of the channel values and the amount we should add to each channel for each update
@@ -22,9 +22,9 @@ void perform_fade(lights::abstract_light::ptr light, std::vector<uint8_t> new_va
     std::vector<double> units_per_step;
     for (size_t i = 0; i < new_values.size(); ++i)
     {
-        const uint8_t old_value = old_values.at(i).level;
+        const uint8_t old_value = channels.at(light.starting_address + i).level;
 
-        double delta = new_values.at(i) - old_value;
+        double delta = new_values[i] - old_value;
         units_per_step.emplace_back(delta / STEPS);
 
         if (std::abs(delta) > FADE_THRESHOLD)
@@ -37,25 +37,46 @@ void perform_fade(lights::abstract_light::ptr light, std::vector<uint8_t> new_va
 
     if (needs_to_fade == false)
     {
-        light->set_channels(new_values);
+        for (size_t i = 0; i < new_values.size(); ++i)
+        {
+            channels.at(light.starting_address + i).level = new_values[i];
+        }
         return;
     }
 
     for (size_t i = 0; i < STEPS; ++i)
     {
-        // We need to have a uint8_t vector to update with
         std::vector<uint8_t> to_update_with(channel_values.size());
         for (size_t c = 0; c < channel_values.size(); ++c)
         {
-            channel_values[c] += units_per_step[c];
-            to_update_with[c] = channel_values[c];
+            channels[light.starting_address + c].level += units_per_step[c];
         }
 
-        light->set_channels(to_update_with);
         std::this_thread::sleep_for(WAIT);
     }
 
-    light->set_channels(new_values);
+    // Make sure we get to the end values
+    for (size_t i = 0; i < new_values.size(); ++i)
+    {
+        channels.at(light.starting_address + i).level = new_values[i];
+    }
+}
+
+namespace server_hooks
+{
+
+universe_resource::universe_resource(const config::universe& universe, std::shared_ptr<std::vector<dmx::channel_t>> channels)
+    : universe_(universe),
+      channels_(channels)
+{
+    const size_t num_configured_channels = utils::get_num_channels(universe_);
+    if (num_configured_channels != channels_->back().address)
+    {
+        LOG_ERROR("Number of configured channels doesn't match number of channels. ("
+                << num_configured_channels << " != " << channels_->back().address << ")");
+
+        throw std::runtime_error("Number of configured channels doesn't match number of channels.");
+    }
 }
 
 //
@@ -65,33 +86,35 @@ void perform_fade(lights::abstract_light::ptr light, std::vector<uint8_t> new_va
 json::json universe_resource::get_json_resource()
 {
     json::map_type json_universe_state;
-    json::map_type json_lights;
-    for (const auto& entry : light_map)
+    json::vector_type json_lights;
+    for (const config::light& light : universe_.lights)
     {
         json::json json_light;
         json_light.set_map();
 
-        json_light["light_name"] = std::string("test_name");
+        json_light["light_name"] = std::string(light.name);
 
-        json::vector_type json_channel_values;
-        for (const auto& channel : entry.second->get_channels())
+        json::vector_type json_channels;
+
+        const uint16_t base_address = light.starting_address;
+        for (const config::channel& channel : light.channels)
         {
-            json_channel_values.emplace_back(static_cast<double>(channel.level));
-        }
-        json_light["channel_values"] = std::move(json_channel_values);
+            uint16_t channel_address = base_address + channel.base_offset;
 
-        json::vector_type json_channel_names;
-        for (const auto& name : entry.second->get_channel_names())
-        {
-            json_channel_names.emplace_back(static_cast<std::string>(name));
-        }
-        json_light["channel_names"] = std::move(json_channel_names);
+            json::map_type json_channel;
+            json_channel["name"] = std::string(channel.name);
+            json_channel["min_value"] = (double)channel.min_value;
+            json_channel["max_value"] = (double)channel.max_value;
+            json_channel["level"] = (double)channels_->at(channel_address).level;
 
-        json_lights[entry.first] = std::move(json_light);
+            json_channels.emplace_back(std::move(json_channel));
+        }
+        json_light["channels"] = std::move(json_channels);
+        json_lights.emplace_back(std::move(json_light));
     }
-
     json_universe_state["lights"] = std::move(json_lights);
 
+    LOG_DEBUG("Got lights");
     return json::json{json_universe_state};
 }
 
@@ -107,74 +130,19 @@ bool universe_resource::handle_post_request(requests::POST post_request)
 
     for (const std::pair<std::string, json::json>& entry : lights)
     {
-        const std::string id = entry.first;
+        const size_t light_index = std::stoi(entry.first);
 
-        auto light_found = light_map.find(id);
-        if (light_found == light_map.end())
+        const config::light& this_light = universe_.lights[light_index];
+
+        std::vector<uint8_t> to_update;
+        for (const json::json& v : lights["channel_values"].get<json::vector_type>())
         {
-            LOG_WARN("Got a JSON response with a light ID that wasn't found in the database.");
-            continue;
-        }
-        lights::abstract_light::ptr light = light_found->second;
-
-        json::vector_type channel_update = entry.second.get<json::vector_type>();
-        const size_t expected_count = light->get_channel_count();
-
-        if (channel_update.size() != expected_count)
-        {
-            LOG_WARN("JSON response has an invalid number of channels (" << expected_count << " != " << channel_update.size() << "). Ignoring.");
-            continue;
+            to_update.emplace_back(v.get<double>());
         }
 
-        std::vector<uint8_t> channel_update_processed;
-        for (const json::json& v : channel_update)
-        {
-            channel_update_processed.emplace_back(v.get<double>());
-        }
-
-        perform_fade<20>(light, channel_update_processed);
+        perform_fade<20>(this_light, *channels_, to_update);
     }
 
     return true;
 }
-
-//
-// ############################################################################
-//
-
-static std::string generate_identifier()
-{
-    static uint16_t counter = 0;
-    return std::to_string(counter++);
-}
-
-//
-// ############################################################################
-//
-
-universe_resource_builder::universe_resource_builder(lights::light_universe_controller& controller_)
-    : controller(controller_)
-{
-}
-
-//
-// ############################################################################
-//
-
-void universe_resource_builder::add_light_to_universe(lights::abstract_light::ptr light)
-{
-    std::string identifier = generate_identifier();
-    building_map[generate_identifier()] = light;
-    //controller.add_light_to_universe(std::move(light));
-}
-
-//
-// ############################################################################
-//
-
-universe_resource universe_resource_builder::finalize()
-{
-    universe_resource resource;
-    resource.light_map = std::move(building_map);
-    return resource;
 }
