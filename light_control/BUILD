@@ -16,6 +16,8 @@ cc_library(
     name="light_universe_controller",
     srcs=["light_universe_controller.cc"],
     hdrs=["light_universe_controller.hh"],
-    deps=["//light_types:abstract_light"],
+    deps=["//config:universe",
+          "//light_types:abstract_light",
+          "//utils:universe_utilities"],
     visibility = ["//visibility:public"]
 )

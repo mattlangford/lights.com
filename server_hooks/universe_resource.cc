@@ -165,7 +165,7 @@ void universe_resource_builder::add_light_to_universe(lights::abstract_light::pt
 {
     std::string identifier = generate_identifier();
     building_map[generate_identifier()] = light;
-    controller.add_light_to_universe(std::move(light));
+    //controller.add_light_to_universe(std::move(light));
 }
 
 //

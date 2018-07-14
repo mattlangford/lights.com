@@ -1,4 +1,6 @@
 #pragma once
+#include "config/universe.hh"
+
 #include "serial_control/abstract_serial_interface.hh"
 #include "light_types/abstract_light.hh"
 
@@ -39,13 +41,16 @@ public:
     };
 
 public:
+    light_universe_controller(serial::abstract_serial_interface& connection,
+                              const controller_params& params,
+                              const config::universe& universe);
     light_universe_controller(serial::abstract_serial_interface& connection, const controller_params& params);
 
     ~light_universe_controller();
 
 public:
-    // add a new light
-    void add_light_to_universe(abstract_light::ptr light);
+    // For anything that is expecting to change the channels will need them. The vector won't be resized after construction
+    inline std::shared_ptr<std::vector<dmx::channel_t>> get_underlying_channels() { return channels_; }
 
     // preform an update
     void do_update();
@@ -58,20 +63,21 @@ private:
     void executive_thread();
 
 private:
-    controller_params params_;
-
     // connection to the board that interfaces with the lights
     serial::abstract_serial_interface& connection_;
+
+    // parameters for this controller
+    controller_params params_;
+
+    // the universe that we're controlling and the channels that we use for updates
+    const config::universe universe_;
+    std::shared_ptr<std::vector<dmx::channel_t>> channels_;
 
     // how long to sleep after each update
     std::chrono::duration<double> update_period_;
 
     // if we've been configured to enforce the 44hz DMX update rate, we'll need to keep track of the time
     std::chrono::high_resolution_clock::time_point last_update_time_;
-
-    // all of the lights registered, each timestep will get
-    std::vector<abstract_light::ptr> lights_;
-    std::array<bool, dmx::MAX_NUM_CHANNELS> valid_addresses_;
 
     // handle to the main executive runner thread
     std::atomic_bool running_;

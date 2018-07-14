@@ -1,17 +1,43 @@
 #include "light_control/light_universe_controller.hh"
 #include "light_control/dmx.hh"
+#include "utils/universe_utilities.hh"
 
 #include <iostream>
 
 namespace lights
 {
 
+//
+// ############################################################################
+//
+
+light_universe_controller::light_universe_controller(serial::abstract_serial_interface& connection,
+                                                     const controller_params& params,
+                                                     const config::universe& universe)
+    : connection_(connection),
+      universe_(universe),
+      channels_(std::make_shared<std::vector<dmx::channel_t>>(utils::get_num_channels(universe))),
+      last_update_time_(std::chrono::high_resolution_clock::now())
+{
+    for (size_t i = 0; channels_->size(); ++i)
+    {
+        dmx::channel_t& channel = channels_->at(i);
+        channel.address = i;
+        channel.level = 0;
+    }
+
+    // should happen after everything has been set up
+    update_params(params);
+}
+
+//
+// ############################################################################
+//
+
 light_universe_controller::light_universe_controller(serial::abstract_serial_interface& connection, const controller_params& params)
     : connection_(connection),
       last_update_time_(std::chrono::high_resolution_clock::now())
 {
-    valid_addresses_.fill(true);
-
     update_params(params);
 }
 
@@ -23,37 +49,10 @@ light_universe_controller::~light_universe_controller()
 {
     running_ = false;
 
-    for (lights::abstract_light::ptr light : lights_)
-    {
-        light->set_off();
-    }
-
     if (executive_handle_.joinable())
     {
         executive_handle_.join();
     }
-
-    // one last update to turn off lights
-    do_update();
-}
-
-//
-// ############################################################################
-//
-
-void light_universe_controller::add_light_to_universe(abstract_light::ptr light)
-{
-    for (size_t i = light->get_start_address(); i <= light->get_end_address(); ++i)
-    {
-        if (valid_addresses_[i] == false)
-        {
-            throw std::runtime_error("Multiple lights are sharing the address (" + std::to_string(i) + ").");
-        }
-
-        valid_addresses_[i] = false;
-    }
-
-    lights_.emplace_back(std::move(light));
 }
 
 //
@@ -62,19 +61,8 @@ void light_universe_controller::add_light_to_universe(abstract_light::ptr light)
 
 void light_universe_controller::do_update()
 {
-    dmx::dmx_helper::channels_t channels;
-    channels.reserve(dmx::MAX_NUM_CHANNELS);
-
-    for (abstract_light::ptr& light : lights_)
-    {
-        for (auto&& channel : light->get_channels())
-        {
-            channels.emplace_back(std::move(channel));
-        }
-    }
-
     // message, where each bool is a bit in the data stream
-    const std::vector<bool> message = dmx::dmx_helper::generate_message_from_channels(channels);
+    const std::vector<bool> message = dmx::dmx_helper::generate_message_from_channels(*channels_);
 
     // packed message, where each byte is contains a single bit of data, which will be used to simulate a differential pair
     const serial::ByteVector_t packed_message_to_send = dmx::dmx_helper::simulate_differential_pair(message);
