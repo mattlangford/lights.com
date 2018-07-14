@@ -20,13 +20,14 @@ light generate_litake_basic_light(std::string light_name, uint16_t& address)
     l.channels.emplace_back(std::move(brightness));
     address++;
 
-    config::channel flash;
-    flash.name = "Flash Speed";
-    flash.base_offset = 0;
-    flash.min_value = 128;
-    flash.max_value = 255;
-    flash.role = channel_role::FLASH;
-    l.channels.emplace_back(std::move(flash));
+    // TODO: Figure out how to handle channels with multiple ranges
+    // config::channel flash;
+    // flash.name = "Flash Speed";
+    // flash.base_offset = 0;
+    // flash.min_value = 128;
+    // flash.max_value = 255;
+    // flash.role = channel_role::FLASH;
+    // l.channels.emplace_back(std::move(flash));
     address++;
 
     config::channel red;

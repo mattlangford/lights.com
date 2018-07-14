@@ -115,7 +115,6 @@ json::json universe_resource::get_json_resource()
     }
     json_universe_state["lights"] = std::move(json_lights);
 
-    LOG_DEBUG("Got lights");
     return json::json{json_universe_state};
 }
 
@@ -136,7 +135,7 @@ bool universe_resource::handle_post_request(requests::POST post_request)
         const config::light& this_light = universe_.lights[light_index];
 
         std::vector<uint8_t> to_update;
-        for (const json::json& v : lights["channel_values"].get<json::vector_type>())
+        for (const json::json& v : entry.second.get<json::vector_type>())
         {
             to_update.emplace_back(v.get<double>());
         }

@@ -64,6 +64,5 @@ int main()
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::duration<double>(1.0));
-        std::cout << resource->get_json_resource().get_value_as_string() << "\n";
     }
 }
