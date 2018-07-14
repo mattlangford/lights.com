@@ -1,5 +1,4 @@
 #include "light_control/light_universe_controller.hh"
-#include "light_control/dmx.hh"
 #include "utils/universe_utilities.hh"
 
 #include <iostream>
@@ -23,6 +22,7 @@ light_universe_controller::light_universe_controller(serial::abstract_serial_int
     {
         dmx::channel_t& channel = channels_->at(i);
         channel.address = i;
+        std::cout << "address: " << channel.address << "\n";
         channel.level = 0;
     }
 

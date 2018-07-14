@@ -1,8 +1,7 @@
 #pragma once
 #include "config/universe.hh"
-
+#include "light_control/dmx.hh"
 #include "serial_control/abstract_serial_interface.hh"
-#include "light_types/abstract_light.hh"
 
 #include <atomic>
 #include <memory>
