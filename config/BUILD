@@ -19,6 +19,13 @@ cc_library(
 )
 
 cc_library(
+    name = "universe",
+    hdrs = ["universe.hh"],
+    deps = [":light"],
+    visibility = ["//visibility:public"]
+)
+
+cc_library(
     name = "light_generators",
     srcs = ["light_generators.cc"],
     hdrs = ["light_generators.hh"],
