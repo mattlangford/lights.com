@@ -10,15 +10,15 @@ static constexpr size_t BYTE_SIZE = 8;
 static constexpr size_t BAUDRATE = 250000;
 static constexpr size_t MAX_NUM_CHANNELS = 512;
 
+struct channel_t
+{
+    uint16_t address; // up to 512
+    uint8_t level;
+};
+
 class dmx_helper
 {
 public: ///////////////////////////////////////////////////////////////////////
-    struct channel_t
-    {
-        uint16_t address; // up to 512
-        uint8_t level;
-    };
-
     // Vector of up to 512 channels
     typedef std::vector<channel_t> channels_t;
 

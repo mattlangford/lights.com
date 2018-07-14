@@ -59,9 +59,9 @@ void litake_basic_light::set_brightness(uint8_t brightness)
 // ############################################################################
 //
 
-std::vector<dmx::dmx_helper::channel_t> litake_basic_light::get_channels() const
+std::vector<dmx::channel_t> litake_basic_light::get_channels() const
 {
-    std::vector<dmx::dmx_helper::channel_t> channels(NUM_CHANNELS);
+    std::vector<dmx::channel_t> channels(NUM_CHANNELS);
     for (size_t channel = 0; channel < NUM_CHANNELS; ++channel)
     {
         channels[channel].address = get_start_address() + channel;

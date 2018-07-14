@@ -36,14 +36,10 @@ public: // methods ////////////////////////////////////////////////////////////
     virtual void set_channels(std::vector<uint8_t> channels) = 0;
 
     // get the channels this light has to offer
-    virtual std::vector<dmx::dmx_helper::channel_t> get_channels() const = 0;
+    virtual std::vector<dmx::channel_t> get_channels() const = 0;
     virtual const std::vector<std::string>& get_channel_names() const = 0;
 
     // every light should be able to turn off
     virtual void set_off() = 0;
-
-    // // Set or get this light as a json object
-    // virtual json::json get_json_light_state() const = 0;
-    // virtual void set_json_light_state(const json::json& j) = 0;
 };
 }

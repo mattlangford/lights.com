@@ -24,13 +24,13 @@ public: // methods ////////////////////////////////////////////////////////////
 
     void set_channels(std::vector<uint8_t> channels) override;
 
-    inline std::vector<dmx::dmx_helper::channel_t> get_channels() const override { return channels_; }
+    inline std::vector<dmx::channel_t> get_channels() const override { return channels_; }
     inline const std::vector<std::string>& get_channel_names() const override { return channel_names_; }
 
     void set_off() override;
 
 private: //////////////////////////////////////////////////////////////////////
-    std::vector<dmx::dmx_helper::channel_t> channels_;
+    std::vector<dmx::channel_t> channels_;
     std::vector<std::string> channel_names_;
 };
 }

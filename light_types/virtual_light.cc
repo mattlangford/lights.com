@@ -13,7 +13,7 @@ virtual_light::virtual_light(const uint8_t start_address, const uint8_t num_chan
 {
     for (size_t i = 0; i < num_channels; ++i)
     {
-        dmx::dmx_helper::channel_t& channel = channels_.at(i);
+        dmx::channel_t& channel = channels_.at(i);
         std::string& channel_name = channel_names_.at(i);
 
         channel.address = i + start_address;

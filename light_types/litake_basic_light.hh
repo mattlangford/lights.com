@@ -37,7 +37,7 @@ public: // methods ////////////////////////////////////////////////////////////
 
     void set_channels(std::vector<uint8_t> channels) override;
 
-    std::vector<dmx::dmx_helper::channel_t> get_channels() const override;
+    std::vector<dmx::channel_t> get_channels() const override;
     inline const std::vector<std::string>& get_channel_names() const override
     {
         static const std::vector<std::string> channel_names {"n/a", "Red", "Green", "Blue"};
