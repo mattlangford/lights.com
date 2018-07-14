@@ -34,17 +34,6 @@ light_universe_controller::light_universe_controller(serial::abstract_serial_int
 // ############################################################################
 //
 
-light_universe_controller::light_universe_controller(serial::abstract_serial_interface& connection, const controller_params& params)
-    : connection_(connection),
-      last_update_time_(std::chrono::high_resolution_clock::now())
-{
-    update_params(params);
-}
-
-//
-// ############################################################################
-//
-
 light_universe_controller::~light_universe_controller()
 {
     running_ = false;

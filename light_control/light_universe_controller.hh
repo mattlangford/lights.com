@@ -44,7 +44,6 @@ public:
     light_universe_controller(serial::abstract_serial_interface& connection,
                               const controller_params& params,
                               const config::universe& universe);
-    light_universe_controller(serial::abstract_serial_interface& connection, const controller_params& params);
 
     ~light_universe_controller();
 

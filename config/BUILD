@@ -34,3 +34,12 @@ cc_library(
             ":light"],
     visibility = ["//visibility:public"]
 )
+
+cc_library(
+    name = "universe_generators",
+    srcs = ["universe_generators.cc"],
+    hdrs = ["universe_generators.hh"],
+    deps = [":light_generators",
+            ":universe"],
+    visibility = ["//visibility:public"]
+)

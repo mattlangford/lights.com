@@ -1,7 +1,7 @@
 // For controlling lights
+#include "config/universe_generators.hh"
 #include "light_control/dmx.hh"
 #include "light_control/light_universe_controller.hh"
-#include "light_types/litake_basic_light.hh"
 #include "serial_control/ftd2xx_serial_interface.hh"
 
 // For hosting webserver
@@ -22,8 +22,7 @@ constexpr auto ROOT_PATH = "/home/matt/Documents/dmx_control/server_hooks/test_s
 
 int main()
 {
-    auto light1 = std::make_shared<lights::litake_basic_light>(1);
-    auto light2 = std::make_shared<lights::litake_basic_light>(5);
+    const config::universe universe_config = config::generate_living_room_universe();
 
     //
     // Configure the universe controller and serial interface
@@ -32,14 +31,12 @@ int main()
     params.control = lights::light_universe_controller::control_type::EXECUTIVE_AUTO;
 
     serial::ftd2xx_serial_interface interface(dmx::BAUDRATE);
-    lights::light_universe_controller universe{interface, params};
+    lights::light_universe_controller universe{interface, params, universe_config};
 
     //
     // Build the universe using the resource builder
     //
     universe_resource_builder builder{universe};
-    builder.add_light_to_universe(light1);
-    builder.add_light_to_universe(light2);
 
     auto resource = std::make_shared<universe_resource>(builder.finalize());
 

@@ -3,10 +3,10 @@
 namespace config
 {
 
-light generate_litake_basic_light(uint16_t starting_address)
+light generate_litake_basic_light(uint16_t& address)
 {
     light l;
-    l.starting_address = starting_address;
+    l.starting_address = address;
 
     config::channel brightness;
     brightness.name = "brightness";
@@ -15,6 +15,7 @@ light generate_litake_basic_light(uint16_t starting_address)
     brightness.max_value = 127;
     brightness.role = channel_role::BRIGHTNESS;
     l.channels.emplace_back(std::move(brightness));
+    address++;
 
     config::channel flash;
     flash.name = "flash";
@@ -23,6 +24,7 @@ light generate_litake_basic_light(uint16_t starting_address)
     flash.max_value = 255;
     flash.role = channel_role::FLASH;
     l.channels.emplace_back(std::move(flash));
+    address++;
 
     config::channel red;
     red.name = "red";
@@ -31,6 +33,7 @@ light generate_litake_basic_light(uint16_t starting_address)
     red.max_value = 255;
     red.role = channel_role::RED;
     l.channels.emplace_back(std::move(red));
+    address++;
 
     config::channel green;
     green.name = "green";
@@ -39,6 +42,7 @@ light generate_litake_basic_light(uint16_t starting_address)
     green.max_value = 255;
     green.role = channel_role::GREEN;
     l.channels.emplace_back(std::move(green));
+    address++;
 
     config::channel blue;
     blue.name = "blue";
@@ -47,6 +51,7 @@ light generate_litake_basic_light(uint16_t starting_address)
     blue.max_value = 255;
     blue.role = channel_role::BLUE;
     l.channels.emplace_back(std::move(blue));
+    address++;
 
     return l;
 }
