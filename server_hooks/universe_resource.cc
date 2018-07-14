@@ -103,6 +103,7 @@ json::json universe_resource::get_json_resource()
 
             json::map_type json_channel;
             json_channel["name"] = std::string(channel.name);
+            json_channel["base_offset"] = (double)channel.base_offset;
             json_channel["min_value"] = (double)channel.min_value;
             json_channel["max_value"] = (double)channel.max_value;
             json_channel["level"] = (double)channels_->at(channel_address).level;

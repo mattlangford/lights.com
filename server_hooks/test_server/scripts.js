@@ -28,9 +28,14 @@ function get_state_of_light(light_id) {
     var values = []
     for (var i = 0; i < this_light_value_elements.length; i++) {
         var element = this_light_value_elements[i];
-        values.push(parseFloat(element.value))
+        var base_offset_address = parseFloat(element.id);
+        if (values.length < base_offset_address) {
+            values.length += values.length - base_offset_address
+        }
+        values[base_offset_address] = parseFloat(element.value);
     }
 
+    console.log(values)
     return values
 }
 
@@ -62,7 +67,6 @@ function update_lights(light_ids)  {
     for (var i = 0; i < light_entries.length; i++) {
         var light_entry = light_entries[i];
 
-        console.log(light_entry.id)
         light_values[light_entry.id] = get_state_of_light(light_entry.id);
     }
 
@@ -95,7 +99,7 @@ function create_light_entry(light_id, light_attrs) {
     // Start building the DOM element that will be inserted.
     var light_entry = $('#light_entry_template').clone();
     light_entry.find('.light_entry')
-               .attr('id', light_id)
+               .attr('id', "light_" + light_id)
                .find('.light_entry_title')
                .text(light_attrs.light_name);
 
@@ -108,7 +112,7 @@ function create_light_entry(light_id, light_attrs) {
                    .text(channel.name + ':');
 
         this_slider.find('.light_slider')
-                   .attr('id', channel.name)
+                   .attr('id', channel.base_offset)
                    .attr('min', channel.min_value)
                    .attr('max', channel.max_value)
                    .attr('level', channel.level)
