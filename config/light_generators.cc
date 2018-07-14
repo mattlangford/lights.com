@@ -1,11 +1,14 @@
 #include "config/light_generators.hh"
+#include "config/channel_roles.hh"
+#include "config/channel.hh"
 
 namespace config
 {
 
-light generate_litake_basic_light(uint16_t& address)
+light generate_litake_basic_light(std::string light_name, uint16_t& address)
 {
     light l;
+    l.name = std::move(light_name);
     l.starting_address = address;
 
     config::channel brightness;

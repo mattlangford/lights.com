@@ -4,6 +4,7 @@
 static config::light get_test_light()
 {
     config::light test_light;
+    test_light.name = "Test Light";
     test_light.starting_address = 55;
 
     config::channel red_channel;
