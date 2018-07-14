@@ -3,10 +3,10 @@
 namespace config
 {
 
-light generate_litake_basic_light(uint8_t starting_channel)
+light generate_litake_basic_light(uint16_t starting_address)
 {
     light l;
-    l.starting_channel = starting_channel;
+    l.starting_address = starting_address;
 
     config::channel brightness;
     brightness.name = "brightness";
