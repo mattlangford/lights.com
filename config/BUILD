@@ -17,3 +17,13 @@ cc_library(
     deps = [":channel"],
     visibility = ["//visibility:public"]
 )
+
+cc_library(
+    name = "light_generators",
+    srcs = ["light_generators.cc"],
+    hdrs = ["light_generators.hh"],
+    deps = [":channel_roles",
+            ":channel",
+            ":light"],
+    visibility = ["//visibility:public"]
+)
