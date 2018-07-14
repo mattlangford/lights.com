@@ -99,18 +99,19 @@ function create_light_entry(light_id, light_attrs) {
                .find('.light_entry_title')
                .text(light_attrs.light_name);
 
-    // Add a slider for each property, make it so it'll update the state on change
-    for (p in light_attrs.channel_names) {
-        var property_name = light_attrs.channel_names[p];
-        var property_value = light_attrs.channel_values[p];
+    // Add a slider for each channel, make it so it'll update the state on change
+    for (c in light_attrs.channels) {
+        var channel = light_attrs.channels[c];
 
         var this_slider = $('#light_entry_slider_holder_template').clone();
         this_slider.find('.light_entry_slider_title')
-                   .text(property_name + ':');
+                   .text(channel.name + ':');
 
         this_slider.find('.light_slider')
-                   .attr('id', property_name)
-                   .attr('value', property_value)
+                   .attr('id', channel.name)
+                   .attr('min', channel.min_value)
+                   .attr('max', channel.max_value)
+                   .attr('level', channel.level)
                    .attr('oninput', 'update_single_light_live(' + light_id + ')');
 
         light_entry.find('.light_entry_sliders_holder')

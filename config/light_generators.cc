@@ -12,7 +12,7 @@ light generate_litake_basic_light(std::string light_name, uint16_t& address)
     l.starting_address = address;
 
     config::channel brightness;
-    brightness.name = "brightness";
+    brightness.name = "Brightness";
     brightness.base_offset = 0;
     brightness.min_value = 0;
     brightness.max_value = 127;
@@ -21,7 +21,7 @@ light generate_litake_basic_light(std::string light_name, uint16_t& address)
     address++;
 
     config::channel flash;
-    flash.name = "flash";
+    flash.name = "Flash Speed";
     flash.base_offset = 0;
     flash.min_value = 128;
     flash.max_value = 255;
@@ -30,7 +30,7 @@ light generate_litake_basic_light(std::string light_name, uint16_t& address)
     address++;
 
     config::channel red;
-    red.name = "red";
+    red.name = "Red";
     red.base_offset = 1;
     red.min_value = 0;
     red.max_value = 255;
@@ -39,7 +39,7 @@ light generate_litake_basic_light(std::string light_name, uint16_t& address)
     address++;
 
     config::channel green;
-    green.name = "green";
+    green.name = "Green";
     green.base_offset = 2;
     green.min_value = 0;
     green.max_value = 255;
@@ -48,7 +48,7 @@ light generate_litake_basic_light(std::string light_name, uint16_t& address)
     address++;
 
     config::channel blue;
-    blue.name = "blue";
+    blue.name = "Blue";
     blue.base_offset = 3;
     blue.min_value = 0;
     blue.max_value = 255;

@@ -60,10 +60,13 @@
     font-weight: bold;
 }
 .light_entry_slider_title{
-    width: 30px;
+    width: 20% - 15px;
     position: relative;
     float: left;
     padding-left: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .light_slider {
     width: 80%;
