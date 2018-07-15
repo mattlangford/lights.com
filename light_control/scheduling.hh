@@ -60,10 +60,13 @@ public:
     ~scheduler() = default;
 
 public:
+    using system_clock = std::chrono::system_clock;
+
+public:
     ///
     /// Update the given channels, if this is the last update, it may call the wrap_up_function
     ///
-    void time_update(std::vector<dmx::channel_t>& channels);
+    void time_update(std::vector<dmx::channel_t>& channels, const system_clock::time_point& now);
 
     ///
     /// Set a new target, this has the option to preempt the current transition
@@ -74,10 +77,6 @@ public:
     /// The number of entries that are queued up
     ///
     size_t get_num_queued_entries();
-
-private:
-    using system_clock = std::chrono::system_clock;
-
 
 private:
     ///

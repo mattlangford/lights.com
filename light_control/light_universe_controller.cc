@@ -60,7 +60,7 @@ void light_universe_controller::queue_update(schedule_entry s, bool preempt)
 void light_universe_controller::do_update()
 {
     // get the latest channel values
-    scheduler_.time_update(channels_);
+    scheduler_.time_update(channels_, scheduler::system_clock::now());
 
     // message, where each bool is a bit in the data stream
     const std::vector<bool> message = dmx::dmx_helper::generate_message_from_channels(channels_);

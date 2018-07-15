@@ -41,7 +41,7 @@ namespace light_control
 // ############################################################################
 //
 
-void scheduler::time_update(std::vector<dmx::channel_t>& channels)
+void scheduler::time_update(std::vector<dmx::channel_t>& channels, const system_clock::time_point& now)
 {
     if (needs_executing == false)
     {
@@ -51,7 +51,7 @@ void scheduler::time_update(std::vector<dmx::channel_t>& channels)
         }
     }
 
-    double percent = compute_percent_complete(system_clock::now());
+    double percent = compute_percent_complete(now);
 
     // Mark if starting_channels needs to be set, if so we'll populate it during this time update
     bool starting_channels_needs_to_be_set = starting_channels.empty();
