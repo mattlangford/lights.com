@@ -1,13 +1,15 @@
 #pragma once
 #include "config/universe.hh"
 #include "light_control/dmx.hh"
+#include "light_control/scheduling.hh"
 #include "serial_control/abstract_serial_interface.hh"
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <thread>
 
-namespace lights
+namespace light_control
 {
 
 class light_universe_controller
@@ -47,8 +49,8 @@ public:
     ~light_universe_controller();
 
 public:
-    // For anything that is expecting to change the channels will need them. The vector won't be resized after construction
-    inline std::shared_ptr<std::vector<dmx::channel_t>> get_underlying_channels() { return channels_; }
+    // Set the next schedule point
+    void set_schedule(schedule_entry s, bool preempt=false);
 
     // preform an update
     void do_update();
@@ -67,9 +69,12 @@ private:
     // parameters for this controller
     controller_params params_;
 
+    // where we're going next
+    scheduler scheduler_;
+
     // the universe that we're controlling and the channels that we use for updates
     const config::universe universe_;
-    std::shared_ptr<std::vector<dmx::channel_t>> channels_;
+    std::vector<dmx::channel_t> channels_;
 
     // how long to sleep after each update
     std::chrono::duration<double> update_period_;

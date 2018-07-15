@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-namespace lights
+namespace light_control
 {
 
 //
@@ -15,12 +15,13 @@ light_universe_controller::light_universe_controller(serial::abstract_serial_int
                                                      const config::universe& universe)
     : connection_(connection),
       universe_(universe),
-      channels_(std::make_shared<std::vector<dmx::channel_t>>(utils::get_num_channels(universe) + 1)),
-      last_update_time_(std::chrono::high_resolution_clock::now())
+      channels_(utils::get_num_channels(universe) + 1),
+      last_update_time_(std::chrono::high_resolution_clock::now()),
+      running_(false)
 {
-    for (size_t i = 0; i < channels_->size(); ++i)
+    for (size_t i = 0; i < channels_.size(); ++i)
     {
-        dmx::channel_t& channel = channels_->at(i);
+        dmx::channel_t& channel = channels_[i];
         channel.address = i;
         channel.level = 0;
     }
@@ -47,12 +48,25 @@ light_universe_controller::~light_universe_controller()
 // ############################################################################
 //
 
+void light_universe_controller::set_schedule(schedule_entry s, bool preempt)
+{
+    scheduler_.queue_entry(std::move(s), preempt);
+}
+
+//
+// ############################################################################
+//
+
 void light_universe_controller::do_update()
 {
-    // message, where each bool is a bit in the data stream
-    const std::vector<bool> message = dmx::dmx_helper::generate_message_from_channels(*channels_);
+    // get the latest channel values
+    scheduler_.time_update(channels_);
 
-    // packed message, where each byte is contains a single bit of data, which will be used to simulate a differential pair
+    // message, where each bool is a bit in the data stream
+    const std::vector<bool> message = dmx::dmx_helper::generate_message_from_channels(channels_);
+
+    // packed message, where each byte is contains a single bit of data, which will be used to simulate a
+    // differential pair
     const serial::ByteVector_t packed_message_to_send = dmx::dmx_helper::simulate_differential_pair(message);
 
     // the user may call do_update more than 44 times a second, if we're configured to stop that, sleep here

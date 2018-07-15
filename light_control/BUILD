@@ -7,8 +7,10 @@ cc_library(
 )
 
 cc_library(
-    name="light_effects",
-    hdrs=["light_effects.hh"],
+    name="scheduling",
+    srcs=["scheduling.cc"],
+    hdrs=["scheduling.hh"],
+    deps=["//light_control:dmx"],
     visibility = ["//visibility:public"]
 )
 
@@ -19,6 +21,7 @@ cc_library(
     deps=["//config:universe",
           "//light_control:dmx",
           "//serial_control:abstract_serial_interface",
-          "//utils:universe_utilities"],
+          "//utils:universe_utilities",
+          ":scheduling"],
     visibility = ["//visibility:public"]
 )
