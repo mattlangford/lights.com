@@ -16,7 +16,7 @@ public: ///////////////////////////////////////////////////////////////////////
     //
     // Construct with a config for a universe and a pointer to channels that the universe is configured for
     //
-    universe_resource(const config::universe& universe, std::shared_ptr<std::vector<dmx::channel_t>> channels);
+    universe_resource(const config::universe& universe, light_control::light_universe_controller& controller);
 
     inline const std::string& get_resource_identifier() const override
     {
@@ -31,6 +31,6 @@ public: ///////////////////////////////////////////////////////////////////////
 private: //////////////////////////////////////////////////////////////////////
     const config::universe universe_;
 
-    std::shared_ptr<std::vector<dmx::channel_t>> channels_;
+    light_control::light_universe_controller& controller_;
 };
 }

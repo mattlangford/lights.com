@@ -1,6 +1,7 @@
 #include "light_control/scheduling.hh"
 
 #include <cmath>
+#include <iostream>
 
 namespace
 {
@@ -52,7 +53,7 @@ void scheduler::time_update(std::vector<dmx::channel_t>& channels)
     double percent = std::min(std::max(0.0, compute_percent_complete(system_clock::now())), 1.0);
 
     // Mark if starting_channels needs to be set, if so we'll populate it during this time update
-    bool starting_channels_needs_to_be_set = !starting_channels.empty();
+    bool starting_channels_needs_to_be_set = starting_channels.empty();
 
     // Holds the channels we're going to change in the same order transition_to
     for (size_t i = 0; i < executing.transition_to.size(); ++i)
@@ -67,9 +68,19 @@ void scheduler::time_update(std::vector<dmx::channel_t>& channels)
             if (starting_channels_needs_to_be_set)
                 starting_channels.emplace_back(channel);
 
-            uint8_t level_delta = to_channel.level - starting_channels[i].level;
-            channel.level = static_cast<uint8_t>(percent * level_delta);
+            dmx::channel_t& start = starting_channels[i];
+            int level_delta = to_channel.level - start.level;
+            channel.level = start.level + static_cast<uint8_t>(percent * level_delta);
         }
+    }
+
+    // We're done here, do a bit of cleanup
+    if (percent >= 1.0)
+    {
+        executing.wrap_up_function(*this);
+
+        needs_executing = false;
+        promote_next_queued_entry();
     }
 }
 
@@ -109,11 +120,11 @@ double scheduler::compute_percent_complete(const system_clock::time_point& now) 
     // Compute the time left as a percentage of the original transition time
     const double& transition_time = executing.transition_duration_s;
     const double transition_left
-        = std::chrono::duration_cast<std::chrono::seconds>(next_time - now).count();
-    const double fraction_left = transition_left / transition_time;
+        = std::chrono::duration_cast<std::chrono::milliseconds>(next_time - now).count() / 1000.;
+    const double fraction_left = transition_left / std::max(transition_time, 1E-3);
 
     // Ranges between 0 and 1
-    const double fraction = 1.0 - fraction_left;
+    const double fraction = std::min(std::max(0.0, 1.0 - fraction_left), 1.0);
 
     // Map the fraction along to a percent of transition completion, using the transition type
     switch (executing.transition_type)

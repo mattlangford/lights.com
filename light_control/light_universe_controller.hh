@@ -50,13 +50,19 @@ public:
 
 public:
     // Set the next schedule point
-    void set_schedule(schedule_entry s, bool preempt=false);
+    void queue_update(schedule_entry s, bool preempt=false);
 
     // preform an update
     void do_update();
 
     // update the internal params
     void update_params(const controller_params& params);
+
+    // get the current channels, this may change out from under you so watch out
+    inline const std::vector<dmx::channel_t>& get_channels() const
+    {
+        return channels_;
+    }
 
 private:
     // runs do_update every update_period seconds

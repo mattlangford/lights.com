@@ -8,75 +8,13 @@
 
 #include "logging.hh"
 
-template <size_t STEPS>
-static void perform_fade(const config::light& light, std::vector<dmx::channel_t>& channels, std::vector<uint8_t> new_values)
-{
-    constexpr auto WAIT = std::chrono::duration<double>{1E-2};
-
-    // Check if the thing really needs to fade, if the change is small, just jump right to it (for live updates)
-    constexpr double FADE_THRESHOLD = 20;
-    bool needs_to_fade = false;
-
-    // Keep track of the channel values and the amount we should add to each channel for each update
-    std::vector<double> channel_values;
-    std::vector<double> units_per_step;
-    for (size_t i = 0; i < new_values.size(); ++i)
-    {
-        const uint8_t old_value = channels.at(light.starting_address + i).level;
-
-        double delta = new_values[i] - old_value;
-        units_per_step.emplace_back(delta / STEPS);
-
-        if (std::abs(delta) > FADE_THRESHOLD)
-        {
-            needs_to_fade = true;
-        }
-
-        channel_values.emplace_back(old_value);
-    }
-
-    if (needs_to_fade == false)
-    {
-        for (size_t i = 0; i < new_values.size(); ++i)
-        {
-            channels.at(light.starting_address + i).level = new_values[i];
-        }
-        return;
-    }
-
-    for (size_t i = 0; i < STEPS; ++i)
-    {
-        std::vector<uint8_t> to_update_with(channel_values.size());
-        for (size_t c = 0; c < channel_values.size(); ++c)
-        {
-            channels[light.starting_address + c].level += units_per_step[c];
-        }
-
-        std::this_thread::sleep_for(WAIT);
-    }
-
-    // Make sure we get to the end values
-    for (size_t i = 0; i < new_values.size(); ++i)
-    {
-        channels.at(light.starting_address + i).level = new_values[i];
-    }
-}
-
 namespace server_hooks
 {
 
-universe_resource::universe_resource(const config::universe& universe, std::shared_ptr<std::vector<dmx::channel_t>> channels)
+universe_resource::universe_resource(const config::universe& universe, light_control::light_universe_controller& controller)
     : universe_(universe),
-      channels_(channels)
+      controller_(controller)
 {
-    const size_t num_configured_channels = utils::get_num_channels(universe_);
-    if (num_configured_channels != channels_->back().address)
-    {
-        LOG_ERROR("Number of configured channels doesn't match number of channels. ("
-                << num_configured_channels << " != " << channels_->back().address << ")");
-
-        throw std::runtime_error("Number of configured channels doesn't match number of channels.");
-    }
 }
 
 //
@@ -106,7 +44,7 @@ json::json universe_resource::get_json_resource()
             json_channel["base_offset"] = (double)channel.base_offset;
             json_channel["min_value"] = (double)channel.min_value;
             json_channel["max_value"] = (double)channel.max_value;
-            json_channel["level"] = (double)channels_->at(channel_address).level;
+            json_channel["level"] = (double)controller_.get_channels().at(channel_address).level;
 
             json_channels.emplace_back(std::move(json_channel));
         }
@@ -128,20 +66,28 @@ bool universe_resource::handle_post_request(requests::POST post_request)
 
     json::map_type lights = update["lights"].get<json::map_type>();
 
+    std::vector<dmx::channel_t> to_update;
     for (const std::pair<std::string, json::json>& entry : lights)
     {
         const size_t light_index = std::stoi(entry.first);
 
         const config::light& this_light = universe_.lights[light_index];
 
-        std::vector<uint8_t> to_update;
-        for (const json::json& v : entry.second.get<json::vector_type>())
+        auto update_values = entry.second.get<json::vector_type>();
+        for (size_t i = 0; i < update_values.size(); ++i)
         {
-            to_update.emplace_back(v.get<double>());
+            dmx::channel_t channel;
+            channel.address = this_light.starting_address + i;
+            channel.level = update_values[i].get<double>();
+            to_update.emplace_back(std::move(channel));
         }
-
-        perform_fade<20>(this_light, *channels_, to_update);
     }
+
+    light_control::schedule_entry entry;
+    entry.transition_to = std::move(to_update);
+    entry.transition_type = light_control::transition_type_t::EXPONENTIAL_FADE;
+    entry.transition_duration_s = 1.0;
+    controller_.queue_update(std::move(entry));
 
     return true;
 }

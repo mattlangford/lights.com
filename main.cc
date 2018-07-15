@@ -3,6 +3,7 @@
 #include "light_control/dmx.hh"
 #include "light_control/light_universe_controller.hh"
 #include "serial_control/ftd2xx_serial_interface.hh"
+#include "serial_control/virtual_serial_interface.hh"
 
 // For hosting webserver
 #include "http_server/http_server.hh"
@@ -30,11 +31,12 @@ int main()
     //
     // Configure the universe controller and serial interface
     //
-    lights::light_universe_controller::controller_params params;
-    params.control = lights::light_universe_controller::control_type::EXECUTIVE_AUTO;
+    light_control::light_universe_controller::controller_params params;
+    params.control = light_control::light_universe_controller::control_type::EXECUTIVE_AUTO;
 
     serial::ftd2xx_serial_interface interface(dmx::BAUDRATE);
-    lights::light_universe_controller universe{interface, params, universe_config};
+    //serial::virtual_serial_interface interface;
+    light_control::light_universe_controller universe{interface, params, universe_config};
 
     LOG_DEBUG("Universe controller constructed.")
 
@@ -42,7 +44,7 @@ int main()
     // Build the universe using the resource builder
     //
     std::shared_ptr<server_hooks::universe_resource> resource
-        = std::make_shared<server_hooks::universe_resource>(universe_config, universe.get_underlying_channels());
+        = std::make_shared<server_hooks::universe_resource>(universe_config, universe);
 
     LOG_DEBUG("Universe resource constructed.")
 
