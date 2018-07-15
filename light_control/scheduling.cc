@@ -1,6 +1,7 @@
 #include "light_control/scheduling.hh"
 
 #include <cmath>
+#include <limits>
 #include <iostream>
 
 namespace
@@ -29,7 +30,7 @@ static double exponential_map(const double x)
 ///
 constexpr static double direct_map(const double x)
 {
-    return x >= 1.0 ? 1.0 : 0.0;
+    return x >= 1.0 - std::numeric_limits<double>::epsilon() ? 1.0 : 0.0;
 }
 }
 
@@ -50,7 +51,7 @@ void scheduler::time_update(std::vector<dmx::channel_t>& channels)
         }
     }
 
-    double percent = std::min(std::max(0.0, compute_percent_complete(system_clock::now())), 1.0);
+    double percent = compute_percent_complete(system_clock::now());
 
     // Mark if starting_channels needs to be set, if so we'll populate it during this time update
     bool starting_channels_needs_to_be_set = starting_channels.empty();

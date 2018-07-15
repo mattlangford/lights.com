@@ -41,7 +41,7 @@ function get_state_of_light(light_id) {
 function update_single_light(light_id)  {
     var light_data = {};
     light_data[light_id] = get_state_of_light(light_id);
-    var data_to_send = {lights: light_data};
+    var data_to_send = {lights: light_data, transition_type: "direct_fade"};
 
     console.log(data_to_send)
     $.ajax({
@@ -66,7 +66,9 @@ function update_lights(light_ids)  {
         light_values[light_entry.id] = get_state_of_light(light_entry.id);
     }
 
-    var data_to_send = {lights: light_values};
+    var data_to_send = {lights: light_values,
+                        transition_type: "exponential_fade",
+                        transition_duration: parseFloat(document.getElementById("fade_duration_slider").value)};
     console.log(data_to_send)
 
     $.ajax({

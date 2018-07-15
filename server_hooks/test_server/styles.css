@@ -22,6 +22,11 @@
 
 #live_updates {
     height: 20%;
+    float: left
+}
+#fade_duration {
+    height: 20%;
+    float: right
 }
 
 #light_entries {

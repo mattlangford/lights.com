@@ -85,8 +85,32 @@ bool universe_resource::handle_post_request(requests::POST post_request)
 
     light_control::schedule_entry entry;
     entry.transition_to = std::move(to_update);
-    entry.transition_type = light_control::transition_type_t::EXPONENTIAL_FADE;
-    entry.transition_duration_s = 1.0;
+
+    auto transition_type = update.find("transition_type");
+    if (transition_type == update.end())
+    {
+        LOG_ERROR("No transition_type found in update");
+        throw std::runtime_error("No transition_type found in update");
+    }
+
+    if (transition_type->second.get<std::string>() == "exponential_fade")
+    {
+        auto transition_duration = update.find("transition_duration");
+        if (transition_duration == update.end())
+        {
+            LOG_ERROR("No transition_duration found in update even though transition_type was exponential fade");
+            throw std::runtime_error("No transition_duration found in update even though transition_type was exponential fade");
+        }
+
+        entry.transition_type = light_control::transition_type_t::EXPONENTIAL_FADE;
+        entry.transition_duration_s = transition_duration->second.get<double>();
+    }
+    else // if (transition_type == "direct")
+    {
+        entry.transition_type = light_control::transition_type_t::DIRECT;
+        entry.transition_duration_s = 0.0;
+    }
+
     controller_.queue_update(std::move(entry));
 
     return true;
