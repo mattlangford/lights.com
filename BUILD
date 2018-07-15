@@ -1,8 +1,8 @@
 load("@io_bazel_rules_docker//cc:image.bzl", "cc_image")
 
 cc_binary(
-    name = "main",
-    srcs = ["main.cc"],
+    name = "start_server",
+    srcs = ["start_server.cc"],
     deps = ["//config:universe_generators",
             "//light_control:light_universe_controller",
             "//serial_control:ftd2xx_serial_interface",
@@ -13,8 +13,8 @@ cc_binary(
 )
 
 cc_image(
-    name = "docker_main",
-    srcs = ["main.cc"],
+    name = "docker_start_server",
+    srcs = ["start_server.cc"],
     deps = ["//config:universe_generators",
             "//light_control:light_universe_controller",
             "//serial_control:ftd2xx_serial_interface",
