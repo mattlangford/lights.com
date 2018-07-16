@@ -15,6 +15,15 @@ cc_library(
 )
 
 cc_library(
+    name="scene_helpers",
+    srcs=["scene_helpers.cc"],
+    hdrs=["scene_helpers.hh"],
+    deps=["//config:universe",
+          ":scheduling"],
+    visibility = ["//visibility:public"]
+)
+
+cc_library(
     name="light_universe_controller",
     srcs=["light_universe_controller.cc"],
     hdrs=["light_universe_controller.hh"],
