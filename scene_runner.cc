@@ -36,7 +36,6 @@ int main(int argc, char** argv)
     }
     LOG_DEBUG("Loading scene \"" << scene_name << "\".");
 
-
     light_control::abstract_scene_ptr scene
         = light_control::scene_helper::get_instance().get_scene(scene_name);
 
@@ -57,9 +56,11 @@ int main(int argc, char** argv)
     light_control::light_universe_controller::controller_params params;
     params.control = light_control::light_universe_controller::control_type::EXECUTIVE_AUTO;
 
-    //serial::ftd2xx_serial_interface interface(dmx::BAUDRATE);
-    serial::virtual_serial_interface interface;
+    serial::ftd2xx_serial_interface interface(dmx::BAUDRATE);
+    //serial::virtual_serial_interface interface;
     light_control::light_universe_controller universe{interface, params, universe_config};
+
+    universe.get_scheduler().enqueue_entries(scene->get_schedule(universe_config));
 
     LOG_DEBUG("Universe controller constructed.")
 

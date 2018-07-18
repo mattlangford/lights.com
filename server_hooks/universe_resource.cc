@@ -111,7 +111,7 @@ bool universe_resource::handle_post_request(requests::POST post_request)
         entry.transition_duration_s = 0.0;
     }
 
-    controller_.queue_update(std::move(entry));
+    controller_.get_scheduler().enqueue_entry(std::move(entry));
 
     return true;
 }
