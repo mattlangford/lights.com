@@ -48,15 +48,6 @@ light_universe_controller::~light_universe_controller()
 // ############################################################################
 //
 
-void light_universe_controller::queue_update(schedule_entry s, bool preempt)
-{
-    scheduler_.queue_entry(std::move(s), preempt);
-}
-
-//
-// ############################################################################
-//
-
 void light_universe_controller::do_update()
 {
     // get the latest channel values

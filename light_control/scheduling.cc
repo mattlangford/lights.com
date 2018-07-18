@@ -70,8 +70,9 @@ void scheduler::time_update(std::vector<dmx::channel_t>& channels, const system_
                 starting_channels.emplace_back(channel);
 
             dmx::channel_t& start = starting_channels[i];
-            int level_delta = to_channel.level - start.level;
-            channel.level = start.level + static_cast<uint8_t>(percent * level_delta);
+            int level_delta = (int)to_channel.level - (int)start.level;
+
+            channel.level = start.level + percent * level_delta;
         }
     }
 
@@ -89,7 +90,7 @@ void scheduler::time_update(std::vector<dmx::channel_t>& channels, const system_
 // ############################################################################
 //
 
-void scheduler::queue_entry(schedule_entry entry, bool preempt)
+void scheduler::enqueue_entry(schedule_entry entry, bool preempt)
 {
     {
         std::lock_guard<std::mutex> lock(queued_up_entries_mutex);
@@ -100,6 +101,45 @@ void scheduler::queue_entry(schedule_entry entry, bool preempt)
     {
         promote_next_queued_entry();
     }
+}
+
+//
+// ############################################################################
+//
+
+void scheduler::enqueue_entries(std::deque<schedule_entry> entries, bool preempt)
+{
+    {
+        std::lock_guard<std::mutex> lock(queued_up_entries_mutex);
+        queued_up_entries.insert(queued_up_entries.cend(), entries.begin(), entries.end());
+    }
+
+    if (preempt)
+    {
+        promote_next_queued_entry();
+    }
+}
+
+//
+// ############################################################################
+//
+
+void scheduler::enqueue_entry_if_empty(schedule_entry entry)
+{
+    std::lock_guard<std::mutex> lock(queued_up_entries_mutex);
+    if (queued_up_entries.empty())
+        queued_up_entries.emplace_back(std::move(entry));
+}
+
+//
+// ############################################################################
+//
+
+void scheduler::enqueue_entries_if_empty(std::deque<schedule_entry> entries)
+{
+    std::lock_guard<std::mutex> lock(queued_up_entries_mutex);
+    if (queued_up_entries.empty())
+        queued_up_entries.insert(queued_up_entries.cend(), entries.begin(), entries.end());
 }
 
 //

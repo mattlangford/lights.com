@@ -50,7 +50,7 @@ public:
 
 public:
     // Set the next schedule point
-    void queue_update(schedule_entry s, bool preempt=false);
+    inline scheduler& get_scheduler() { return scheduler_; }
 
     // preform an update
     void do_update();

@@ -69,9 +69,12 @@ public:
     void time_update(std::vector<dmx::channel_t>& channels, const system_clock::time_point& now);
 
     ///
-    /// Set a new target, this has the option to preempt the current transition
+    /// Adds new entries to the queue, this has the option to preempt the current transition
     ///
-    void queue_entry(schedule_entry entry, bool preempt=false);
+    void enqueue_entry(schedule_entry entry, bool preempt=false);
+    void enqueue_entries(std::deque<schedule_entry> entry, bool preempt=false);
+    void enqueue_entry_if_empty(schedule_entry entries);
+    void enqueue_entries_if_empty(std::deque<schedule_entry> entries);
 
     ///
     /// The number of entries that are queued up
