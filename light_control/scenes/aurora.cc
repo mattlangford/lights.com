@@ -14,8 +14,8 @@ static constexpr uint8_t MIN_GREEN = 50;
 static constexpr uint8_t MIN_BLUE = 50;
 static constexpr double MIN_FADE = 5.0;
 
-static constexpr uint8_t MAX_GREEN = 150;
-static constexpr uint8_t MAX_BLUE = 150;
+static constexpr uint8_t MAX_GREEN = 80;
+static constexpr uint8_t MAX_BLUE = 100;
 static constexpr double MAX_FADE = 8.0;
 
 static float genearte_random_number(float min, float max)
