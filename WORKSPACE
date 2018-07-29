@@ -7,35 +7,28 @@ new_http_archive(
 git_repository(
     name = "variant",
     remote = "https://github.com/mattlangford/variant.git",
-    commit = "a88daadb9c45b7304bcb4f4d422e669e83ce387e"
+    commit = "d877154a2954230004d5b91c640372818c6efb5a"
 )
-
-# TEMP TEST REPO
-# local_repository(
-#     name = "server",
-#     path = "/home/matt/Documents/server/"
-# )
 
 git_repository(
     name = "server",
     remote = "https://github.com/mattlangford/server.git",
-    commit = "b5a8f95cbe21c7789874519e5e98156a4c54837b"
+    commit = "871b7b4fbee6c53b47282b1ac4bb90cf9cae4967"
 )
 
 #################################
 # Needed for docker integration #
 #################################
 
-# load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-# 
-# http_archive(
-#     name = "io_bazel_rules_docker",
-#     sha256 = "6dede2c65ce86289969b907f343a1382d33c14fbce5e30dd17bb59bb55bb6593",
-#     strip_prefix = "rules_docker-0.4.0",
-#     urls = ["https://github.com/bazelbuild/rules_docker/archive/v0.4.0.tar.gz"],
-# )
-# 
-# 
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "io_bazel_rules_docker",
+    sha256 = "6dede2c65ce86289969b907f343a1382d33c14fbce5e30dd17bb59bb55bb6593",
+    strip_prefix = "rules_docker-0.4.0",
+    urls = ["https://github.com/bazelbuild/rules_docker/archive/v0.4.0.tar.gz"],
+)
+
 # load(
 #     "@io_bazel_rules_docker//container:container.bzl",
 #     "container_pull",
