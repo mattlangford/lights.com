@@ -20,7 +20,7 @@
 #include <map>
 #include <memory>
 
-constexpr auto ROOT_PATH = "/home/matt/Documents/dmx_control/server_hooks/test_server";
+constexpr auto ROOT_PATH = "/home/pi/dmx_control/server_hooks/test_server";
 
 int main()
 {

@@ -10,12 +10,12 @@
 
 namespace
 {
-static constexpr uint8_t MIN_GREEN = 20;
-static constexpr uint8_t MIN_RED = 50;
+static constexpr uint8_t MIN_GREEN = 10;
+static constexpr uint8_t MIN_RED = 30;
 static constexpr double MIN_FADE = 10.0;
 
-static constexpr uint8_t MAX_GREEN = 40;
-static constexpr uint8_t MAX_RED = 120;
+static constexpr uint8_t MAX_GREEN = 15;
+static constexpr uint8_t MAX_RED = 80;
 static constexpr double MAX_FADE = 20.0;
 
 static float genearte_random_number(float min, float max)
