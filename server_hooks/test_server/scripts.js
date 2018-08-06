@@ -5,6 +5,7 @@ function on_page_load() {
     $("#light_entries").text("");
 
     var success = function(data) {
+        console.log(data)
         for (l in data.lights) {
             create_light_entry(l, data.lights[l])
         }

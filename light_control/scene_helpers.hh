@@ -3,10 +3,11 @@
 #include "config/universe.hh"
 #include "light_control/scheduling.hh"
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
-#include <iostream>
+#include <vector>
 
 namespace light_control
 {
@@ -48,6 +49,17 @@ public:
         }
 
         return found->second;
+    }
+
+    inline std::vector<std::string> get_registered_scenes() const
+    {
+        std::vector<std::string> keys;
+        std::transform(
+                registered_.begin(),
+                registered_.end(),
+                std::back_inserter(keys),
+                [](const decltype(registered_)::value_type &pair){return pair.first;});
+        return keys;
     }
 
 private:

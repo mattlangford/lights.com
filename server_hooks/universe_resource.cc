@@ -4,6 +4,7 @@
 
 #include "json/parser.hh"
 #include "server_hooks/universe_resource.hh"
+#include "light_control/scene_helpers.hh"
 #include "utils/universe_utilities.hh"
 
 #include "logging.hh"
@@ -37,7 +38,8 @@ std::string read_json_object(server::tcp_message& message)
 namespace server_hooks
 {
 
-universe_resource::universe_resource(const config::universe& universe, light_control::light_universe_controller& controller)
+universe_resource::universe_resource(const config::universe& universe,
+                                     light_control::light_universe_controller& controller)
     : universe_(universe),
       controller_(controller)
 {
@@ -79,6 +81,13 @@ json::json universe_resource::get_json_resource()
     }
     json_universe_state["lights"] = std::move(json_lights);
 
+    json::vector_type scenes;
+    for (const std::string& scene_name : light_control::scene_helper::get_instance().get_registered_scenes())
+    {
+        scenes.emplace_back(static_cast<std::string>(scene_name));
+    }
+    json_universe_state["scenes"] = std::move(scenes);
+
     return json::json{json_universe_state};
 }
 
@@ -91,7 +100,35 @@ bool universe_resource::handle_post_request(requests::POST post_request)
     std::string str_json_object = read_json_object(post_request.tcp_connection);
     json::map_type update = json::parse(std::move(str_json_object)).get<json::map_type>();
 
-    json::map_type lights = update["lights"].get<json::map_type>();
+    //
+    // This update may have a couple different things in it. First we want to check if the user requested to activate
+    // any scenes, then if not, we can check what the light state they want to set is
+    //
+    auto scene_request = update.find("scene");
+    if (scene_request != update.end())
+    {
+        // they requested a scene!
+        const std::string& scene_name = scene_request->second.get<std::string>();
+        auto scene = light_control::scene_helper::get_instance().get_scene(scene_name);
+        if (scene == nullptr)
+        {
+            LOG_ERROR("No scene found called: " << scene_name);
+            return false;
+        }
+        constexpr bool preempt = true;
+        controller_.get_scheduler().enqueue_entries(scene->get_schedule(universe_), preempt);
+        return true;
+    }
+
+    // they must have asked to set some lights
+    auto light_request = update.find("lights");
+    if (light_request == update.end())
+    {
+        LOG_ERROR("No scene or lights found in request! Ignoring...");
+        return false;
+    }
+
+    json::map_type lights = light_request->second.get<json::map_type>();
 
     std::vector<dmx::channel_t> to_update;
     for (const std::pair<std::string, json::json>& entry : lights)
@@ -126,7 +163,8 @@ bool universe_resource::handle_post_request(requests::POST post_request)
         if (transition_duration == update.end())
         {
             LOG_ERROR("No transition_duration found in update even though transition_type was exponential fade");
-            throw std::runtime_error("No transition_duration found in update even though transition_type was exponential fade");
+            throw std::runtime_error("No transition_duration found in update even though transition_type was"
+                                     "exponential fade");
         }
 
         entry.transition_type = light_control::transition_type_t::EXPONENTIAL_FADE;
