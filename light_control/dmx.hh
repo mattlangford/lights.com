@@ -1,8 +1,8 @@
 #pragma once
 #include "serial_control/abstract_serial_interface.hh"
 
-#include <bitset>
 #include <vector>
+#include <cstddef>
 
 namespace dmx
 {

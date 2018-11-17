@@ -8,6 +8,32 @@
 
 #include "logging.hh"
 
+namespace
+{
+std::string read_json_object(server::tcp_message& message)
+{
+    std::string read_data;
+    size_t count = 0;
+    while (count > 0 || read_data.empty()) // TODO timeout
+    {
+        read_data.resize(read_data.size() + 1);
+        uint8_t* message_dest = reinterpret_cast<uint8_t*>(&read_data.back());
+
+        message.read_into(message_dest, 1);
+        if (*message_dest == '{')
+        {
+            count++;
+        }
+        else if (*message_dest == '}')
+        {
+            count--;
+        }
+    }
+
+    return read_data;
+}
+}
+
 namespace server_hooks
 {
 
@@ -62,7 +88,8 @@ json::json universe_resource::get_json_resource()
 
 bool universe_resource::handle_post_request(requests::POST post_request)
 {
-    json::map_type update = json::parse(post_request.post_data).get<json::map_type>();
+    std::string str_json_object = read_json_object(post_request.tcp_connection);
+    json::map_type update = json::parse(std::move(str_json_object)).get<json::map_type>();
 
     json::map_type lights = update["lights"].get<json::map_type>();
 

@@ -34,8 +34,8 @@ int main()
     light_control::light_universe_controller::controller_params params;
     params.control = light_control::light_universe_controller::control_type::EXECUTIVE_AUTO;
 
-    serial::ftd2xx_serial_interface interface(dmx::BAUDRATE);
-    //serial::virtual_serial_interface interface;
+    //serial::ftd2xx_serial_interface interface(dmx::BAUDRATE);
+    serial::virtual_serial_interface interface;
     light_control::light_universe_controller universe{interface, params, universe_config};
 
     LOG_DEBUG("Universe controller constructed.")

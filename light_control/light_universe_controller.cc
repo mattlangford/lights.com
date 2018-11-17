@@ -1,7 +1,7 @@
 #include "light_control/light_universe_controller.hh"
 #include "utils/universe_utilities.hh"
 
-#include <iostream>
+#include "logging.hh"
 
 namespace light_control
 {
@@ -75,7 +75,13 @@ void light_universe_controller::do_update()
         last_update_time_ = std::move(updated_now);
     }
 
-    connection_.write_data(packed_message_to_send);
+    // This is kind of a hack. If the serial update didn't go through, then we want to wait for a second before
+    // sending the next update
+    while (connection_.write_data(packed_message_to_send) == false)
+    {
+        LOG_WARN("Unable to send serial data, trying to resend in 1 second");
+        std::this_thread::sleep_for(std::chrono::duration<double>(1.0));
+    }
 }
 
 //

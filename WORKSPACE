@@ -3,6 +3,11 @@ new_http_archive(
     url="http://www.ftdichip.com/Drivers/D2XX/Linux/libftd2xx-arm-v6-hf-1.4.8.tgz",
     build_file="third_party/ftd2xx/ftd2xx.BUILD"
 )
+new_http_archive(
+    name="ftd2xx_libs",
+    url="http://www.ftdichip.com/Drivers/D2XX/Linux/libftd2xx-x86_64-1.4.6.tgz",
+    build_file="third_party/ftd2xx/ftd2xx.BUILD"
+)
 
 git_repository(
     name = "variant",
@@ -13,7 +18,7 @@ git_repository(
 git_repository(
     name = "server",
     remote = "https://github.com/mattlangford/server.git",
-    commit = "871b7b4fbee6c53b47282b1ac4bb90cf9cae4967"
+    commit = "764697eb61c7f7284623643abde3af523da8118e"
 )
 
 #################################
