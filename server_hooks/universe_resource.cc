@@ -110,6 +110,7 @@ bool universe_resource::handle_post_request(requests::POST post_request)
         // they requested a scene!
         const std::string& scene_name = scene_request->second.get<std::string>();
         auto scene = light_control::scene_helper::get_instance().get_scene(scene_name);
+        LOG_DEBUG("scene_request: " << scene_name << ", " << scene);
         if (scene == nullptr)
         {
             LOG_ERROR("No scene found called: " << scene_name);

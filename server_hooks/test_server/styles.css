@@ -29,6 +29,22 @@
     float: right
 }
 
+#scene_selector {
+    width: 100%;
+    height: 50px;
+    background-color: yellow;
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    overflow-x: scroll;
+}
+.scene_selector_option {
+    margin-left: 5px;
+    height: 50px;
+    width: 100px;
+    float: left;
+}
+
 #light_entries {
     margin-top: 110px;
     margin-left: 5px;
@@ -38,7 +54,7 @@
     position: fixed;
     background-color: blue;
     width: calc(100% - 10px);
-    height: calc(100% - 110px);
+    height: calc(100% - 150px);
     overflow-y: scroll;
 }
 

@@ -51,7 +51,7 @@ int main()
     //
     // Now spin a web server up, see if the client can access it
     //
-    http_server server(8080);
+    http_server server(80);
     server.add_resource(resource);
     server.add_resource(std::make_shared<resources::file_resource>(std::string(ROOT_PATH), "/index.html"));
     server.add_resource(std::make_shared<resources::file_resource>(std::string(ROOT_PATH), "/styles.css"));

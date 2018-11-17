@@ -9,12 +9,15 @@ function on_page_load() {
         for (l in data.lights) {
             create_light_entry(l, data.lights[l])
         }
+        for (s in data.scenes) {
+            add_scene(data.scenes[s])
+        }
     }
 
     $.ajax({
       url: '/universe_state',
       type: "GET",
-      success: success
+      success: success,
     })
 }
 
@@ -77,7 +80,7 @@ function update_lights(light_ids)  {
       type: "POST",
       data: JSON.stringify(data_to_send),
       contentType: "application/json; charset=utf-8",
-      dataType: "json"
+      dataType: "text"
     })
 }
 
@@ -89,6 +92,38 @@ function update_single_light_live(light_id) {
     if ($("#do_live_updates").is(":checked")) {
         update_single_light(light_id);
     }
+}
+
+///
+/// Update the scene that's currently running
+///
+function update_scene(scene_name)  {
+    var data_to_send = {scene: scene_name};
+
+    console.log(JSON.stringify(data_to_send))
+    $.ajax({
+          url: '/universe_state',
+          type: "POST",
+          data: JSON.stringify(data_to_send),
+          contentType: "application/json; charset=utf-8",
+          dataType: "text"
+    }).done(function(response){
+          console.log('success');
+    }).fail(function(jqXHR, textStatus, errorThrown){
+          console.log('FAILED! ERROR: ' + errorThrown);
+    });
+}
+
+///
+/// Adds an entry to the scenes selector
+///
+function add_scene(scene_name) {
+    var scene_entry = $('#scene_selector_option_template').clone();
+    scene_entry.find('.scene_selector_option')
+               .attr('onclick', 'update_scene("' + scene_name + '")')
+               .text(scene_name);
+
+    $('#scene_selector').append(scene_entry.html());
 }
 
 ///

@@ -94,6 +94,10 @@ void scheduler::enqueue_entry(schedule_entry entry, bool preempt)
 {
     {
         std::lock_guard<std::mutex> lock(queued_up_entries_mutex);
+
+        if (preempt)
+            queued_up_entries.clear();
+
         queued_up_entries.emplace_back(std::move(entry));
     }
 
@@ -111,13 +115,15 @@ void scheduler::enqueue_entries(std::deque<schedule_entry> entries, bool preempt
 {
     {
         std::lock_guard<std::mutex> lock(queued_up_entries_mutex);
+
+        if (preempt)
+            queued_up_entries.clear();
+
         queued_up_entries.insert(queued_up_entries.cend(), entries.begin(), entries.end());
     }
 
     if (preempt)
-    {
         promote_next_queued_entry();
-    }
 }
 
 //

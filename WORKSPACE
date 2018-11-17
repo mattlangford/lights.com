@@ -15,6 +15,11 @@ git_repository(
     commit = "d877154a2954230004d5b91c640372818c6efb5a"
 )
 
+# local_repository(
+#     name = "server",
+#     path = "/home/pi/server/"
+# )
+
 git_repository(
     name = "server",
     remote = "https://github.com/mattlangford/server.git",
