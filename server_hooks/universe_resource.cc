@@ -177,7 +177,8 @@ bool universe_resource::handle_post_request(requests::POST post_request)
         entry.transition_duration_s = 0.0;
     }
 
-    controller_.get_scheduler().enqueue_entry(std::move(entry));
+    constexpr bool PREMPT = true;
+    controller_.get_scheduler().enqueue_entry(std::move(entry), PREMPT);
 
     return true;
 }
