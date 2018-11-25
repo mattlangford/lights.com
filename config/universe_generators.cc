@@ -11,6 +11,7 @@ universe generate_living_room_universe()
     universe living_room;
     living_room.lights.emplace_back(generate_litake_basic_light("Right Side", address));
     living_room.lights.emplace_back(generate_litake_basic_light("Left Side", address));
+    living_room.lights.emplace_back(generate_lm70_moving_light("Mover", address));
 
     return living_room;
 }
