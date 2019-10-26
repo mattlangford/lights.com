@@ -20,4 +20,9 @@ light generate_litake_basic_light(std::string light_name, uint16_t& address);
 ///
 light generate_lm70_moving_light(std::string light_name, uint16_t& address);
 
+///
+///
+///
+light generate_misseye_light(std::string light_name, uint16_t& address);
+
 }
