@@ -30,8 +30,8 @@ uint8_t* lights;
 static float phase = 0;
 
 void setup() {
-  pinMode(13, OUTPUT);
-  pinMode(12, OUTPUT);
+  pinMode(DATA_POS_PIN, OUTPUT);
+  pinMode(DATA_NEG_PIN, OUTPUT);
 
   Serial.begin(115200);
 
@@ -42,7 +42,8 @@ void loop() {
   phase += 0.01;
   while (phase >= 2 * PI) phase -= 2 * PI;
 
-  for (int light = 0; light < kNumLights; ++light)
+/*
+  for (unsigned int light = 0; light < kNumLights; ++light)
   {
 
     float _min = 0.75;
@@ -52,6 +53,12 @@ void loop() {
     auto base = kSlotsPerLight * light;
     lights[base] = 255 * brightness;
   }
+*/
 
-  write_frame(lights, kTotalSlots);
+  for (unsigned int i = 0; i < 3; ++i)
+  {
+    lights[i] = 0b01010101;
+  }
+  write_frame(lights, 3);
+  delay(3000);
 }
