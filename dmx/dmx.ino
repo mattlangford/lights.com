@@ -25,6 +25,16 @@ uint8_t lights_halloween[38] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
+void step_fade(FadeChannel& channel) {
+    Serial.println("fading!");
+    if (channel.goal == 0) {
+        channel.goal = 255;
+    } else {
+        channel.goal = 0;
+    }
+    channel.remaining_us = 4'000'000;
+}
+
 DMXController* controller;
 
 void setup() {
@@ -32,15 +42,11 @@ void setup() {
 
     Serial.begin(115200);
 
-    controller->add_channels(3);
+    controller->add_channel();
+    controller->channel_fade_to(1, 255, 10'000'000, &step_fade);
 }
 
 void loop() {
-    for (unsigned int i = 0; i < 3; ++i)
-    {
-        controller->write_channel(i, 0b01010101);
-    }
-
     controller->write_frame();
-    delay(3000);
+    delay(100);
 }
