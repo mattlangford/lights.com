@@ -1,13 +1,12 @@
+#pragma once
+
 struct FadeChannel {
     uint8_t current = 0;
 
     uint8_t goal = 0;
     int32_t remaining_us = 0;
 
-    using CallbackType = void(*)(FadeChannel&);
-    CallbackType callback = nullptr;
-
-    inline bool update(uint32_t dt) {
+    inline void update(uint32_t dt) {
         Serial.print("current: ");
         Serial.print(current);
         Serial.print(" goal: ");
@@ -17,11 +16,10 @@ struct FadeChannel {
         Serial.print(" dt: ");
         Serial.println(dt);
 
-        if (remaining_us <= 0 || current == goal || dt > static_cast<uint32_t>(remaining_us)) {
+        if (remaining_us <= 0 || dt > static_cast<uint32_t>(remaining_us)) {
             current = goal;
             remaining_us = 0;
-
-            return true;
+            return;
         }
 
         const float diff = static_cast<float>(goal) - static_cast<float>(current);
@@ -37,56 +35,24 @@ struct FadeChannel {
         } else {
             current = static_cast<uint8_t>(output);
         }
-        return false;
     }
 };
 
-template <typename T>
-T* move(T* in, size_t count) {
-    return static_cast<T*>(realloc(in, sizeof(T) * count));
-}
-
 class DMXController {
 public:
+    static constexpr uint8_t MAX_CHANNELS = 255;
+
     DMXController(uint8_t pos_pin, uint8_t neg_pin) : pos_pin_(pos_pin), neg_pin_(neg_pin), time_us_(micros()) {
         pinMode(pos_pin, OUTPUT);
         pinMode(neg_pin, OUTPUT);
-
-        // Zero channel is reserved!
-        add_channel();
     }
 
-    void add_channel() { add_channels(1); }
-    void add_channels(uint16_t count) {
-        num_channels_ += count;
-        Serial.print("Adding channels: ");
-        Serial.println(num_channels_);
-        data_ = move(data_, num_channels_);
-        Serial.println("Added channel!");
+    FadeChannel& channel(uint8_t index) {
+        max_channel_ = index > max_channel_ ? index : max_channel_;
+        return channels_[index];
     }
-
-    void channel_fade_to(uint16_t index, uint8_t value, uint32_t fade_us, FadeChannel::CallbackType callback=nullptr) {
-        if (index < num_channels_) {
-            FadeChannel& fade = data_[index];
-            fade.goal = value;
-            fade.remaining_us = fade_us;
-            fade.callback = callback;
-        }
-    }
-    void channel_write(uint16_t index, uint8_t value) {
-        channel_fade_to(index, value, 0);
-    }
-    uint8_t channel_read(uint16_t index) const {
-        if (index < num_channels_) {
-            return data_[index].current;
-        }
-        return 0;
-    }
-    const FadeChannel* const channel_fade(uint16_t index) const {
-        if (index < num_channels_) {
-            return &data_[index];
-        }
-        return 0;
+    const FadeChannel& channel(uint8_t index) const {
+        return channels_[index];
     }
 
     void write_frame()
@@ -108,13 +74,10 @@ public:
         write_byte(0x00);
 
         // Now the rest of the channels
-        for (uint16_t i = 1; i < num_channels_; ++i)
+        for (uint16_t i = 1; i <= max_channel_; ++i)
         {
-            FadeChannel& channel = data_[i];
-            if (channel.update(dt_us) && channel.callback) {
-                channel.callback(channel);
-                Serial.println("Done!");
-            }
+            FadeChannel& channel = channels_[i];
+            channel.update(dt_us);
             write_byte(channel.current);
         }
 
@@ -184,7 +147,7 @@ private:
 
     uint32_t time_us_;
 
-    uint16_t num_channels_ = 0;
-    FadeChannel* data_ = nullptr;
+    uint8_t max_channel_ = 0;
+    FadeChannel channels_[MAX_CHANNELS];
 };
 
