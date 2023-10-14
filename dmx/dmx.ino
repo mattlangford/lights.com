@@ -27,17 +27,19 @@ DMXController* controller;
 WashLightBar52* light1;
 WashLightBar52* light2;
 
+uint8_t current = 0;
+
 void note_on(byte channel, byte note, byte velocity) {
     if (note == 72) {
-      light1->set_goal(0, 100, 0, 50);
-      light2->set_goal(0, 100, 255, 100);
+      light1->rgb[current].set_goal(0, 100, 255, 50);
+      light2->rgb[current].set_goal(0, 100, 255, 100);
     } else if (note == 74) {
-      light1->set_goal(100, 100, 0, 50);
+      light1->rgb[current].set_goal(100, 100, 0, 50);
     } else if (note == 76) {
-      light1->set_goal(100, 0, 0, 50);
-      light2->set_goal(255, 100, 0, 100);
+      light1->rgb[current].set_goal(255, 100, 0, 50);
+      light2->rgb[current].set_goal(255, 100, 0, 100);
     } else if (note == 77) {
-      light2->set_goal(100, 100, 0, 50);
+      light2->rgb[current].set_goal(100, 100, 0, 50);
     }
 }
 
@@ -66,11 +68,15 @@ void setup() {
 
     Serial.begin(115200);
 
-    usbMIDI.setHandleNoteOn(note_on);
-    usbMIDI.setHandleNoteOff(note_off);
+    // usbMIDI.setHandleNoteOn(note_on);
+    // usbMIDI.setHandleNoteOff(note_off);
+
+    light1->set_goal(255, 255, 255, 0);
+    light2->set_goal(255, 255, 255, 0);
 }
 
-void set_color(RgbChannel& channel) {
+template <typename Channel>
+void set_color(RgbChannel<Channel>& channel) {
     uint8_t h = random(150, 190);
     uint8_t s = random(200, 255);
     uint8_t v = random(255, 255);
@@ -78,8 +84,15 @@ void set_color(RgbChannel& channel) {
     channel.set_goal_hsv(h, s, v, t);
 }
 
+uint32_t last_ms = 0;
 void loop() {
-    usbMIDI.read();
+    uint32_t now_ms = millis();
+    if (now_ms > 1000 + last_ms) {
+      current = (current + 1) % 16;
+    }
+    last_ms = now_ms;
+
+    //usbMIDI.read();
     controller->write_frame();
 }
 

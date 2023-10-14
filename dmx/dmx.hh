@@ -1,25 +1,18 @@
 #pragma once
 
-template <typename T>
-inline T& cast(void* context) { return *static_cast<T*>(context); }
-
-class ChannelCallback {
+class Channel {
 public:
-    using Function = uint8_t (*)(uint32_t now_ms, void* context);
+    virtual ~Channel() = default;
 
-public:
-    ChannelCallback(Function function=nullptr, void* context=nullptr) : function_(function), context_(context) {}
+    virtual void set_goal_at(uint8_t goal, uint32_t duration_ms, uint32_t now_ms) {}
+    virtual uint8_t get_value_at(uint32_t now_ms) const { return 0; };
+    virtual bool done_at(uint32_t now_ms) const { return true; };
 
-    uint8_t invoke(uint32_t now_ms) {
-        if (!function_) {
-            return 0;
-        }
-        return function_(now_ms, context_);
-    }
+    void set_goal(uint8_t goal, uint32_t duration_ms=0) { set_goal_at(goal, duration_ms, now()); }
+    bool done() { return done_at(now()); }
 
 private:
-    Function function_ = nullptr;
-    void* context_ = nullptr;
+    uint32_t now() const { return millis(); }
 };
 
 class DMXController {
@@ -29,15 +22,19 @@ public:
     DMXController(uint8_t pos_pin, uint8_t neg_pin) : pos_pin_(pos_pin), neg_pin_(neg_pin), time_us_(micros()) {
         pinMode(pos_pin, OUTPUT);
         pinMode(neg_pin, OUTPUT);
+
+        for (uint8_t i = 0; i < MAX_CHANNELS; ++i) {
+            channels_[i] = nullptr;
+        }
     }
 
     void set_max_channel(uint8_t index) {
         max_channel_ = index > max_channel_ ? index : max_channel_;
     }
 
-    void add_callback(uint8_t index, ChannelCallback callback) {
+    void add_channel(uint8_t index, Channel& channel) {
         set_max_channel(index);
-        callbacks_[index] = callback;
+        channels_[index] = &channel;
     }
 
     void write_frame()
@@ -64,7 +61,7 @@ public:
         // Now the rest of the channels
         for (uint16_t i = 1; i <= max_channel_; ++i)
         {
-            write_byte(callbacks_[i].invoke(now_ms));
+            write_byte(channels_[i] == nullptr ? 0 : channels_[i]->get_value_at(now_ms));
         }
 
         write_bit(1, MARK_BEFORE_BREAK_US);
@@ -134,6 +131,6 @@ private:
     uint32_t time_us_;
 
     uint8_t max_channel_ = 0;
-    ChannelCallback callbacks_[MAX_CHANNELS];
+    Channel* channels_[MAX_CHANNELS];
 };
 

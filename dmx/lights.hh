@@ -6,25 +6,19 @@
 // Light primitives
 //
 
-class SimpleChannel {
+class SimpleChannel : public Channel {
 public:
-    void set_goal(uint8_t new_goal, uint32_t duration_ms=0) { set_goal(new_goal, duration_ms, millis()); }
-    void set_goal(uint8_t new_goal, uint32_t duration_ms, uint32_t now_ms) {
-        const uint8_t current = value(now_ms);
+    ~SimpleChannel() override = default;
+
+    void set_goal_at(uint8_t new_goal, uint32_t duration_ms, uint32_t now_ms) override {
+        const uint8_t current = get_value_at(now_ms);
         slope_ = (static_cast<float>(new_goal) - static_cast<float>(current)) / static_cast<float>(duration_ms);
 
         end_value_ = new_goal;
         end_ms_ = now_ms + duration_ms;
     }
 
-    bool done() const {
-        return done(millis());
-    }
-    inline bool done(uint32_t now_ms) const {
-        return now_ms >= end_ms_;
-    }
-
-    uint8_t value(uint32_t now_ms) const {
+    uint8_t get_value_at(uint32_t now_ms) const override {
         if (now_ms >= end_ms_) {
             return end_value_;
         }
@@ -40,53 +34,35 @@ public:
         return value;
     }
 
-    ChannelCallback callback() {
-        return ChannelCallback(&SimpleChannel::invoke, this);
+    bool done_at(uint32_t now_ms) const override {
+        return now_ms >= end_ms_;
     }
 
 private:
-    static uint8_t invoke(uint32_t now_ms, void* context) {
-        return cast<SimpleChannel>(context).value(now_ms);
-    }
-
     float slope_ = 0.0;
     uint32_t end_ms_ = 0;
     uint8_t end_value_ = 0;
 };
 
+template <typename Channel>
 class RgbChannel {
 public:
-    void set_goal(uint8_t r_goal, uint8_t g_goal, uint8_t b_goal, uint32_t duration_ms=0) {
+    void set_goal(uint8_t r, uint8_t g, uint8_t b, uint32_t duration_ms=0) {
         uint32_t now_ms = millis();
-        r.set_goal(r_goal, duration_ms, now_ms);
-        g.set_goal(g_goal, duration_ms, now_ms);
-        b.set_goal(b_goal, duration_ms, now_ms);
+        r_.set_goal_at(r, duration_ms, now_ms);
+        g_.set_goal_at(g, duration_ms, now_ms);
+        b_.set_goal_at(b, duration_ms, now_ms);
     }
     void set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint32_t duration_ms=0);
 
-    ChannelCallback red_callback() {
-        return ChannelCallback(&RgbChannel::invoke, &r);
-    }
-    ChannelCallback green_callback() {
-        return ChannelCallback(&RgbChannel::invoke, &g);
-    }
-    ChannelCallback blue_callback() {
-        return ChannelCallback(&RgbChannel::invoke, &b);
-    }
-
-    bool done() const {
-        uint32_t now_ms = millis();
-        return r.done(now_ms) && g.done(now_ms) && b.done(now_ms);
-    }
+    Channel& red_channel() { return r_; };
+    Channel& green_channel() { return g_; };
+    Channel& blue_channel() { return b_; };
 
 private:
-    SimpleChannel r;
-    SimpleChannel g;
-    SimpleChannel b;
-
-    static uint8_t invoke(uint32_t now_ms, void* context) {
-        return cast<SimpleChannel>(context).value(now_ms);
-    }
+    Channel r_;
+    Channel g_;
+    Channel b_;
 };
 
 //
@@ -100,12 +76,12 @@ public:
 
     WashLightBar52(uint8_t address, DMXController& controller) {
         controller.set_max_channel(address + NUM_CHANNELS);
-        controller.add_callback(address++, brightness.callback());
+        controller.add_channel(address++, brightness);
         address++;
         for (uint8_t light = 0; light < NUM_LIGHTS; ++light) {
-            controller.add_callback(address++, rgb[light].red_callback());
-            controller.add_callback(address++, rgb[light].green_callback());
-            controller.add_callback(address++, rgb[light].blue_callback());
+            controller.add_channel(address++, rgb[light].red_channel());
+            controller.add_channel(address++, rgb[light].green_channel());
+            controller.add_channel(address++, rgb[light].blue_channel());
         }
     }
 
@@ -116,11 +92,12 @@ public:
     }
 
     SimpleChannel brightness;
-    RgbChannel rgb[NUM_LIGHTS];
+    RgbChannel<SimpleChannel> rgb[NUM_LIGHTS];
 };
 
 // Copied from ChatGPT
-void RgbChannel::set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint32_t duration_ms) {
+template <typename Channel>
+void RgbChannel<Channel>::set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint32_t duration_ms) {
     // Convert HSV values to the range [0, 1]
     float h_normalized = static_cast<float>(h) / 255.0;
     float s_normalized = static_cast<float>(s) / 255.0;
