@@ -1,9 +1,9 @@
 #include "dmx.hh"
-//#include "lights.hh"
+#include "lights.hh"
 
 DMXController* controller;
 
-//WashLightBar52* light;
+WashLightBar52* light;
 
 uint8_t light_from_note(byte note) {
   switch (note) {
@@ -42,57 +42,13 @@ uint8_t light_from_note(byte note) {
 //     light->rgb[index].set_goal(0, 0, 0, 200);
 // }
 
-struct Fade {
-    uint32_t end_ms = 0;
-    float slope = 0.0;
-    uint8_t end_value = 0;
 
-    void set_goal(uint8_t new_goal, uint32_t duration_ms) {
-        uint32_t now_ms = millis();
-
-        const uint8_t current = value(now_ms);
-        slope = (static_cast<float>(new_goal) - static_cast<float>(current)) / static_cast<float>(duration_ms);
-
-        end_value = new_goal;
-        end_ms = now_ms + duration_ms;
-    }
-
-    bool done() const {
-        return millis() > end_ms;
-    }
-
-    uint8_t value(uint32_t now_ms) const {
-        if (now_ms >= end_ms) {
-            return end_value;
-        }
-
-        const uint32_t remaining = end_ms - now_ms;
-        const float value = end_value - slope * remaining;
-        Serial.print("remaining: ");
-        Serial.print(remaining);
-        Serial.print(" value ");
-        Serial.println(value, 7);
-
-        if (value < 0) {
-            return 0;
-        } else if (value > 255) {
-            return 255;
-        }
-        return value;
-    }
-
-    static uint8_t callback(uint32_t now_ms, void* context) {
-        return cast<Fade>(context).value(now_ms);
-    }
-};
-
-Fade* f;
 
 void setup() {
     controller = new DMXController(41, 40);
 
-    f = new Fade();
-    controller->add_callback(1, ChannelCallback(&Fade::callback, f));
+    light = new WashLightBar52(1, *controller);
+    light->brightness.set_goal(255, 10'000);
 
     Serial.begin(115200);
 
@@ -109,7 +65,16 @@ void setup() {
     // controller->set_max_channel(53);
 }
 
+float phase = 0.0;
+
 void loop() {
+    light->brightness.set_goal(255);
+    for (uint8_t i = 0; i < WashLightBar52::NUM_LIGHTS; ++i) {
+        float hue = 0.5 * sin(phase + 0.1 * static_cast<float>(i)) + 0.5;
+        light->rgb[i].set_goal_hsv(255 * hue, 255, 255);
+    }
+    phase += 0.01;
+
     // usbMIDI.read();
     controller->write_frame();
 
