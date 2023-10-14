@@ -7,47 +7,46 @@ struct Rgb {
     FadeChannel& g;
     FadeChannel& b;
 
-    void set_goal(uint8_t r_goal, uint8_t g_goal, uint8_t b_goal, uint16_t duration_ms) {
-        uint32_t duration_us = 1000 * duration_ms;
-
-        r.goal = r_goal;
-        r.remaining_us = duration_us;
-        g.goal = b_goal;
-        g.remaining_us = duration_us;
-        g.goal = g_goal;
-        g.remaining_us = duration_us;
+    void set_goal(uint8_t r_goal, uint8_t g_goal, uint8_t b_goal, uint16_t duration_ms=0) {
+        r.set_goal(r_goal, duration_ms);
+        g.set_goal(g_goal, duration_ms);
+        b.set_goal(b_goal, duration_ms);
     }
 
-    void set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint16_t duration_ms);
+    void set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint16_t duration_ms=0);
 };
 
-class TestLight {
+class WashLightBar52 {
 public:
-    TestLight(uint8_t& address, DMXController& controller) : channels {
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller),
-        create_channel(address, controller)} {
+    static constexpr uint8_t NUM_LIGHTS = 16;
+    WashLightBar52(uint8_t& address, DMXController& controller) :
+        brightness(controller.channel(address++)),
+        rgb {
+            create_channel(++address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller),
+            create_channel(address, controller)} {
+        address += 2;
     }
 
-private:
     static Rgb create_channel(uint8_t& address, DMXController& controller) {
         return {controller.channel(address++), controller.channel(address++), controller.channel(address++)};
     }
 
-    Rgb channels[16];
+    FadeChannel& brightness;
+    Rgb rgb[NUM_LIGHTS];
 };
 
 // Copied from ChatGPT

@@ -1,41 +1,25 @@
 #pragma once
 
-struct FadeChannel {
-    uint8_t current = 0;
+template <typename T>
+inline T& cast(void* context) { return *static_cast<T*>(context); }
 
-    uint8_t goal = 0;
-    int32_t remaining_us = 0;
+class ChannelCallback {
+public:
+    using Function = uint8_t (*)(uint32_t now_ms, void* context);
 
-    inline void update(uint32_t dt) {
-        Serial.print("current: ");
-        Serial.print(current);
-        Serial.print(" goal: ");
-        Serial.print(goal);
-        Serial.print(" remaining: ");
-        Serial.print(remaining_us);
-        Serial.print(" dt: ");
-        Serial.println(dt);
+public:
+    ChannelCallback(Function function=nullptr, void* context=nullptr) : function_(function), context_(context) {}
 
-        if (remaining_us <= 0 || dt > static_cast<uint32_t>(remaining_us)) {
-            current = goal;
-            remaining_us = 0;
-            return;
+    uint8_t invoke(uint32_t now_ms) {
+        if (!function_) {
+            return 0;
         }
-
-        const float diff = static_cast<float>(goal) - static_cast<float>(current);
-        const float slope = diff / static_cast<float>(remaining_us);
-        const uint16_t output = static_cast<uint16_t>(current) + dt * slope;
-
-        remaining_us -= dt;
-
-        if (output < 0) {
-            current = 0;
-        } else if (output > 255) {
-            current = 255;
-        } else {
-            current = static_cast<uint8_t>(output);
-        }
+        return function_(now_ms, context_);
     }
+
+private:
+    Function function_ = nullptr;
+    void* context_ = nullptr;
 };
 
 class DMXController {
@@ -47,22 +31,26 @@ public:
         pinMode(neg_pin, OUTPUT);
     }
 
-    FadeChannel& channel(uint8_t index) {
+    void set_max_channel(uint8_t index) {
         max_channel_ = index > max_channel_ ? index : max_channel_;
-        return channels_[index];
     }
-    const FadeChannel& channel(uint8_t index) const {
-        return channels_[index];
+
+    void add_callback(uint8_t index, ChannelCallback callback) {
+        set_max_channel(index);
+        callbacks_[index] = callback;
     }
 
     void write_frame()
     {
-        const uint32_t dt_us = dt();
+        uint32_t dt_us = dt();
 
         // If we're exceeding the BREAK to BREAK time, delay here.
         if (dt_us < BREAK_TO_BREAK_US) {
-            delayMicroseconds(BREAK_TO_BREAK_US - dt_us);
+            return;
         }
+
+        time_us_ = micros();
+        uint32_t now_ms = time_us_ / 1000;
 
         // [1]: https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-11_2008R2018.pdf
         write_bit(0, SPACE_FOR_BREAK_US);
@@ -76,12 +64,11 @@ public:
         // Now the rest of the channels
         for (uint16_t i = 1; i <= max_channel_; ++i)
         {
-            FadeChannel& channel = channels_[i];
-            channel.update(dt_us);
-            write_byte(channel.current);
+            write_byte(callbacks_[i].invoke(now_ms));
         }
 
         write_bit(1, MARK_BEFORE_BREAK_US);
+
     }
 
 private:
@@ -128,10 +115,9 @@ private:
         interrupts();
     }
 
-    uint32_t dt() {
+    uint32_t dt() const {
         const uint32_t now_us = micros();
         uint32_t last_us = time_us_;
-        time_us_ = now_us;
 
         if (now_us > last_us) {
             return now_us - last_us;
@@ -148,6 +134,6 @@ private:
     uint32_t time_us_;
 
     uint8_t max_channel_ = 0;
-    FadeChannel channels_[MAX_CHANNELS];
+    ChannelCallback callbacks_[MAX_CHANNELS];
 };
 
