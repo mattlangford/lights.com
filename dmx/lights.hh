@@ -17,8 +17,11 @@ public:
         end_ms_ = now_ms + duration_ms;
     }
 
-    inline bool done() const {
-        return millis() > end_ms_;
+    bool done() const {
+        return done(millis());
+    }
+    inline bool done(uint32_t now_ms) const {
+        return now_ms >= end_ms_;
     }
 
     uint8_t value(uint32_t now_ms) const {
@@ -53,13 +56,13 @@ private:
 
 class RgbChannel {
 public:
-    void set_goal(uint8_t r_goal, uint8_t g_goal, uint8_t b_goal, uint16_t duration_ms=0) {
+    void set_goal(uint8_t r_goal, uint8_t g_goal, uint8_t b_goal, uint32_t duration_ms=0) {
         uint32_t now_ms = millis();
         r.set_goal(r_goal, duration_ms, now_ms);
         g.set_goal(g_goal, duration_ms, now_ms);
         b.set_goal(b_goal, duration_ms, now_ms);
     }
-    void set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint16_t duration_ms=0);
+    void set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint32_t duration_ms=0);
 
     ChannelCallback red_callback() {
         return ChannelCallback(&RgbChannel::invoke, &r);
@@ -69,6 +72,11 @@ public:
     }
     ChannelCallback blue_callback() {
         return ChannelCallback(&RgbChannel::invoke, &b);
+    }
+
+    bool done() const {
+        uint32_t now_ms = millis();
+        return r.done(now_ms) && g.done(now_ms) && b.done(now_ms);
     }
 
 private:
@@ -91,7 +99,7 @@ public:
     static constexpr uint8_t NUM_CHANNELS = 52;
 
     WashLightBar52(uint8_t address, DMXController& controller) {
-        controller.set_max_channel(NUM_CHANNELS);
+        controller.set_max_channel(address + NUM_CHANNELS);
         controller.add_callback(address++, brightness.callback());
         address++;
         for (uint8_t light = 0; light < NUM_LIGHTS; ++light) {
@@ -101,12 +109,18 @@ public:
         }
     }
 
+    void set_goal(uint8_t r, uint8_t g, uint8_t b, uint32_t duration_ms) {
+        for (uint8_t light = 0; light < NUM_LIGHTS; ++light) {
+            rgb[light].set_goal(r, g, b, duration_ms);
+        }
+    }
+
     SimpleChannel brightness;
     RgbChannel rgb[NUM_LIGHTS];
 };
 
 // Copied from ChatGPT
-void RgbChannel::set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint16_t duration_ms) {
+void RgbChannel::set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint32_t duration_ms) {
     // Convert HSV values to the range [0, 1]
     float h_normalized = static_cast<float>(h) / 255.0;
     float s_normalized = static_cast<float>(s) / 255.0;

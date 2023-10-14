@@ -1,10 +1,6 @@
 #include "dmx.hh"
 #include "lights.hh"
 
-DMXController* controller;
-
-WashLightBar52* light;
-
 uint8_t light_from_note(byte note) {
   switch (note) {
     case 52: return 0;
@@ -27,61 +23,63 @@ uint8_t light_from_note(byte note) {
   }
 }
 
-// constexpr uint8_t MIN_NOTE = 72;
-// constexpr uint8_t MAX_NOTE = MIN_NOTE + 16;
-// 
-// void note_on(byte channel, byte note, byte velocity) {
-//     uint8_t index = light_from_note(note);
-//     if (index > WashLightBar52::NUM_LIGHTS) return;
-//     light->rgb[index].set_goal(velocity, 2 * velocity, 0, 0);
-// }
-// 
-// void note_off(byte channel, byte note, byte velocity) {
-//     uint8_t index = light_from_note(note);
-//     if (index > WashLightBar52::NUM_LIGHTS) return;
-//     light->rgb[index].set_goal(0, 0, 0, 200);
-// }
+DMXController* controller;
+WashLightBar52* light1;
+WashLightBar52* light2;
 
+void note_on(byte channel, byte note, byte velocity) {
+    if (note == 72) {
+      light1->set_goal(0, 100, 0, 50);
+      light2->set_goal(0, 100, 255, 100);
+    } else if (note == 74) {
+      light1->set_goal(100, 100, 0, 50);
+    } else if (note == 76) {
+      light1->set_goal(100, 0, 0, 50);
+      light2->set_goal(255, 100, 0, 100);
+    } else if (note == 77) {
+      light2->set_goal(100, 100, 0, 50);
+    }
+}
 
+void note_off(byte channel, byte note, byte velocity) {
+    if (note == 72) {
+      light1->set_goal(0, 0, 0, 300);
+      light2->set_goal(0, 0, 0, 300);
+    } else if (note == 74) {
+      light1->set_goal(0, 0, 0, 100);
+    } else if (note == 76) {
+      light1->set_goal(0, 0, 0, 300);
+      light2->set_goal(0, 0, 0, 300);
+    } else if (note == 77) {
+      light2->set_goal(0, 0, 0, 50);
+    }
+}
 
 void setup() {
     controller = new DMXController(41, 40);
 
-    light = new WashLightBar52(1, *controller);
-    light->brightness.set_goal(255, 10'000);
+    light1 = new WashLightBar52(1, *controller);
+    light1->brightness.set_goal(255);
+
+    light2 = new WashLightBar52(54, *controller);
+    light2->brightness.set_goal(255);
 
     Serial.begin(115200);
 
-    // usbMIDI.setHandleNoteOn(note_on);
-    // usbMIDI.setHandleNoteOff(note_off);
-
-    // uint8_t address = 1;
-    // light = new WashLightBar52(address, *controller);
-    // Serial.print("Final address: ");
-    // Serial.println(address);
-
-    // light->brightness.goal = 255;
-
-    // controller->set_max_channel(53);
+    usbMIDI.setHandleNoteOn(note_on);
+    usbMIDI.setHandleNoteOff(note_off);
 }
 
-float phase = 0.0;
+void set_color(RgbChannel& channel) {
+    uint8_t h = random(150, 190);
+    uint8_t s = random(200, 255);
+    uint8_t v = random(255, 255);
+    uint32_t t = random(5000, 10000);
+    channel.set_goal_hsv(h, s, v, t);
+}
 
 void loop() {
-    light->brightness.set_goal(255);
-    for (uint8_t i = 0; i < WashLightBar52::NUM_LIGHTS; ++i) {
-        float hue = 0.5 * sin(phase + 0.1 * static_cast<float>(i)) + 0.5;
-        light->rgb[i].set_goal_hsv(255 * hue, 255, 255);
-    }
-    phase += 0.01;
-
-    // usbMIDI.read();
+    usbMIDI.read();
     controller->write_frame();
-
-    // for (Rgb& rgb : light->rgb) {
-    //   if (rgb.r.remaining_ms == 0) {
-    //     rgb.set_goal(0, 0, 0, 3000);
-    //   }
-    // }
 }
 
