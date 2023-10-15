@@ -58,6 +58,8 @@ public:
         write_byte(0x00);
 
         // Now the rest of the channels
+        static uint8_t value = 0;
+        value++;
         for (uint16_t i = 1; i <= max_channel_; ++i)
         {
             write_byte(channels_[i] == nullptr ? 0 : channels_[i]->get_value_at(now_ms));

@@ -124,7 +124,7 @@ public:
 
         size_t channel = 0;
         controller.add_channel(address++, channels[channel++]);
-        address++;
+        controller.add_channel(address++, bonus_channels[0]);
         for (uint8_t light = 0; light < NUM_LIGHTS; ++light) {
             auto& red = channels[channel++];
             auto& green = channels[channel++];
@@ -137,9 +137,12 @@ public:
             rgb[light].set_blue(&blue);
             controller.add_channel(address++, blue);
         }
+
+        controller.add_channel(address++, bonus_channels[1]);
+        controller.add_channel(address++, bonus_channels[2]);
     }
 
-    void set_goal(uint8_t r, uint8_t g, uint8_t b, uint32_t duration_ms) {
+    void set_goal(uint8_t r, uint8_t g, uint8_t b, uint32_t duration_ms=0) {
         for (uint8_t light = 0; light < NUM_LIGHTS; ++light) {
             rgb[light].set_goal(r, g, b, duration_ms);
         }
@@ -150,6 +153,7 @@ public:
     }
 
     SimpleChannel channels[3 * NUM_LIGHTS + 1];
+    SimpleChannel bonus_channels[3];
     RgbChannel<SimpleChannel> rgb[NUM_LIGHTS];
 };
 

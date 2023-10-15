@@ -1,6 +1,8 @@
 #include "dmx.hh"
 #include "lights.hh"
 
+#include <MIDIUSB.h>
+
 uint8_t light_from_note(byte note) {
   switch (note) {
     case 52: return 0;
@@ -30,6 +32,13 @@ WashLightBar52* light2;
 uint8_t current = 0;
 
 void note_on(byte channel, byte note, byte velocity) {
+    Serial.print("Note ch=");
+    Serial.print((int)channel);
+    Serial.print(" note=");
+    Serial.print((int)note);
+    Serial.print(" velocity=");
+    Serial.println((int)velocity);
+    return;
     if (note == 72) {
       light1->rgb[current].set_goal(0, 100, 255, 50);
       light2->rgb[current].set_goal(0, 100, 255, 100);
@@ -62,17 +71,16 @@ void setup() {
 
     light1 = new WashLightBar52(1, *controller);
     light1->brightness().set_goal(255);
+    light1->set_goal(200, 200, 200);
 
     light2 = new WashLightBar52(54, *controller);
     light2->brightness().set_goal(255);
+    light2->set_goal(200, 200, 200);
 
     Serial.begin(115200);
 
-    // usbMIDI.setHandleNoteOn(note_on);
-    // usbMIDI.setHandleNoteOff(note_off);
-
-    light1->set_goal(255, 255, 255, 0);
-    light2->set_goal(255, 255, 255, 0);
+    usbMIDI.setHandleNoteOn(note_on);
+    usbMIDI.setHandleNoteOff(note_off);
 }
 
 template <typename Channel>
@@ -85,18 +93,14 @@ void set_color(RgbChannel<Channel>& channel) {
 }
 
 uint32_t last_ms = 0;
-uint8_t value = 255;
-
 void loop() {
     uint32_t now_ms = millis();
-    if (now_ms > 200 + last_ms) {
-        light1->set_goal(value, value, value, 200);
-        light2->set_goal(value, value, value, 200);
+    if (now_ms > 1000 + last_ms) {
+        Serial.println("Hello1");
         last_ms = now_ms;
-        value = value == 255 ? 100 : 255;
     }
 
-    //usbMIDI.read();
+    usbMIDI.read();
     controller->write_frame();
 }
 
