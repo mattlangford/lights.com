@@ -6,13 +6,11 @@
 // Light primitives
 //
 
-class SimpleChannel : public Channel {
+class LinearFadeChannel : public Channel {
 public:
-    ~SimpleChannel() override = default;
+    ~LinearFadeChannel() override = default;
 
-    void set_goal(uint8_t new_goal, uint32_t duration_ms=0) {
-        set_goal_at(new_goal, duration_ms, now());
-    }
+    void set_goal(uint8_t new_goal, uint32_t duration_ms=0) { set_goal_at(new_goal, duration_ms, now()); }
     void set_goal_at(uint8_t new_goal, uint32_t duration_ms, uint32_t now_ms) {
         const uint8_t current = get_value_at(now_ms);
         slope_ = (static_cast<float>(new_goal) - static_cast<float>(current)) / static_cast<float>(duration_ms);
@@ -36,10 +34,7 @@ public:
         }
         return value;
     }
-
-    bool done_at(uint32_t now_ms) const override {
-        return now_ms >= end_ms_;
-    }
+    bool active_at(uint32_t now_ms) const override { return now_ms >= end_ms_; }
 
 private:
     float slope_ = 0.0;
@@ -72,15 +67,21 @@ public:
         for (uint8_t i = 0; i < count_; ++i) {
             sum += layers_[i]->get_value_at(now_ms);
         }
-        return sum > 255 ? 255 : static_cast<uint8_t>(sum);
-    }
-    bool done_at(uint32_t now_ms) const override {
+
+        // Clip the value, and inform each channel about the current total value
+        uint8_t value = sum > 255 ? 255 : static_cast<uint8_t>(sum);
         for (uint8_t i = 0; i < count_; ++i) {
-            if (!layers_[i]->done_at(now_ms)) {
-                return false;
+            layers_[i]->set_value(value);
+        }
+        return value;
+    }
+    bool active_at(uint32_t now_ms) const override {
+        for (uint8_t i = 0; i < count_; ++i) {
+            if (layers_[i]->active_at(now_ms)) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
 private:
@@ -148,13 +149,13 @@ public:
         }
     }
 
-    SimpleChannel& brightness() {
+    LinearFadeChannel& brightness() {
         return channels[0];
     }
 
-    SimpleChannel channels[3 * NUM_LIGHTS + 1];
-    SimpleChannel bonus_channels[3];
-    RgbChannel<SimpleChannel> rgb[NUM_LIGHTS];
+    LinearFadeChannel channels[3 * NUM_LIGHTS + 1];
+    LinearFadeChannel bonus_channels[3];
+    RgbChannel<LinearFadeChannel> rgb[NUM_LIGHTS];
 };
 
 // Copied from ChatGPT

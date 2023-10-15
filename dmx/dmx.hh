@@ -5,11 +5,20 @@ public:
     virtual ~Channel() = default;
 
     virtual uint8_t get_value_at(uint32_t now_ms) const { return 0; };
-    virtual bool done_at(uint32_t now_ms) const { return true; };
-    bool done() { return done_at(now()); }
+    virtual bool active_at(uint32_t now_ms) const { return true; }
+
+    bool active() { return active_at(now()); }
+    void set_value(uint8_t value) { last_value_ = value; }
+    uint8_t update_and_get_value(uint32_t now_ms) {
+        const uint8_t value = get_value_at(now_ms);
+        set_value(value);
+        return value;
+    }
 
 protected:
+    uint8_t current_value() const { return last_value_; }
     uint32_t now() const { return millis(); }
+    uint8_t last_value_ = 0;
 };
 
 using ChannelPtr = Channel*;
@@ -28,7 +37,7 @@ public:
     }
 
     void set_max_channel(uint8_t index) {
-        max_channel_ = index > max_channel_ ? index : max_channel_;
+        channel_count_ = index > channel_count_ ? index : channel_count_;
     }
 
     void add_channel(uint8_t index, Channel& channel) {
@@ -40,7 +49,7 @@ public:
     {
         uint32_t dt_us = dt();
 
-        // If we're exceeding the BREAK to BREAK time, delay here.
+        // If we're exceeding the BREAK to BREAK time, don't send an update.
         if (dt_us < BREAK_TO_BREAK_US) {
             return;
         }
@@ -58,11 +67,16 @@ public:
         write_byte(0x00);
 
         // Now the rest of the channels
-        static uint8_t value = 0;
-        value++;
-        for (uint16_t i = 1; i <= max_channel_; ++i)
-        {
-            write_byte(channels_[i] == nullptr ? 0 : channels_[i]->get_value_at(now_ms));
+        for (uint16_t i = 1; i <= channel_count_; ++i) {
+            // Compute the value of this channel, the time between slots is arbitrary so do the processing here.
+            uint8_t value = 0;
+            if (ChannelPtr channel = channels_[i]) {
+                if (channel->active()) {
+                    value = channel->update_and_get_value(now_ms);
+                }
+            }
+
+            write_byte(value);
         }
 
         write_bit(1, MARK_BEFORE_BREAK_US);
@@ -131,7 +145,7 @@ private:
 
     uint32_t time_us_;
 
-    uint8_t max_channel_ = 0;
+    uint8_t channel_count_ = 0;
     Channel* channels_[MAX_CHANNELS];
 };
 
