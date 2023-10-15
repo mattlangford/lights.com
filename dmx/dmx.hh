@@ -4,16 +4,15 @@ class Channel {
 public:
     virtual ~Channel() = default;
 
-    virtual void set_goal_at(uint8_t goal, uint32_t duration_ms, uint32_t now_ms) {}
     virtual uint8_t get_value_at(uint32_t now_ms) const { return 0; };
     virtual bool done_at(uint32_t now_ms) const { return true; };
-
-    void set_goal(uint8_t goal, uint32_t duration_ms=0) { set_goal_at(goal, duration_ms, now()); }
     bool done() { return done_at(now()); }
 
-private:
+protected:
     uint32_t now() const { return millis(); }
 };
+
+using ChannelPtr = Channel*;
 
 class DMXController {
 public:

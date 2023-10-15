@@ -10,7 +10,10 @@ class SimpleChannel : public Channel {
 public:
     ~SimpleChannel() override = default;
 
-    void set_goal_at(uint8_t new_goal, uint32_t duration_ms, uint32_t now_ms) override {
+    void set_goal(uint8_t new_goal, uint32_t duration_ms=0) {
+        set_goal_at(new_goal, duration_ms, now());
+    }
+    void set_goal_at(uint8_t new_goal, uint32_t duration_ms, uint32_t now_ms) {
         const uint8_t current = get_value_at(now_ms);
         slope_ = (static_cast<float>(new_goal) - static_cast<float>(current)) / static_cast<float>(duration_ms);
 
@@ -44,25 +47,67 @@ private:
     uint8_t end_value_ = 0;
 };
 
+class LayeredChannel : public Channel {
+public:
+    ~LayeredChannel() override = default;
+
+public:
+    void add_layer(ChannelPtr channel) {
+        uint8_t last = count_;
+        count_++;
+
+        layers_ = reinterpret_cast<ChannelPtr*>(realloc(layers_, sizeof(ChannelPtr) * count_));
+        layers_[last] = channel;
+    }
+
+    Channel* channel(uint8_t layer) {
+        if (layer < count_) {
+            return layers_[layer];
+        }
+        return nullptr;
+    }
+
+    uint8_t get_value_at(uint32_t now_ms) const override {
+        uint16_t sum = 0;
+        for (uint8_t i = 0; i < count_; ++i) {
+            sum += layers_[i]->get_value_at(now_ms);
+        }
+        return sum > 255 ? 255 : static_cast<uint8_t>(sum);
+    }
+    bool done_at(uint32_t now_ms) const override {
+        for (uint8_t i = 0; i < count_; ++i) {
+            if (!layers_[i]->done_at(now_ms)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+private:
+    uint8_t count_ = 0;
+    ChannelPtr* layers_ = nullptr;
+};
+
+
 template <typename Channel>
 class RgbChannel {
 public:
     void set_goal(uint8_t r, uint8_t g, uint8_t b, uint32_t duration_ms=0) {
         uint32_t now_ms = millis();
-        r_.set_goal_at(r, duration_ms, now_ms);
-        g_.set_goal_at(g, duration_ms, now_ms);
-        b_.set_goal_at(b, duration_ms, now_ms);
+        if (r_) { r_->set_goal_at(r, duration_ms, now_ms); }
+        if (g_) { g_->set_goal_at(g, duration_ms, now_ms); }
+        if (b_) { b_->set_goal_at(b, duration_ms, now_ms); }
     }
     void set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint32_t duration_ms=0);
 
-    Channel& red_channel() { return r_; };
-    Channel& green_channel() { return g_; };
-    Channel& blue_channel() { return b_; };
+    void set_red(Channel* r) { r_ = r; }
+    void set_green(Channel* g) { g_ = g; }
+    void set_blue(Channel* b) { b_ = b; }
 
 private:
-    Channel r_;
-    Channel g_;
-    Channel b_;
+    Channel* r_;
+    Channel* g_;
+    Channel* b_;
 };
 
 //
@@ -76,12 +121,21 @@ public:
 
     WashLightBar52(uint8_t address, DMXController& controller) {
         controller.set_max_channel(address + NUM_CHANNELS);
-        controller.add_channel(address++, brightness);
+
+        size_t channel = 0;
+        controller.add_channel(address++, channels[channel++]);
         address++;
         for (uint8_t light = 0; light < NUM_LIGHTS; ++light) {
-            controller.add_channel(address++, rgb[light].red_channel());
-            controller.add_channel(address++, rgb[light].green_channel());
-            controller.add_channel(address++, rgb[light].blue_channel());
+            auto& red = channels[channel++];
+            auto& green = channels[channel++];
+            auto& blue = channels[channel++];
+
+            rgb[light].set_red(&red);
+            controller.add_channel(address++, red);
+            rgb[light].set_green(&green);
+            controller.add_channel(address++, green);
+            rgb[light].set_blue(&blue);
+            controller.add_channel(address++, blue);
         }
     }
 
@@ -91,7 +145,11 @@ public:
         }
     }
 
-    SimpleChannel brightness;
+    SimpleChannel& brightness() {
+        return channels[0];
+    }
+
+    SimpleChannel channels[3 * NUM_LIGHTS + 1];
     RgbChannel<SimpleChannel> rgb[NUM_LIGHTS];
 };
 

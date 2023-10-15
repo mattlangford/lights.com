@@ -61,10 +61,10 @@ void setup() {
     controller = new DMXController(41, 40);
 
     light1 = new WashLightBar52(1, *controller);
-    light1->brightness.set_goal(255);
+    light1->brightness().set_goal(255);
 
     light2 = new WashLightBar52(54, *controller);
-    light2->brightness.set_goal(255);
+    light2->brightness().set_goal(255);
 
     Serial.begin(115200);
 
@@ -85,12 +85,16 @@ void set_color(RgbChannel<Channel>& channel) {
 }
 
 uint32_t last_ms = 0;
+uint8_t value = 255;
+
 void loop() {
     uint32_t now_ms = millis();
-    if (now_ms > 1000 + last_ms) {
-      current = (current + 1) % 16;
+    if (now_ms > 200 + last_ms) {
+        light1->set_goal(value, value, value, 200);
+        light2->set_goal(value, value, value, 200);
+        last_ms = now_ms;
+        value = value == 255 ? 100 : 255;
     }
-    last_ms = now_ms;
 
     //usbMIDI.read();
     controller->write_frame();
