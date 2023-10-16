@@ -3,29 +3,31 @@
 class Channel {
 public:
     virtual ~Channel() = default;
+    virtual uint8_t get_value(uint32_t now_ms) const { return current_value(); };
+    virtual bool active(uint32_t now_ms) const { return true; }
+    virtual void set_value(uint8_t value) {};
 
-    virtual uint8_t get_value_at(uint32_t now_ms) const { return 0; };
-    virtual bool active_at(uint32_t now_ms) const { return true; }
-
-    bool active() { return active_at(now()); }
-    void set_value(uint8_t value) { last_value_ = value; }
-    uint8_t update_and_get_value(uint32_t now_ms) {
-        const uint8_t value = get_value_at(now_ms);
+public:
+    bool active_now() const { return active(now()); }
+    bool get_value_now(uint8_t last_value) const { return get_value(now()); }
+    void update_value(uint8_t value) {
+        value_ = value;
         set_value(value);
-        return value;
     }
 
 protected:
-    uint8_t current_value() const { return last_value_; }
     uint32_t now() const { return millis(); }
-    uint8_t last_value_ = 0;
+    uint8_t current_value() const { return value_; }
+
+private:
+    uint8_t value_ = 0;
 };
 
 using ChannelPtr = Channel*;
 
 class DMXController {
 public:
-    static constexpr uint8_t MAX_CHANNELS = 255;
+    static constexpr uint16_t MAX_CHANNELS = 512;
 
     DMXController(uint8_t pos_pin, uint8_t neg_pin) : pos_pin_(pos_pin), neg_pin_(neg_pin), time_us_(micros()) {
         pinMode(pos_pin, OUTPUT);
@@ -36,11 +38,12 @@ public:
         }
     }
 
-    void set_max_channel(uint8_t index) {
-        channel_count_ = index > channel_count_ ? index : channel_count_;
+    void set_max_channel(uint16_t index) {
+        if (index <= MAX_CHANNELS) {
+            channel_count_ = index > channel_count_ ? index : channel_count_;
+        }
     }
-
-    void add_channel(uint8_t index, Channel& channel) {
+    void add_channel(uint16_t index, Channel& channel) {
         set_max_channel(index);
         channels_[index] = &channel;
     }
@@ -70,10 +73,9 @@ public:
         for (uint16_t i = 1; i <= channel_count_; ++i) {
             // Compute the value of this channel, the time between slots is arbitrary so do the processing here.
             uint8_t value = 0;
-            if (ChannelPtr channel = channels_[i]) {
-                if (channel->active()) {
-                    value = channel->update_and_get_value(now_ms);
-                }
+            if (const ChannelPtr channel = channels_[i]) {
+                value = channel->get_value(now_ms);
+                channel->update_value(value);
             }
 
             write_byte(value);
@@ -145,7 +147,7 @@ private:
 
     uint32_t time_us_;
 
-    uint8_t channel_count_ = 0;
-    Channel* channels_[MAX_CHANNELS];
+    uint16_t channel_count_ = 0;
+    Channel* channels_[MAX_CHANNELS + 1];
 };
 

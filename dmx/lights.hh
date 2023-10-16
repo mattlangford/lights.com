@@ -8,37 +8,31 @@
 
 class LinearFadeChannel : public Channel {
 public:
-    ~LinearFadeChannel() override = default;
-
-    void set_goal(uint8_t new_goal, uint32_t duration_ms=0) { set_goal_at(new_goal, duration_ms, now()); }
-    void set_goal_at(uint8_t new_goal, uint32_t duration_ms, uint32_t now_ms) {
-        const uint8_t current = get_value_at(now_ms);
-        slope_ = (static_cast<float>(new_goal) - static_cast<float>(current)) / static_cast<float>(duration_ms);
-
-        end_value_ = new_goal;
-        end_ms_ = now_ms + duration_ms;
-    }
-
-    uint8_t get_value_at(uint32_t now_ms) const override {
-        if (now_ms >= end_ms_) {
+    uint8_t value(uint32_t now_ms) const {
+        if (now_ms < start_ms_ || now_ms >= end_ms_) {
             return end_value_;
         }
 
-        const uint32_t remaining = end_ms_ - now_ms;
-        const float value = end_value_ - slope_ * remaining;
-
-        if (value < 0) {
-            return 0;
-        } else if (value > 255) {
-            return 255;
-        }
-        return value;
+        const float fade_ratio = static_cast<float>(now_ms) / (end_ms_ - start_ms_);
+        const float value = start_value_ + fade_ratio * (static_cast<float>(end_value_) - start_value_);
+        return value < 0 ? 0 : value > 255 ? 255 : static_cast<uint8_t>(value);
     }
-    bool active_at(uint32_t now_ms) const override { return now_ms >= end_ms_; }
+
+    bool active(uint32_t now_ms) const override { return now_ms >= start_ms_ && now_ms < end_ms_; }
+
+public:
+    void set_goal(uint8_t new_goal, uint32_t duration_ms=0) { set_goal(new_goal, duration_ms, now()); }
+    void set_goal(uint8_t new_goal, uint32_t duration_ms, uint32_t now_ms) {
+        start_ms_ = now_ms;
+        end_ms_ = now_ms + duration_ms;
+        start_value_ = current_value();
+        end_value_ = new_goal;
+    }
 
 private:
-    float slope_ = 0.0;
+    uint32_t start_ms_ = 0;
     uint32_t end_ms_ = 0;
+    uint8_t start_value_ = 0;
     uint8_t end_value_ = 0;
 };
 
@@ -62,10 +56,10 @@ public:
         return nullptr;
     }
 
-    uint8_t get_value_at(uint32_t now_ms) const override {
+    uint8_t value(uint32_t now_ms, uint8_t last_value) const {
         uint16_t sum = 0;
         for (uint8_t i = 0; i < count_; ++i) {
-            sum += layers_[i]->get_value_at(now_ms);
+            sum += layers_[i]->get_value(now_ms);
         }
 
         // Clip the value, and inform each channel about the current total value
@@ -75,9 +69,10 @@ public:
         }
         return value;
     }
-    bool active_at(uint32_t now_ms) const override {
+
+    bool active(uint32_t now_ms) const override {
         for (uint8_t i = 0; i < count_; ++i) {
-            if (layers_[i]->active_at(now_ms)) {
+            if (layers_[i]->active(now_ms)) {
                 return true;
             }
         }
@@ -95,9 +90,9 @@ class RgbChannel {
 public:
     void set_goal(uint8_t r, uint8_t g, uint8_t b, uint32_t duration_ms=0) {
         uint32_t now_ms = millis();
-        if (r_) { r_->set_goal_at(r, duration_ms, now_ms); }
-        if (g_) { g_->set_goal_at(g, duration_ms, now_ms); }
-        if (b_) { b_->set_goal_at(b, duration_ms, now_ms); }
+        if (r_) { r_->set_goal(r, duration_ms, now_ms); }
+        if (g_) { g_->set_goal(g, duration_ms, now_ms); }
+        if (b_) { b_->set_goal(b, duration_ms, now_ms); }
     }
     void set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint32_t duration_ms=0);
 
