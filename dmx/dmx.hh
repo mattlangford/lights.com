@@ -1,29 +1,41 @@
 #pragma once
 
-class Channel {
+class Effect {
 public:
-    virtual ~Channel() = default;
-    virtual uint8_t get_value(uint32_t now_ms) const { return current_value(); };
-    virtual bool active(uint32_t now_ms) const { return true; }
-    virtual void set_value(uint8_t value) {};
+    virtual ~Effect() = default;
 
-public:
-    bool active_now() const { return active(now()); }
-    bool get_value_now(uint8_t last_value) const { return get_value(now()); }
-    void update_value(uint8_t value) {
-        value_ = value;
-        set_value(value);
-    }
+    virtual uint8_t process(uint8_t value, uint32_t now_ms) = 0;
+    virtual void trigger(uint32_t now_ms) {};
+    virtual void clear(uint32_t now_ms) {};
 
 protected:
     uint32_t now() const { return millis(); }
-    uint8_t current_value() const { return value_; }
+    uint8_t clip(float in) const { return in < 0 ? 0 : in > 255 ? 255 : static_cast<uint8_t>(in); }
+};
+
+class Channel {
+public:
+    uint8_t get_value(uint32_t now_ms) {
+        for (uint8_t i = 0; i < count_; ++i) {
+            if (Effect* effect = effects_[i]) {
+                value_ = effect->process(value_, now_ms);
+            }
+        }
+        return value_;
+    }
+
+    void add_effect(Effect* effect) {
+        uint8_t last = count_++;
+        effects_ = reinterpret_cast<Effect**>(realloc(effects_, sizeof(Effect*) * count_));
+        effects_[last] = effect;
+    }
 
 private:
     uint8_t value_ = 0;
-};
 
-using ChannelPtr = Channel*;
+    uint8_t count_ = 0;
+    Effect** effects_ = nullptr;
+};
 
 class DMXController {
 public:
@@ -32,10 +44,6 @@ public:
     DMXController(uint8_t pos_pin, uint8_t neg_pin) : pos_pin_(pos_pin), neg_pin_(neg_pin), time_us_(micros()) {
         pinMode(pos_pin, OUTPUT);
         pinMode(neg_pin, OUTPUT);
-
-        for (uint8_t i = 0; i < MAX_CHANNELS; ++i) {
-            channels_[i] = nullptr;
-        }
     }
 
     void set_max_channel(uint16_t index) {
@@ -43,9 +51,9 @@ public:
             channel_count_ = index > channel_count_ ? index : channel_count_;
         }
     }
-    void add_channel(uint16_t index, Channel& channel) {
+    Channel& channel(uint16_t index) {
         set_max_channel(index);
-        channels_[index] = &channel;
+        return channels_[index];
     }
 
     void write_frame()
@@ -72,12 +80,7 @@ public:
         // Now the rest of the channels
         for (uint16_t i = 1; i <= channel_count_; ++i) {
             // Compute the value of this channel, the time between slots is arbitrary so do the processing here.
-            uint8_t value = 0;
-            if (const ChannelPtr channel = channels_[i]) {
-                value = channel->get_value(now_ms);
-                channel->update_value(value);
-            }
-
+            uint8_t value = channels_[i].get_value(now_ms);
             write_byte(value);
         }
 
@@ -148,6 +151,6 @@ private:
     uint32_t time_us_;
 
     uint16_t channel_count_ = 0;
-    Channel* channels_[MAX_CHANNELS + 1];
+    Channel channels_[MAX_CHANNELS + 1];
 };
 

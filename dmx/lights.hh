@@ -6,88 +6,61 @@
 // Light primitives
 //
 
-class LinearFadeChannel : public Channel {
+class LinearFade : public Effect {
 public:
-    uint8_t value(uint32_t now_ms) const {
-        if (now_ms < start_ms_ || now_ms >= end_ms_) {
-            return end_value_;
-        }
+    struct Config {
+        uint32_t trigger_dt_ms = 1000;
+        uint32_t clear_dt_ms = 1000;
+        uint8_t trigger_value = 255;
+        uint8_t clear_value = 0;
+    };
+
+    explicit LinearFade(Config config) { set_config(config); }
+    explicit LinearFade() : LinearFade(Config{}) {}
+
+public:
+    uint8_t process(uint8_t value, uint32_t now_ms) const {
+        if (now_ms < start_ms_) { return clip(value + start_value_); }
+        if (now_ms >= end_ms_) { return clip(value + end_value_); }
 
         const float fade_ratio = static_cast<float>(now_ms) / (end_ms_ - start_ms_);
-        const float value = start_value_ + fade_ratio * (static_cast<float>(end_value_) - start_value_);
-        return value < 0 ? 0 : value > 255 ? 255 : static_cast<uint8_t>(value);
+        const float diff = static_cast<float>(start_value_) - end_value_;
+        return clip(value + start_value_ + fade_ratio * diff);
     }
 
-    bool active(uint32_t now_ms) const override { return now_ms >= start_ms_ && now_ms < end_ms_; }
+    void trigger(uint32_t now_ms) override {
+        set(now_ms, config_.trigger_dt_ms, config_.trigger_value, config_.clear_value);
+    };
+    void clear(uint32_t now_ms) override {
+        set(now_ms, config_.clear_dt_ms, config_.clear_value, config_.trigger_value);
+    };
 
-public:
-    void set_goal(uint8_t new_goal, uint32_t duration_ms=0) { set_goal(new_goal, duration_ms, now()); }
-    void set_goal(uint8_t new_goal, uint32_t duration_ms, uint32_t now_ms) {
-        start_ms_ = now_ms;
-        end_ms_ = now_ms + duration_ms;
-        start_value_ = current_value();
-        end_value_ = new_goal;
+    void set_config(const Config& config) {
+        config_ = config;
     }
 
 private:
+    void set(uint32_t now_ms, uint32_t duration_ms, uint8_t start, uint8_t end) {
+        start_ms_ = now_ms;
+        end_ms_ = now_ms + duration_ms;
+        start_value_ = start;
+        end_value_ = end;
+    }
+
+    Config config_;
+
     uint32_t start_ms_ = 0;
     uint32_t end_ms_ = 0;
     uint8_t start_value_ = 0;
     uint8_t end_value_ = 0;
 };
 
-class LayeredChannel : public Channel {
-public:
-    ~LayeredChannel() override = default;
-
-public:
-    void add_layer(ChannelPtr channel) {
-        uint8_t last = count_;
-        count_++;
-
-        layers_ = reinterpret_cast<ChannelPtr*>(realloc(layers_, sizeof(ChannelPtr) * count_));
-        layers_[last] = channel;
-    }
-
-    Channel* channel(uint8_t layer) {
-        if (layer < count_) {
-            return layers_[layer];
-        }
-        return nullptr;
-    }
-
-    uint8_t value(uint32_t now_ms, uint8_t last_value) const {
-        uint16_t sum = 0;
-        for (uint8_t i = 0; i < count_; ++i) {
-            sum += layers_[i]->get_value(now_ms);
-        }
-
-        // Clip the value, and inform each channel about the current total value
-        uint8_t value = sum > 255 ? 255 : static_cast<uint8_t>(sum);
-        for (uint8_t i = 0; i < count_; ++i) {
-            layers_[i]->set_value(value);
-        }
-        return value;
-    }
-
-    bool active(uint32_t now_ms) const override {
-        for (uint8_t i = 0; i < count_; ++i) {
-            if (layers_[i]->active(now_ms)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-private:
-    uint8_t count_ = 0;
-    ChannelPtr* layers_ = nullptr;
-};
-
-
+/*
 template <typename Channel>
 class RgbChannel {
 public:
+    virtual ~RgbChannel() = default;
+
     void set_goal(uint8_t r, uint8_t g, uint8_t b, uint32_t duration_ms=0) {
         uint32_t now_ms = millis();
         if (r_) { r_->set_goal(r, duration_ms, now_ms); }
@@ -104,6 +77,22 @@ private:
     Channel* r_;
     Channel* g_;
     Channel* b_;
+};
+
+template <typename Channel>
+class RgbwChannel : public RgbChannel {
+public:
+    ~RgbwChannel() override = default;
+
+    void set_white_goal(uint8_t w, uint32_t duration_ms=0) {
+        uint32_t now_ms = millis();
+        if (w_) { w_->set_goal(w, duration_ms, now_ms); }
+    }
+
+    void set_white(Channel* r) { w_ = w; }
+
+private:
+    Channel* w_;
 };
 
 //
@@ -180,3 +169,5 @@ void RgbChannel<Channel>::set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint32_t
 
     set_goal(255 * r, 255 * g, 255 * b, duration_ms);
 }
+
+*/
