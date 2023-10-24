@@ -28,10 +28,10 @@ public:
 
     void trigger(uint32_t now_ms) override {
         set(now_ms, config_.trigger_dt_ms, config_.trigger_value, config_.clear_value);
-    };
+    }
     void clear(uint32_t now_ms) override {
         set(now_ms, config_.clear_dt_ms, config_.clear_value, config_.trigger_value);
-    };
+    }
 
     void set_config(const Config& config) { config_ = config; }
     const Config& config() const { return config_; }
@@ -50,6 +50,68 @@ private:
     uint32_t end_ms_ = 0;
     uint8_t start_value_ = 0;
     uint8_t end_value_ = 0;
+};
+
+class LinearPulse : public Effect {
+public:
+    struct Config {
+        uint32_t on_dt_ms = 1000;
+        uint32_t hold_dt_ms = 1000;
+        uint32_t off_dt_ms = 1000;
+
+        uint32_t clear_dt_ms = 100;
+
+        uint8_t trigger_value = 255;
+        uint8_t clear_value = 0;
+    };
+
+    explicit LinearPulse(Config config) { set_config(config); }
+    explicit LinearPulse() : LinearPulse(Config{}) {}
+    ~LinearPulse() override {}
+
+public:
+    uint8_t process(uint8_t value, uint32_t now_ms) override {
+        return (now_ms < off_start_ms_ ? on_fade_ : off_fade_).process(value, now_ms);
+    }
+
+    void trigger(uint32_t now_ms) override {
+        on_fade_.trigger(now_ms);
+
+        off_start_ms_ = now_ms + config_.on_dt_ms + config_.hold_dt_ms;
+        off_fade_.trigger(off_start_ms_);
+    }
+    void clear(uint32_t now_ms) override {
+        off_start_ms_ = now_ms;
+        off_fade_.clear(now_ms);
+    }
+
+    void set_config(const Config& config) {
+        config_ = config;
+
+        uint8_t on_value = config_.trigger_value;
+        uint8_t off_value = config_.clear_value;
+
+        on_fade_.set_config({
+            .trigger_dt_ms = config_.on_dt_ms,
+            .clear_dt_ms = config_.clear_dt_ms,
+            .trigger_value = on_value,
+            .clear_value = off_value,
+        });
+        off_fade_.set_config({
+            .trigger_dt_ms = config_.off_dt_ms,
+            .clear_dt_ms = config_.clear_dt_ms,
+            .trigger_value = off_value,
+            .clear_value = on_value,
+        });
+    }
+    const Config& config() const { return config_; }
+
+private:
+    Config config_;
+    LinearFade on_fade_;
+    LinearFade off_fade_;
+
+    uint32_t off_start_ms_;
 };
 
 class CosBlend : public Effect {
@@ -81,7 +143,7 @@ public:
         return clip(new_value);
     }
 
-    void trigger(uint32_t now_ms) override {};
+    void trigger(uint32_t now_ms) override {}
     void clear(uint32_t now_ms) override {};
 
     void set_config(const Config& config) {
