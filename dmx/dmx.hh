@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util.hh"
+
 class Effect {
 public:
     virtual ~Effect() = default;
@@ -26,13 +28,12 @@ public:
 
     void add_effect(Effect* effect) {
         uint8_t last = count_++;
-        effects_ = reinterpret_cast<Effect**>(realloc(effects_, sizeof(Effect*) * count_));
+        effects_ = move(effects_, count_);
         effects_[last] = effect;
     }
 
 private:
     uint8_t value_ = 0;
-
     uint8_t count_ = 0;
     Effect** effects_ = nullptr;
 };

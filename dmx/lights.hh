@@ -1,10 +1,7 @@
-#include "dmx.hh"
-
 #pragma once
 
-//
-// Light primitives
-//
+#include "dmx.hh"
+#include "util.hh"
 
 class LinearFade : public Effect {
 public:
@@ -17,9 +14,10 @@ public:
 
     explicit LinearFade(Config config) { set_config(config); }
     explicit LinearFade() : LinearFade(Config{}) {}
+    ~LinearFade() override {}
 
 public:
-    uint8_t process(uint8_t value, uint32_t now_ms) const {
+    uint8_t process(uint8_t value, uint32_t now_ms) override {
         if (now_ms < start_ms_) { return clip(value + start_value_); }
         if (now_ms >= end_ms_) { return clip(value + end_value_); }
 
@@ -35,9 +33,8 @@ public:
         set(now_ms, config_.clear_dt_ms, config_.clear_value, config_.trigger_value);
     };
 
-    void set_config(const Config& config) {
-        config_ = config;
-    }
+    void set_config(const Config& config) { config_ = config; }
+    const Config& config() const { return config_; }
 
 private:
     void set(uint32_t now_ms, uint32_t duration_ms, uint8_t start, uint8_t end) {
@@ -53,6 +50,64 @@ private:
     uint32_t end_ms_ = 0;
     uint8_t start_value_ = 0;
     uint8_t end_value_ = 0;
+};
+
+class CosBlend : public Effect {
+public:
+    struct Config {
+        uint8_t depth = 1;
+        float min_freq = 10;
+        float max_freq = 1000;
+        uint8_t min_value = 0;
+        uint8_t max_value = 255;
+    };
+
+    explicit CosBlend(Config config) { set_config(config); }
+    explicit CosBlend() : CosBlend(Config{}) {}
+    ~CosBlend() override { if (waves_) { delete waves_; } }
+
+public:
+    uint8_t process(uint8_t value, uint32_t now_ms) override {
+        const float dt = static_cast<float>(now_ms - last_time_ms_) / 1000;
+        last_time_ms_ = now_ms;
+
+        float new_value = value;
+        for (size_t i = 0; i < config_.depth; ++i) {
+            Wave& wave = waves_[i];
+            wave.phase = fmod(wave.phase + wave.freq * dt, 2.0f * M_PI);
+            value += generate(wave.phase, config_.min_value, config_.max_value);
+        }
+
+        return clip(new_value);
+    }
+
+    void trigger(uint32_t now_ms) override {};
+    void clear(uint32_t now_ms) override {};
+
+    void set_config(const Config& config) {
+        config_ = config;
+        waves_ = move(waves_, config_.depth);
+
+        for (size_t i = 0; i < config_.depth; ++i) {
+            waves_[i].freq = random(config_.min_freq, config_.max_freq);
+        }
+    }
+    const Config& config() const { return config_; }
+
+private:
+    static float generate(float phase, float min, float max) {
+        return (0.5 * (cosf(phase) + 1)) * (max - min) + min;
+    }
+
+    Config config_;
+
+    struct Wave {
+        float phase = 0.0;
+        float freq = 0.0;
+    };
+    Wave* waves_ = nullptr;
+
+    uint32_t last_time_ms_ = 0;
 };
 
 /*
