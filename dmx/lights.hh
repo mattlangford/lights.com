@@ -8,8 +8,6 @@ public:
     struct Config {
         uint32_t trigger_dt_ms = 1000;
         uint32_t clear_dt_ms = 1000;
-        uint8_t trigger_value = 255;
-        uint8_t clear_value = 0;
     };
 
     explicit LinearFade(Config config) { set_config(config); }
@@ -27,10 +25,10 @@ public:
     }
 
     void trigger(uint32_t now_ms) override {
-        set(now_ms, config_.trigger_dt_ms, config_.trigger_value, config_.clear_value);
+        set(now_ms, config_.trigger_dt_ms, min_value(), max_value());
     }
     void clear(uint32_t now_ms) override {
-        set(now_ms, config_.clear_dt_ms, config_.clear_value, config_.trigger_value);
+        set(now_ms, config_.clear_dt_ms, max_value(), min_value());
     }
 
     void set_config(const Config& config) { config_ = config; }
@@ -60,9 +58,6 @@ public:
         uint32_t off_dt_ms = 1000;
 
         uint32_t clear_dt_ms = 100;
-
-        uint8_t trigger_value = 255;
-        uint8_t clear_value = 0;
     };
 
     explicit LinearPulse(Config config) { set_config(config); }
@@ -71,16 +66,18 @@ public:
 
 public:
     uint8_t process(uint8_t value, uint32_t now_ms) override {
-        return (now_ms < off_start_ms_ ? on_fade_ : off_fade_).process(value, now_ms);
+        return (now_ms <= off_start_ms_ ? on_fade_ : off_fade_).process(value, now_ms);
     }
 
     void trigger(uint32_t now_ms) override {
+        set_values();
         on_fade_.trigger(now_ms);
 
         off_start_ms_ = now_ms + config_.on_dt_ms + config_.hold_dt_ms;
         off_fade_.trigger(off_start_ms_);
     }
     void clear(uint32_t now_ms) override {
+        set_values();
         off_start_ms_ = now_ms;
         off_fade_.clear(now_ms);
     }
@@ -88,25 +85,23 @@ public:
     void set_config(const Config& config) {
         config_ = config;
 
-        uint8_t on_value = config_.trigger_value;
-        uint8_t off_value = config_.clear_value;
-
         on_fade_.set_config({
             .trigger_dt_ms = config_.on_dt_ms,
             .clear_dt_ms = config_.clear_dt_ms,
-            .trigger_value = on_value,
-            .clear_value = off_value,
         });
         off_fade_.set_config({
             .trigger_dt_ms = config_.off_dt_ms,
             .clear_dt_ms = config_.clear_dt_ms,
-            .trigger_value = off_value,
-            .clear_value = on_value,
         });
     }
     const Config& config() const { return config_; }
 
 private:
+    void set_values() {
+        on_fade_.set_values({.min = min_value(), .max = max_value()});
+        off_fade_.set_values({.min = max_value(), .max = min_value()});
+    }
+
     Config config_;
     LinearFade on_fade_;
     LinearFade off_fade_;
@@ -120,8 +115,6 @@ public:
         uint8_t depth = 1;
         float min_freq = 10;
         float max_freq = 1000;
-        uint8_t min_value = 0;
-        uint8_t max_value = 255;
     };
 
     explicit CosBlend(Config config) { set_config(config); }
@@ -137,14 +130,11 @@ public:
         for (size_t i = 0; i < config_.depth; ++i) {
             Wave& wave = waves_[i];
             wave.phase = fmod(wave.phase + wave.freq * dt, 2.0f * M_PI);
-            value += generate(wave.phase, config_.min_value, config_.max_value);
+            value += generate(wave.phase, min_value(), max_value());
         }
 
         return clip(new_value);
     }
-
-    void trigger(uint32_t now_ms) override {}
-    void clear(uint32_t now_ms) override {};
 
     void set_config(const Config& config) {
         config_ = config;

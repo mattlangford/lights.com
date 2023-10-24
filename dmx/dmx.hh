@@ -4,15 +4,30 @@
 
 class Effect {
 public:
+    // Many effects have some min/max bounds, this struct allows easy reuse for RGB effects.
+    struct ValueConfig {
+        uint8_t min = 0;
+        uint8_t max = 255;
+    };
+
+public:
     virtual ~Effect() = default;
 
     virtual uint8_t process(uint8_t value, uint32_t now_ms) = 0;
     virtual void trigger(uint32_t now_ms) {};
     virtual void clear(uint32_t now_ms) {};
 
+    void set_values(const ValueConfig& values) { values_ = values; }
+
 protected:
     uint32_t now() const { return millis(); }
     uint8_t clip(float in) const { return in < 0 ? 0 : in > 255 ? 255 : static_cast<uint8_t>(in); }
+
+    inline uint8_t min_value() const { return values_.min; }
+    inline uint8_t max_value() const { return values_.max; }
+
+private:
+    ValueConfig values_;
 };
 
 class Channel {
