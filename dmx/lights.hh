@@ -162,46 +162,58 @@ private:
     uint32_t last_time_ms_ = 0;
 };
 
+template <typename Effect>
+class RgbEffect {
+public:
+    struct HsvValueConfig {
+        float min_h;
+        float max_h;
+
+        static HsvValueConfig fixed(float v) { return {.min=v, .max=v}; }
+    };
+
+    static void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b);
+
+public:
+    void set_config(const typename Effect::Config& config) {
+        r_.set_config(config);
+        g_.set_config(config);
+        b_.set_config(config);
+    }
+
+    void trigger(uint32_t now_ms) {
+        r_.trigger(now_ms);
+        g_.trigger(now_ms);
+        b_.trigger(now_ms);
+    };
+    void clear(uint32_t now_ms) {
+        r_.trigger(now_ms);
+        g_.trigger(now_ms);
+        b_.trigger(now_ms);
+    };
+
+    void set_values_rgb(const ValueConfig& r, const ValueConfig& g, const ValueConfig& b) {
+        r_.set_values(r);
+        g_.set_values(g);
+        b_.set_values(b);
+    };
+    void set_values_hsv(const HsvValueConfig& h, const HsvValueConfig& s, const HsvValueConfig& v) {
+        uint8_t r_min, g_min, b_min;
+        uint8_t r_max, g_max, b_max;
+    };
+
+    Effect& red() { return r_; }
+    Effect& green() { return g_; };
+    Effect& blue() { return b_; };
+
+private:
+    Effect r_;
+    Effect g_;
+    Effect b_;
+};
+
+
 /*
-template <typename Channel>
-class RgbChannel {
-public:
-    virtual ~RgbChannel() = default;
-
-    void set_goal(uint8_t r, uint8_t g, uint8_t b, uint32_t duration_ms=0) {
-        uint32_t now_ms = millis();
-        if (r_) { r_->set_goal(r, duration_ms, now_ms); }
-        if (g_) { g_->set_goal(g, duration_ms, now_ms); }
-        if (b_) { b_->set_goal(b, duration_ms, now_ms); }
-    }
-    void set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint32_t duration_ms=0);
-
-    void set_red(Channel* r) { r_ = r; }
-    void set_green(Channel* g) { g_ = g; }
-    void set_blue(Channel* b) { b_ = b; }
-
-private:
-    Channel* r_;
-    Channel* g_;
-    Channel* b_;
-};
-
-template <typename Channel>
-class RgbwChannel : public RgbChannel {
-public:
-    ~RgbwChannel() override = default;
-
-    void set_white_goal(uint8_t w, uint32_t duration_ms=0) {
-        uint32_t now_ms = millis();
-        if (w_) { w_->set_goal(w, duration_ms, now_ms); }
-    }
-
-    void set_white(Channel* r) { w_ = w; }
-
-private:
-    Channel* w_;
-};
-
 //
 // Light Types
 //
@@ -248,33 +260,30 @@ public:
     LinearFadeChannel bonus_channels[3];
     RgbChannel<LinearFadeChannel> rgb[NUM_LIGHTS];
 };
+*/
 
 // Copied from ChatGPT
-template <typename Channel>
-void RgbChannel<Channel>::set_goal_hsv(uint8_t h, uint8_t s, uint8_t v, uint32_t duration_ms) {
+template <typename Effect>
+void RgbEffect<Effect>::hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b) {
     // Convert HSV values to the range [0, 1]
-    float h_normalized = static_cast<float>(h) / 255.0;
-    float s_normalized = static_cast<float>(s) / 255.0;
-    float v_normalized = static_cast<float>(v) / 255.0;
+    float h_normalized = h / 255.0;
+    float s_normalized = s / 255.0;
 
     int i = static_cast<int>(h_normalized * 6);
     float f = (h_normalized * 6) - i;
-    float p = v_normalized * (1 - s_normalized);
-    float q = v_normalized * (1 - f * s_normalized);
-    float t = v_normalized * (1 - (1 - f) * s_normalized);
 
-    float r, g, b;
+    // Each of these will be between 0 and 255
+    float p = static_cast<uint8_t>(v * (1 - s_normalized));
+    float q = static_cast<uint8_t>(v * (1 - f * s_normalized));
+    float t = static_cast<uint8_t>(v * (1 - (1 - f) * s_normalized));
+
     switch (i % 6) {
-        case 0: r = v_normalized; g = t; b = p; break;
-        case 1: r = q; g = v_normalized; b = p; break;
-        case 2: r = p; g = v_normalized; b = t; break;
-        case 3: r = p; g = q; b = v_normalized; break;
-        case 4: r = t; g = p; b = v_normalized; break;
-        case 5: r = v_normalized; g = p; b = q; break;
-        default: r = 0.0; g = 0.0; b = 0.0;
+        case 0: r = v; g = t; b = p; break;
+        case 1: r = q; g = v; b = p; break;
+        case 2: r = p; g = v; b = t; break;
+        case 3: r = p; g = q; b = v; break;
+        case 4: r = t; g = p; b = v; break;
+        case 5: r = v; g = p; b = q; break;
+        default: r = 0; g = 0; b = 0;
     }
-
-    set_goal(255 * r, 255 * g, 255 * b, duration_ms);
 }
-
-*/

@@ -2,14 +2,15 @@
 
 #include "util.hh"
 
-class Effect {
-public:
-    // Many effects have some min/max bounds, this struct allows easy reuse for RGB effects.
-    struct ValueConfig {
-        uint8_t min = 0;
-        uint8_t max = 255;
-    };
+// Many effects have some min/max bounds, this struct allows easy reuse for RGB effects.
+struct ValueConfig {
+    uint8_t min = 0;
+    uint8_t max = 255;
 
+    static ValueConfig fixed(uint8_t v) { return {.min=v, .max=v}; }
+};
+
+class Effect {
 public:
     virtual ~Effect() = default;
 
