@@ -47,10 +47,14 @@ public:
         return value_;
     }
 
-    void add_effect(Effect* effect) {
+    void set_value(uint8_t value) { value_ = value; }
+
+
+    Effect* add_effect(Effect* effect) {
         uint8_t last = count_++;
         effects_ = move(effects_, count_);
         effects_[last] = effect;
+        return effect;
     }
 
     Effect* effect(uint8_t layer) const {

@@ -16,11 +16,17 @@ public:
         red_(red), green_(green), blue_(blue) {
     }
 
-    template <typename Effect>
-    void add_effect() {
-        if (red_) { red_->add_effect(new Effect()); }
-        if (green_) { green_->add_effect(new Effect()); }
-        if (blue_) { blue_->add_effect(new Effect()); }
+    template <typename Effect, typename...Args>
+    RgbEffect add_effect(Args...args) {
+        Effect* r = new Effect(args...);
+        Effect* g = new Effect(args...);
+        Effect* b = new Effect(args...);
+
+        if (red_) { red_->add_effect(r); }
+        if (green_) { green_->add_effect(g); }
+        if (blue_) { blue_->add_effect(b); }
+
+        return RgbEffect(r, g, b);
     }
 
     RgbEffect effect(size_t index) {
@@ -50,7 +56,7 @@ public:
     KitchenLight(uint16_t address, DMXController& controller) :
         brightness(controller.channel(address)),
         rgb(RgbChannel::create(address + 1, controller)) {
-        controller.set_max_channel(address + 6);
+        controller.set_max_channel(address + 7);
     }
 
 public:
@@ -88,8 +94,10 @@ public:
         for (size_t light = 0; light < NUM_LIGHTS; ++light) {
             // Skip over white
             rgb[light] = RgbChannel::create(address + light * 4, controller);
+            whites[light] = &controller.channel(light * 4 + 3);
         }
     }
 
+    Channel* whites[NUM_LIGHTS];
     RgbChannel rgb[NUM_LIGHTS];
 };
