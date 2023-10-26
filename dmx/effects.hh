@@ -162,109 +162,67 @@ private:
     uint32_t last_time_ms_ = 0;
 };
 
-template <typename Effect>
+void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b);
+
 class RgbEffect {
 public:
     struct HsvValueConfig {
         float min_h;
         float max_h;
 
-        static HsvValueConfig fixed(float v) { return {.min=v, .max=v}; }
+        static HsvValueConfig fixed(float v) { return HsvValueConfig{.min_h=v, .max_h=v}; }
     };
 
-    static void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b);
-
-public:
-    void set_config(const typename Effect::Config& config) {
-        r_.set_config(config);
-        g_.set_config(config);
-        b_.set_config(config);
+    template <typename Effect>
+    static RgbEffect create() {
+        return BaseRgbEffect(new Effect(), new Effect(), new Effect());
     }
 
+    RgbEffect(Effect* r, Effect* g, Effect* b) : r_(r), g_(g), b_(b) { }
+
+public:
     void trigger(uint32_t now_ms) {
-        r_.trigger(now_ms);
-        g_.trigger(now_ms);
-        b_.trigger(now_ms);
+        if (r_) { r_->trigger(now_ms); }
+        if (g_) { g_->trigger(now_ms); }
+        if (b_) { b_->trigger(now_ms); }
     };
     void clear(uint32_t now_ms) {
-        r_.trigger(now_ms);
-        g_.trigger(now_ms);
-        b_.trigger(now_ms);
+        if (r_) { r_->clear(now_ms); }
+        if (g_) { g_->clear(now_ms); }
+        if (b_) { b_->clear(now_ms); }
     };
 
     void set_values_rgb(const ValueConfig& r, const ValueConfig& g, const ValueConfig& b) {
-        r_.set_values(r);
-        g_.set_values(g);
-        b_.set_values(b);
-    };
-    void set_values_hsv(const HsvValueConfig& h, const HsvValueConfig& s, const HsvValueConfig& v) {
-        uint8_t r_min, g_min, b_min;
-        uint8_t r_max, g_max, b_max;
+        if (r_) { r_->set_values(r); }
+        if (g_) { g_->set_values(g); }
+        if (b_) { b_->set_values(b); }
     };
 
-    Effect& red() { return r_; }
-    Effect& green() { return g_; };
-    Effect& blue() { return b_; };
+    // void set_values_hsv(const HsvValueConfig& h, const HsvValueConfig& s, const HsvValueConfig& v) {
+    //     uint8_t r_min, g_min, b_min;
+    //     uint8_t r_max, g_max, b_max;
+    // };
+
+    template <typename Effect>
+    void set_config(const typename Effect::Config& config) {
+        if (auto* r = dynamic_cast<Effect*>(r_)) { r->set_config(config); }
+        if (auto* g = dynamic_cast<Effect*>(g_)) { g->set_config(config); }
+        if (auto* b = dynamic_cast<Effect*>(b_)) { b->set_config(config); }
+    }
+
+    template <typename Effect=Effect>
+    Effect* red() { return dynamic_cast<Effect*>(r_); }
+    Effect* green() { return dynamic_cast<Effect*>(g_); }
+    Effect* blue() { return dynamic_cast<Effect*>(b_); }
 
 private:
-    Effect r_;
-    Effect g_;
-    Effect b_;
+    Effect* r_;
+    Effect* g_;
+    Effect* b_;
 };
-
-
-/*
-//
-// Light Types
-//
-
-class WashLightBar52 {
-public:
-    static constexpr uint8_t NUM_LIGHTS = 16;
-    static constexpr uint8_t NUM_CHANNELS = 52;
-
-    WashLightBar52(uint8_t address, DMXController& controller) {
-        controller.set_max_channel(address + NUM_CHANNELS);
-
-        size_t channel = 0;
-        controller.add_channel(address++, channels[channel++]);
-        controller.add_channel(address++, bonus_channels[0]);
-        for (uint8_t light = 0; light < NUM_LIGHTS; ++light) {
-            auto& red = channels[channel++];
-            auto& green = channels[channel++];
-            auto& blue = channels[channel++];
-
-            rgb[light].set_red(&red);
-            controller.add_channel(address++, red);
-            rgb[light].set_green(&green);
-            controller.add_channel(address++, green);
-            rgb[light].set_blue(&blue);
-            controller.add_channel(address++, blue);
-        }
-
-        controller.add_channel(address++, bonus_channels[1]);
-        controller.add_channel(address++, bonus_channels[2]);
-    }
-
-    void set_goal(uint8_t r, uint8_t g, uint8_t b, uint32_t duration_ms=0) {
-        for (uint8_t light = 0; light < NUM_LIGHTS; ++light) {
-            rgb[light].set_goal(r, g, b, duration_ms);
-        }
-    }
-
-    LinearFadeChannel& brightness() {
-        return channels[0];
-    }
-
-    LinearFadeChannel channels[3 * NUM_LIGHTS + 1];
-    LinearFadeChannel bonus_channels[3];
-    RgbChannel<LinearFadeChannel> rgb[NUM_LIGHTS];
-};
-*/
 
 // Copied from ChatGPT
-template <typename Effect>
-void RgbEffect<Effect>::hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b) {
+void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b) {
     // Convert HSV values to the range [0, 1]
     float h_normalized = h / 255.0;
     float s_normalized = s / 255.0;

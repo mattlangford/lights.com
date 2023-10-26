@@ -33,6 +33,11 @@ private:
 
 class Channel {
 public:
+    ~Channel() {
+        for (size_t i = 0; i < count_; ++i) { delete effects_[i]; }
+        if (effects_) { delete effects_; }
+    }
+
     uint8_t get_value(uint32_t now_ms) {
         for (uint8_t i = 0; i < count_; ++i) {
             if (Effect* effect = effects_[i]) {
@@ -48,8 +53,14 @@ public:
         effects_[last] = effect;
     }
 
+    Effect* effect(uint8_t layer) const {
+        return layer < count_ ? effects_[layer] : nullptr;
+    }
+
 private:
     uint8_t value_ = 0;
+
+    // Owned here
     uint8_t count_ = 0;
     Effect** effects_ = nullptr;
 };
