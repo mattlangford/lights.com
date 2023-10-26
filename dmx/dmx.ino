@@ -1,5 +1,5 @@
 #include "dmx.hh"
-#include "lights.hh"
+#include "effects.hh"
 
 #include <MIDIUSB.h>
 
