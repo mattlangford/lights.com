@@ -33,9 +33,6 @@ void setup() {
     universe = new Universe(*controller);
 
     for (size_t l = 0; l < Universe::NUM_KITCHEN; ++l) {
-        const ValueConfig r{.min=190, .max=230};
-        const ValueConfig g{.min=75, .max=90};
-        const ValueConfig b{.min=0, .max=0};
         const CosBlend::Config config {
             .depth = 2,
             .min_freq = 0.01,
@@ -43,13 +40,11 @@ void setup() {
         };
         KitchenLight& light = *universe->kitchen[l];
         light.brightness.set_value(255);
-        light.rgb.add_effect<CosBlend>(config).set_values_rgb(r, g, b);
+        light.rgb.add_effect<CosBlend>(config).set_values_rgb(
+            {.min=190, .max=255}, {.min=10, .max=50}, {.min=0, .max=0});
     }
 
     {
-        const ValueConfig r{.min=150, .max=255};
-        const ValueConfig g{.min=50, .max=200};
-        const ValueConfig b{.min=0, .max=30};
         const CosBlend::Config config {
             .depth = 2,
             .min_freq = 0.1,
@@ -57,31 +52,32 @@ void setup() {
         };
         WashBarLight112& light = *universe->bar1;
         for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
-            light.rgb[i].add_effect<CosBlend>(config).set_values_rgb(r, g, b);
+            light.rgb(i).add_effect<CosBlend>(config).set_values_rgb(
+                {.min=190, .max=255}, {.min=10, .max=50}, {.min=0, .max=0});
+            light.white(i).add_effect<LinearFade>().set_values({.min=0, .max=20});
         }
     }
     {
-        const ValueConfig w{.min=10, .max=200};
-        const CosBlend::Config config {
-            .depth = 2,
-            .min_freq = 0.1,
-            .max_freq = 10,
-        };
         WashBarLight112& light = *universe->bar2;
         for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
-            light.whites[i]->add_effect(new CosBlend(config))->set_values(w);
+            if (i % 7 == 0) {
+                light.rgb(i).set_value_rgb(175, 20, 0);
+            }
         }
     }
 }
 
-static float f = 100;
+uint32_t now = millis();
+
 void loop() {
     controller->write_frame();
 
-    WashBarLight112& light = *universe->bar2;
-    for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
-        light.whites[i]->set_value(fmod(f, 255));
+    if (millis() - now > 1000) { //static_cast<uint32_t>(random(10000, 30000))) {
+        now = millis();
+        for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
+            //universe->bar1->whites[i]->effect(0)->trigger(now + 100 * i);
+        }
     }
-    f += 0.1;
+
 }
 

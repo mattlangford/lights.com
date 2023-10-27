@@ -50,15 +50,19 @@ public:
     void set_value(uint8_t value) { value_ = value; }
 
 
-    Effect* add_effect(Effect* effect) {
+    template <typename Effect, typename...Args>
+    Effect& add_effect(Args&&... args) {
         uint8_t last = count_++;
         effects_ = move(effects_, count_);
+
+        Effect* effect = new Effect(args...);
         effects_[last] = effect;
-        return effect;
+        return *effect;
     }
 
+    template <typename Effect=Effect>
     Effect* effect(uint8_t layer) const {
-        return layer < count_ ? effects_[layer] : nullptr;
+        return layer < count_ ? dynamic_cast<Effect*>(effects_[layer]) : nullptr;
     }
 
 private:
@@ -113,10 +117,13 @@ public:
         for (uint16_t i = 1; i <= channel_count_; ++i) {
             // Compute the value of this channel, the time between slots is arbitrary so do the processing here.
             uint8_t value = channels_[i].get_value(now_ms);
-            Serial.print(i);
-            Serial.print(": ");
-            Serial.println(value);
             write_byte(value);
+        }
+
+        // Padding, it seems some lights don't like being the last channel.
+        for (int16_t i = channel_count_; i < 10; ++i)  {
+            if (i > 512) break;
+            write_byte(0);
         }
 
         write_bit(1, MARK_BEFORE_BREAK_US);

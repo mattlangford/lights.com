@@ -19,7 +19,7 @@ public:
         if (now_ms < start_ms_) { return clip(value + start_value_); }
         if (now_ms >= end_ms_) { return clip(value + end_value_); }
 
-        const float fade_ratio = static_cast<float>(now_ms) / (end_ms_ - start_ms_);
+        const float fade_ratio = (static_cast<float>(now_ms) - start_ms_) / (end_ms_ - start_ms_);
         const float diff = static_cast<float>(start_value_) - end_value_;
         return clip(value + start_value_ + fade_ratio * diff);
     }
@@ -53,9 +53,9 @@ private:
 class LinearPulse : public Effect {
 public:
     struct Config {
-        uint32_t on_dt_ms = 1000;
+        uint32_t on_dt_ms = 100;
         uint32_t hold_dt_ms = 1000;
-        uint32_t off_dt_ms = 1000;
+        uint32_t off_dt_ms = 100;
 
         uint32_t clear_dt_ms = 100;
     };
@@ -115,6 +115,7 @@ public:
         uint8_t depth = 1;
         float min_freq = 10;
         float max_freq = 1000;
+        float passthrough = 0.0;
     };
 
     explicit CosBlend(Config config) { set_config(config); }
@@ -126,16 +127,14 @@ public:
         const float dt = static_cast<float>(now_ms - last_time_ms_) / 1000;
         last_time_ms_ = now_ms;
 
-        float new_value = 0.0;
+        float new_value = config_.passthrough * value;
         for (size_t i = 0; i < config_.depth; ++i) {
             Wave& wave = waves_[i];
             wave.phase = fmod(wave.phase + wave.freq * dt, 2.0f * M_PI);
-
-            float gen = generate(wave.phase, min_value(), max_value()) / config_.depth;
-            new_value += gen;
+            new_value += generate(wave.phase, min_value(), max_value());
         }
 
-        return clip(new_value);
+        return clip(new_value / config_.depth);
     }
 
     void set_config(const Config& config) {
@@ -223,6 +222,35 @@ private:
     Effect* g_;
     Effect* b_;
 };
+
+class RgbChannel {
+public:
+    RgbChannel(Channel& red, Channel& green, Channel& blue) : red_(red), green_(green), blue_(blue) { }
+
+    template <typename Effect, typename...Args>
+    RgbEffect add_effect(Args&&...args) {
+        Effect& r = red_.add_effect<Effect>(args...);
+        Effect& g = green_.add_effect<Effect>(args...);
+        Effect& b = blue_.add_effect<Effect>(args...);
+        return RgbEffect(&r, &g, &b);
+    }
+
+    RgbEffect effect(size_t index) {
+        return RgbEffect(red_.effect(index), green_.effect(index), blue_.effect(index));
+    }
+
+    void set_value_rgb(uint8_t r, uint8_t g, uint8_t b) {
+        red_.set_value(r);
+        green_.set_value(g);
+        blue_.set_value(b);
+    };
+
+private:
+    Channel& red_;
+    Channel& green_;
+    Channel& blue_;
+};
+
 
 // Copied from ChatGPT
 void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b) {
