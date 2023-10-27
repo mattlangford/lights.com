@@ -5,7 +5,7 @@
 
 struct RgbChannel {
 public:
-    static RgbChannel create(uint16_t address, DMXController controller) {
+    static RgbChannel create(uint16_t address, DMXController& controller) {
         return RgbChannel(
             &controller.channel(address),
             &controller.channel(address + 1),
@@ -36,6 +36,10 @@ public:
             blue_ ? blue_->effect(index) : nullptr);
     }
 
+    Channel* red() { return red_; }
+    Channel* green() { return green_; }
+    Channel* blue() { return blue_; }
+
 private:
     Channel* red_ = nullptr;
     Channel* green_ = nullptr;
@@ -56,7 +60,7 @@ public:
     KitchenLight(uint16_t address, DMXController& controller) :
         brightness(controller.channel(address)),
         rgb(RgbChannel::create(address + 1, controller)) {
-        controller.set_max_channel(address + 7);
+        controller.set_max_channel(address + 2 * 7);
     }
 
 public:
@@ -72,7 +76,8 @@ public:
 
     WashLightBar52(uint16_t address, DMXController& controller) :
         brightness(controller.channel(address++)) {
-        controller.set_max_channel(address + NUM_CHANNELS);
+        controller.set_max_channel(address + NUM_CHANNELS + 10);
+        address++;
 
         for (size_t light = 0; light < NUM_LIGHTS; ++light) {
             rgb[light] = RgbChannel::create(address + light * 3, controller);
@@ -89,12 +94,12 @@ public:
     static constexpr uint8_t NUM_CHANNELS = 112;
 
     WashBarLight112(uint16_t address, DMXController& controller) {
-        controller.set_max_channel(address + NUM_CHANNELS);
+        controller.set_max_channel(address + NUM_CHANNELS + 10);
 
         for (size_t light = 0; light < NUM_LIGHTS; ++light) {
             // Skip over white
             rgb[light] = RgbChannel::create(address + light * 4, controller);
-            whites[light] = &controller.channel(light * 4 + 3);
+            whites[light] = &controller.channel(address + light * 4 + 3);
         }
     }
 

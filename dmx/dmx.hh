@@ -113,6 +113,9 @@ public:
         for (uint16_t i = 1; i <= channel_count_; ++i) {
             // Compute the value of this channel, the time between slots is arbitrary so do the processing here.
             uint8_t value = channels_[i].get_value(now_ms);
+            Serial.print(i);
+            Serial.print(": ");
+            Serial.println(value);
             write_byte(value);
         }
 

@@ -126,11 +126,13 @@ public:
         const float dt = static_cast<float>(now_ms - last_time_ms_) / 1000;
         last_time_ms_ = now_ms;
 
-        float new_value = value;
+        float new_value = 0.0;
         for (size_t i = 0; i < config_.depth; ++i) {
             Wave& wave = waves_[i];
             wave.phase = fmod(wave.phase + wave.freq * dt, 2.0f * M_PI);
-            value += generate(wave.phase, min_value(), max_value());
+
+            float gen = generate(wave.phase, min_value(), max_value()) / config_.depth;
+            new_value += gen;
         }
 
         return clip(new_value);
@@ -142,6 +144,7 @@ public:
 
         for (size_t i = 0; i < config_.depth; ++i) {
             waves_[i].freq = random(config_.min_freq, config_.max_freq);
+            waves_[i].phase = random(0, 2 * M_PI);
         }
     }
     const Config& config() const { return config_; }
