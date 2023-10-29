@@ -9,3 +9,7 @@ arduino-cli compile -u -p /dev/tty.usbmodem101 dmx
 # Monitor the serial output
 cat /dev/cu.usbmodem101
 ```
+
+## Libraries
+ * ArduinoJson
+ * ArduinoSTL
