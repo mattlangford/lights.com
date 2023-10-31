@@ -4,7 +4,34 @@
 
 #include <MIDIUSB.h>
 
+#include <map>
+#include <set>
+#include <vector>
+#include <string>
+
 DMXController* controller;
+
+class EffectMap {
+public:
+    template <typename Effect, typename... Args>
+    Effect* add_effect(const std::string& name, Args&&...args) {
+        Effect* ptr = new Effect(args...);
+        effects_[name].push_back(ptr);
+        return ptr;
+    }
+
+    std::vector<std::string> names(const std::string& light_names) const {
+        std::vector<std::string> out;
+        out.reserve(effects_.size());
+        for (const auto& it : effects_) {
+            out.push_back(it.first);
+        }
+        return out;
+    }
+
+private:
+    std::map<std::string, std::vector<Effect*>> effects_;
+};
 
 struct Universe {
     static constexpr size_t NUM_KITCHEN = 4;

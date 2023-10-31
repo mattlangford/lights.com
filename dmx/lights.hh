@@ -1,3 +1,4 @@
+#pragma once
 
 #include "dmx.hh"
 #include "effects.hh"
