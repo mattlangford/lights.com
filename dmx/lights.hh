@@ -16,14 +16,16 @@ class KitchenLight {
 public:
     KitchenLight(uint16_t address, DMXController& controller) :
         brightness(controller.channel(address)),
-        rgb(controller.channel(address + 1),
-            controller.channel(address + 2),
-            controller.channel(address + 3)) {
+        red(controller.channel(address + 1)),
+        green(controller.channel(address + 2)),
+        blue(controller.channel(address + 3)) {
         controller.set_max_channel(address + 7);
     }
 
     Channel& brightness;
-    RgbChannel rgb;
+    Channel& red;
+    Channel& green;
+    Channel& blue;
 };
 
 
@@ -38,24 +40,26 @@ public:
         address++;
 
         for (size_t light = 0; light < NUM_LIGHTS; ++light) {
-            rgb_[light] = new RgbChannel(
-                    controller.channel(address + light * 3),
-                    controller.channel(address + light * 3 + 1),
-                    controller.channel(address + light * 3 + 2));
-        }
-    }
-    ~WashLightBar52() {
-        for (size_t light = 0; light < NUM_LIGHTS; ++light) {
-            delete rgb_[light];
+            rgb_[light].r = &controller.channel(address + light * 3);
+            rgb_[light].g = &controller.channel(address + light * 3 + 1);
+            rgb_[light].b = &controller.channel(address + light * 3 + 2);
         }
     }
 
     Channel& brightness() { return brightness_; }
-    RgbChannel& rgb(uint8_t index) { return *rgb_[index]; }
+    Channel& red(uint8_t index) { return *rgb_[index].r; }
+    Channel& green(uint8_t index) { return *rgb_[index].g; }
+    Channel& blue(uint8_t index) { return *rgb_[index].b; }
 
 private:
     Channel& brightness_;
-    RgbChannel* rgb_[NUM_LIGHTS];
+
+    struct Rgb {
+        Channel* r;
+        Channel* g;
+        Channel* b;
+    };
+    Rgb rgb_[NUM_LIGHTS];
 };
 
 class WashBarLight112 {
@@ -67,24 +71,24 @@ public:
         controller.set_max_channel(address + NUM_CHANNELS);
 
         for (size_t light = 0; light < NUM_LIGHTS; ++light) {
-            rgb_[light] = new RgbChannel(
-                    controller.channel(address + light * 4),
-                    controller.channel(address + light * 4 + 1),
-                    controller.channel(address + light * 4 + 2));
-            whites_[light] = &controller.channel(address + light * 4 + 3);
-        }
-    }
-    ~WashBarLight112() {
-        for (size_t light = 0; light < NUM_LIGHTS; ++light) {
-            delete whites_[light];
-            delete rgb_[light];
+            rgb_[light].r = &controller.channel(address + light * 4);
+            rgb_[light].g = &controller.channel(address + light * 4 + 1);
+            rgb_[light].b = &controller.channel(address + light * 4 + 2);
+            rgb_[light].w = &controller.channel(address + light * 4 + 3);
         }
     }
 
-    Channel& white(uint8_t index) { return *whites_[index]; }
-    RgbChannel& rgb(uint8_t index) { return *rgb_[index]; }
+    Channel& red(uint8_t index) { return *rgb_[index].r; }
+    Channel& green(uint8_t index) { return *rgb_[index].g; }
+    Channel& blue(uint8_t index) { return *rgb_[index].b; }
+    Channel& white(uint8_t index) { return *rgb_[index].w; }
 
 private:
-    Channel* whites_[NUM_LIGHTS];
-    RgbChannel* rgb_[NUM_LIGHTS];
+    struct Rgbw {
+        Channel* r;
+        Channel* g;
+        Channel* b;
+        Channel* w;
+    };
+    Rgbw rgb_[NUM_LIGHTS];
 };

@@ -13,6 +13,14 @@ DMXController* controller;
 
 class EffectMap {
 public:
+    ~EffectMap() {
+        for (auto& it : effects_) {
+            for (auto& effect : it.second) {
+                delete effect;
+            }
+        }
+    }
+
     template <typename Effect, typename... Args>
     Effect* add_effect(const std::string& name, Args&&...args) {
         Effect* ptr = new Effect(args...);
@@ -29,9 +37,16 @@ public:
         return out;
     }
 
+    const std::vector<Configurable*>& effects(const std::string& name) const {
+        static std::vector<Configurable*> empty;
+        auto it = effects_.find(name);
+        return it == effects_.end() ? empty : it->second;
+    }
+
 private:
-    std::map<std::string, std::vector<Effect*>> effects_;
+    std::map<std::string, std::vector<Configurable*>> effects_;
 };
+EffectMap effects;
 
 struct Universe {
     static constexpr size_t NUM_KITCHEN = 4;
@@ -67,8 +82,12 @@ void setup() {
         };
         KitchenLight& light = *universe->kitchen[l];
         light.brightness.set_value(255);
-        light.rgb.add_effect<CosBlend>(config).set_values_rgb(
-            {.min=190, .max=255}, {.min=10, .max=50}, {.min=0, .max=0});
+
+        auto rgb = effects.add_effect<RgbEffect<CosBlend>>("Background", config);
+        light.red.add_effect(rgb->red());
+        light.green.add_effect(rgb->green());
+        light.blue.add_effect(rgb->blue());
+        rgb->set_values_rgb({.min=190, .max=255}, {.min=10, .max=50}, {.min=0, .max=0});
     }
 
     {
@@ -79,32 +98,25 @@ void setup() {
         };
         WashBarLight112& light = *universe->bar1;
         for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
-            light.rgb(i).add_effect<CosBlend>(config).set_values_rgb(
-                {.min=190, .max=255}, {.min=10, .max=50}, {.min=0, .max=0});
-            light.white(i).add_effect<LinearFade>().set_values({.min=0, .max=20});
+            auto rgb = effects.add_effect<RgbEffect<CosBlend>>("Background", config);
+            rgb->set_values_rgb({.min=190, .max=255}, {.min=10, .max=50}, {.min=0, .max=0});
+            light.red(i).add_effect(rgb->red());
+            light.green(i).add_effect(rgb->green());
+            light.blue(i).add_effect(rgb->blue());
         }
     }
     {
         WashBarLight112& light = *universe->bar2;
         for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
             if (i % 7 == 0) {
-                light.rgb(i).set_value_rgb(175, 20, 0);
+                light.red(i).set_value(175);
+                light.green(i).set_value(22);
             }
         }
     }
 }
 
-uint32_t now = millis();
-
 void loop() {
     controller->write_frame();
-
-    if (millis() - now > 1000) { //static_cast<uint32_t>(random(10000, 30000))) {
-        now = millis();
-        for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
-            //universe->bar1->whites[i]->effect(0)->trigger(now + 100 * i);
-        }
-    }
-
 }
 

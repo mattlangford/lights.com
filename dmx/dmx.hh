@@ -2,33 +2,18 @@
 
 #include "util.hh"
 
-// Many effects have some min/max bounds, this struct allows easy reuse for RGB effects.
-struct ValueConfig {
-    uint8_t min = 0;
-    uint8_t max = 255;
-
-    static ValueConfig fixed(uint8_t v) { return {.min=v, .max=v}; }
-};
-
 class Effect {
 public:
     virtual ~Effect() = default;
 
     virtual uint8_t process(uint8_t value, uint32_t now_ms) = 0;
-    virtual void trigger(uint32_t now_ms) {};
-    virtual void clear(uint32_t now_ms) {};
 
-    void set_values(const ValueConfig& values) { values_ = values; }
+    virtual void trigger(uint32_t now_ms) {}
+    virtual void clear(uint32_t now_ms) {}
 
 protected:
     uint32_t now() const { return millis(); }
     uint8_t clip(float in) const { return in < 0 ? 0 : in > 255 ? 255 : static_cast<uint8_t>(in); }
-
-    inline uint8_t min_value() const { return values_.min; }
-    inline uint8_t max_value() const { return values_.max; }
-
-private:
-    ValueConfig values_;
 };
 
 class Channel {
@@ -49,15 +34,10 @@ public:
 
     void set_value(uint8_t value) { value_ = value; }
 
-
-    template <typename Effect, typename...Args>
-    Effect& add_effect(Args&&... args) {
+    void add_effect(Effect* effect) {
         uint8_t last = count_++;
         effects_ = move(effects_, count_);
-
-        Effect* effect = new Effect(args...);
         effects_[last] = effect;
-        return *effect;
     }
 
     template <typename Effect=Effect>

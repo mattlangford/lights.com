@@ -3,7 +3,39 @@
 #include "dmx.hh"
 #include "util.hh"
 
-class LinearFade : public Effect {
+// Many effects have some min/max bounds, this struct allows easy reuse for RGB effects.
+struct ValueConfig {
+    uint8_t min = 0;
+    uint8_t max = 255;
+
+    static ValueConfig fixed(uint8_t v) { return {.min=v, .max=v}; }
+};
+struct ValueConfigFloat {
+    float min = 0.0;
+    float max = 1.0;
+
+    static ValueConfigFloat fixed(float v) { return {.min=v, .max=v}; }
+};
+
+class Configurable {
+public:
+    virtual ~Configurable() = default;
+
+    void set_values(const ValueConfig& values) { values_ = values; }
+
+protected:
+    inline uint8_t min_value() const { return values_.min; }
+    inline uint8_t max_value() const { return values_.max; }
+
+private:
+    ValueConfig values_;
+};
+
+///
+///
+///
+
+class LinearFade final : public Effect, public Configurable {
 public:
     struct Config {
         uint32_t trigger_dt_ms = 1000;
@@ -50,7 +82,7 @@ private:
     uint8_t end_value_ = 0;
 };
 
-class LinearPulse : public Effect {
+class LinearPulse final : public Effect, public Configurable {
 public:
     struct Config {
         uint32_t on_dt_ms = 100;
@@ -109,7 +141,7 @@ private:
     uint32_t off_start_ms_;
 };
 
-class CosBlend : public Effect {
+class CosBlend final : public Effect, public Configurable {
 public:
     struct Config {
         uint8_t depth = 1;
@@ -164,93 +196,42 @@ private:
     uint32_t last_time_ms_ = 0;
 };
 
+///
+///
+///
+
 void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b);
 
-class RgbEffect {
+template <typename Effect>
+class RgbEffect final : public Configurable {
 public:
-    struct HsvValueConfig {
-        float min_h;
-        float max_h;
-
-        static HsvValueConfig fixed(float v) { return HsvValueConfig{.min_h=v, .max_h=v}; }
-    };
-
-    template <typename Effect>
-    static RgbEffect create() {
-        return BaseRgbEffect(new Effect(), new Effect(), new Effect());
-    }
-
-    RgbEffect(Effect* r, Effect* g, Effect* b) : r_(r), g_(g), b_(b) { }
+    RgbEffect() = default;
+    RgbEffect(const typename Effect::Config& config) : r_(config), g_(config), b_(config) {}
+    ~RgbEffect() override = default;
 
 public:
-    void trigger(uint32_t now_ms) {
-        if (r_) { r_->trigger(now_ms); }
-        if (g_) { g_->trigger(now_ms); }
-        if (b_) { b_->trigger(now_ms); }
-    };
-    void clear(uint32_t now_ms) {
-        if (r_) { r_->clear(now_ms); }
-        if (g_) { g_->clear(now_ms); }
-        if (b_) { b_->clear(now_ms); }
-    };
-
     void set_values_rgb(const ValueConfig& r, const ValueConfig& g, const ValueConfig& b) {
-        if (r_) { r_->set_values(r); }
-        if (g_) { g_->set_values(g); }
-        if (b_) { b_->set_values(b); }
+        r_.set_values(r);
+        g_.set_values(g);
+        b_.set_values(b);
     };
 
-    // void set_values_hsv(const HsvValueConfig& h, const HsvValueConfig& s, const HsvValueConfig& v) {
-    //     uint8_t r_min, g_min, b_min;
-    //     uint8_t r_max, g_max, b_max;
-    // };
-
-    template <typename Effect>
-    void set_config(const typename Effect::Config& config) {
-        if (auto* r = dynamic_cast<Effect*>(r_)) { r->set_config(config); }
-        if (auto* g = dynamic_cast<Effect*>(g_)) { g->set_config(config); }
-        if (auto* b = dynamic_cast<Effect*>(b_)) { b->set_config(config); }
-    }
-
-    template <typename Effect=Effect>
-    Effect* red() { return dynamic_cast<Effect*>(r_); }
-    Effect* green() { return dynamic_cast<Effect*>(g_); }
-    Effect* blue() { return dynamic_cast<Effect*>(b_); }
-
-private:
-    Effect* r_;
-    Effect* g_;
-    Effect* b_;
-};
-
-class RgbChannel {
-public:
-    RgbChannel(Channel& red, Channel& green, Channel& blue) : red_(red), green_(green), blue_(blue) { }
-
-    template <typename Effect, typename...Args>
-    RgbEffect add_effect(Args&&...args) {
-        Effect& r = red_.add_effect<Effect>(args...);
-        Effect& g = green_.add_effect<Effect>(args...);
-        Effect& b = blue_.add_effect<Effect>(args...);
-        return RgbEffect(&r, &g, &b);
-    }
-
-    RgbEffect effect(size_t index) {
-        return RgbEffect(red_.effect(index), green_.effect(index), blue_.effect(index));
-    }
-
-    void set_value_rgb(uint8_t r, uint8_t g, uint8_t b) {
-        red_.set_value(r);
-        green_.set_value(g);
-        blue_.set_value(b);
+    void set_values_hsv(const ValueConfigFloat& h, const ValueConfigFloat& s, const ValueConfigFloat& v) {
+        ValueConfig r, g, b;
+        hsv_to_rgb(h.min, s.min, v.min, r.min, g.min, b.min);
+        hsv_to_rgb(h.max, s.max, v.max, r.max, g.max, b.max);
+        set_values_rgb(r, g, b);
     };
 
-private:
-    Channel& red_;
-    Channel& green_;
-    Channel& blue_;
-};
+    Effect* red() { return &r_; }
+    Effect* green() { return &g_; }
+    Effect* blue() { return &b_; }
 
+private:
+    Effect r_;
+    Effect g_;
+    Effect b_;
+};
 
 // Copied from ChatGPT
 void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b) {
