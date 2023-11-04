@@ -62,7 +62,10 @@ public:
             if (it == effects_.end()) {
                 continue;
             }
-            it->second->set_config_json(field.value());
+            auto config = field.value()["config"];
+            if (!config.isNull()) it->second->set_config_json(config);
+            auto values = field.value()["values"];
+            if (!values.isNull()) it->second->set_values_json(values);
         }
     }
 
@@ -72,8 +75,8 @@ public:
             JsonObject object = doc.createNestedObject(effect.first);
             object["type"] = effect.second->type();
 
-            JsonObject config = doc.createNestedObject("config");
-            JsonObject values = doc.createNestedObject("values");
+            JsonObject config = object.createNestedObject("config");
+            JsonObject values = object.createNestedObject("values");
 
             effect.second->get_config_json(config);
             effect.second->get_values_json(values);
@@ -249,11 +252,10 @@ private:
     float max_ = 255.0;
 };
 
-///
-///
-///
 
-void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b);
+///
+///
+///
 
 template <typename Effect>
 class CompositeEffect : public Configurable {
@@ -301,6 +303,8 @@ public:
 private:
     std::vector<std::unique_ptr<Effect>> effects_;
 };
+
+void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b);
 
 template <typename Effect>
 class RgbEffect final : public Configurable {

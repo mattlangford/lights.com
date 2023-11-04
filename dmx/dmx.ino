@@ -36,6 +36,7 @@ Universe* universe;
 
 void setup() {
     Serial.begin(115200);
+    Serial.setTimeout(100);
 
     controller = new DMXController(41, 40);
     universe = new Universe(*controller);
@@ -77,12 +78,26 @@ void setup() {
     }
 }
 
-uint32_t last = 0;
 void loop() {
-    if (millis() - last > 1000) {
+    const auto str = Serial.readString().trim();
+    if (str.length() == 0) {
+    } else if (str == "list") {
         serializeJson(effects.get_json(), Serial);
         Serial.println();
-        last = millis();
+    } else if (str.startsWith("set ")) {
+        DynamicJsonDocument doc(1024);
+        const DeserializationError err = deserializeJson(doc, str.substring(4));
+        if (err.code() == DeserializationError::Ok) {
+            effects.set_json(doc.as<JsonObject>());
+            Serial.println("Updated config!");
+        } else {
+            Serial.print("Unable to parse json input: ");
+            Serial.println(err.c_str());
+        }
+    } else {
+        Serial.print("Unknown command: '");
+        Serial.print(str);
+        Serial.println("'");
     }
 
     controller->write_frame();
