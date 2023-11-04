@@ -45,7 +45,7 @@ void setup() {
         .min_freq = 0.01,
         .max_freq = 1.0,
     };
-    auto& background = effects.add_effect<CompositeEffect<RgbEffect<CosBlend>>>("Background", config);
+    auto& background = effects.add_effect<CompositeEffect<RgbEffect<CosBlend>>>("Background");
 
     for (size_t l = 0; l < Universe::NUM_KITCHEN; ++l) {
         KitchenLight& light = *universe->kitchen[l];
