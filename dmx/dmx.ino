@@ -84,6 +84,11 @@ void loop() {
     } else if (str == "list") {
         serializeJson(effects.get_json(), Serial);
         Serial.println();
+    } else if (str == "help") {
+        Serial.println("Commands:");
+        Serial.println(" - 'list' to show current configuration");
+        Serial.println(" - 'set JSON_STR' to set config");
+        Serial.println(" - 'help' to show this help");
     } else if (str.startsWith("set ")) {
         DynamicJsonDocument doc(1024);
         const DeserializationError err = deserializeJson(doc, str.substring(4));
@@ -97,7 +102,7 @@ void loop() {
     } else {
         Serial.print("Unknown command: '");
         Serial.print(str);
-        Serial.println("'");
+        Serial.println("' Send 'help' for commands.");
     }
 
     controller->write_frame();
