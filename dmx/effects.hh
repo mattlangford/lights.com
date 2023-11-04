@@ -13,7 +13,7 @@ public:
     virtual ~Configurable() = default;
 
     virtual void set_config_json(const JsonObject& json) {}
-    virtual JsonObject get_config_json() const { return JsonObject(); };
+    virtual void get_config_json(JsonObject& json) const {};
 
 protected:
     template <typename T>
@@ -47,6 +47,25 @@ public:
     Configurable* effect(const std::string& name) const {
         auto it = effects_.find(name);
         return it == effects_.end() ? nullptr : it->second.get();
+    }
+
+    void set_config_json(const JsonObject& object) {
+        for (auto field : object) {
+            auto it = effects_.find(field.key().c_str());
+            if (it == effects_.end()) {
+                continue;
+            }
+            it->second->set_config_json(field.value());
+        }
+    }
+
+    DynamicJsonDocument get_config_json() {
+        DynamicJsonDocument doc(1024);
+        for (const auto& effect : effects_) {
+            JsonObject object = doc.createNestedObject(effect.first);
+            effect.second->get_config_json(object);
+        }
+        return doc;
     }
 
 private:
@@ -95,13 +114,11 @@ public:
         maybe_set(json, "max", config_.max);
     }
 
-    JsonObject get_config_json() const override {
-        JsonObject json;
+    void get_config_json(JsonObject& json) const override {
         json["trigger_dt_ms"] = config_.trigger_dt_ms;
         json["clear_dt_ms"] = config_.clear_dt_ms;
         json["min"] = config_.min;
         json["max"] = config_.max;
-        return json;
     }
 
 private:
@@ -167,15 +184,13 @@ public:
         maybe_set(json, "max", config_.max);
     }
 
-    JsonObject get_config_json() const override {
-        JsonObject json;
+    void get_config_json(JsonObject& json) const override {
         json["depth"] = config_.depth;
         json["min_freq"] = config_.min_freq;
         json["max_freq"] = config_.max_freq;
         json["passthrough"] = config_.passthrough;
         json["min"] = config_.min;
         json["max"] = config_.max;
-        return json;
     }
 
 
@@ -207,25 +222,25 @@ public:
     ~CompositeEffect() override = default;
 
     Effect& add() {
-        effects_.push_back(Effect());
-        return effects_.back();
+        effects_.push_back(std::make_unique<Effect>());
+        return *effects_.back();
     }
 
     void set_config_json(const JsonObject& json) override {
         for (auto& effect : effects_) {
-            effect.set_config_json(json);
+            effect->set_config_json(json);
         }
     }
 
-    JsonObject get_config_json() const {
-        if (effects_.empty()) return JsonObject();
-
-        // Expecting these all to the same, just pick the first
-        return effects_.front().get_config_json();
+    void get_config_json(JsonObject& json) const {
+        if (!effects_.empty()) {
+            // Expecting these all to the same, just pick the first
+            effects_.front()->get_config_json(json);
+        }
     };
 
 private:
-    std::vector<Effect> effects_;
+    std::vector<std::unique_ptr<Effect>> effects_;
 };
 
 template <typename Effect>
@@ -238,6 +253,24 @@ public:
     Effect* red() { return &r_; }
     Effect* green() { return &g_; }
     Effect* blue() { return &b_; }
+
+    void set_config_json(const JsonObject& json) override {
+        auto red = json["red"];
+        if (!red.isNull()) r_.set_config_json(red);
+        auto green = json["green"];
+        if (!green.isNull()) g_.set_config_json(green);
+        auto blue = json["blue"];
+        if (!blue.isNull()) b_.set_config_json(blue);
+    }
+
+    void get_config_json(JsonObject& json) const {
+        JsonObject red = json.createNestedObject("red");
+        r_.get_config_json(red);
+        JsonObject green = json.createNestedObject("green");
+        g_.get_config_json(green);
+        JsonObject blue = json.createNestedObject("blue");
+        b_.get_config_json(blue);
+    };
 
 private:
     Effect r_;

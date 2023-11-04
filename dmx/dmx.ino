@@ -77,7 +77,14 @@ void setup() {
     }
 }
 
+uint32_t last = 0;
 void loop() {
+    if (millis() - last > 1000) {
+        serializeJson(effects.get_config_json(), Serial);
+        Serial.println();
+        last = millis();
+    }
+
     controller->write_frame();
 }
 
