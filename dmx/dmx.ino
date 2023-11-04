@@ -8,44 +8,10 @@
 #include <set>
 #include <vector>
 #include <string>
+#include <memory>
+#include <vector>
 
 DMXController* controller;
-
-class EffectMap {
-public:
-    ~EffectMap() {
-        for (auto& it : effects_) {
-            for (auto& effect : it.second) {
-                delete effect;
-            }
-        }
-    }
-
-    template <typename Effect, typename... Args>
-    Effect* add_effect(const std::string& name, Args&&...args) {
-        Effect* ptr = new Effect(args...);
-        effects_[name].push_back(ptr);
-        return ptr;
-    }
-
-    std::vector<std::string> names(const std::string& light_names) const {
-        std::vector<std::string> out;
-        out.reserve(effects_.size());
-        for (const auto& it : effects_) {
-            out.push_back(it.first);
-        }
-        return out;
-    }
-
-    const std::vector<Configurable*>& effects(const std::string& name) const {
-        static std::vector<Configurable*> empty;
-        auto it = effects_.find(name);
-        return it == effects_.end() ? empty : it->second;
-    }
-
-private:
-    std::map<std::string, std::vector<Configurable*>> effects_;
-};
 EffectMap effects;
 
 struct Universe {
@@ -74,35 +40,30 @@ void setup() {
     controller = new DMXController(41, 40);
     universe = new Universe(*controller);
 
+    const CosBlend::Config config {
+        .depth = 2,
+        .min_freq = 0.01,
+        .max_freq = 1.0,
+    };
+    auto& background = effects.add_effect<CompositeEffect<RgbEffect<CosBlend>>>("Background", config);
+
     for (size_t l = 0; l < Universe::NUM_KITCHEN; ++l) {
-        const CosBlend::Config config {
-            .depth = 2,
-            .min_freq = 0.01,
-            .max_freq = 1.0,
-        };
         KitchenLight& light = *universe->kitchen[l];
         light.brightness.set_value(255);
 
-        auto rgb = effects.add_effect<RgbEffect<CosBlend>>("Background", config);
-        light.red.add_effect(rgb->red());
-        light.green.add_effect(rgb->green());
-        light.blue.add_effect(rgb->blue());
-        rgb->set_values_rgb({.min=190, .max=255}, {.min=10, .max=50}, {.min=0, .max=0});
+        auto& rgb = background.add();
+        light.red.add_effect(rgb.red());
+        light.green.add_effect(rgb.green());
+        light.blue.add_effect(rgb.blue());
     }
 
     {
-        const CosBlend::Config config {
-            .depth = 2,
-            .min_freq = 0.1,
-            .max_freq = 10,
-        };
         WashBarLight112& light = *universe->bar1;
         for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
-            auto rgb = effects.add_effect<RgbEffect<CosBlend>>("Background", config);
-            rgb->set_values_rgb({.min=190, .max=255}, {.min=10, .max=50}, {.min=0, .max=0});
-            light.red(i).add_effect(rgb->red());
-            light.green(i).add_effect(rgb->green());
-            light.blue(i).add_effect(rgb->blue());
+            auto& rgb = background.add();
+            light.red(i).add_effect(rgb.red());
+            light.green(i).add_effect(rgb.green());
+            light.blue(i).add_effect(rgb.blue());
         }
     }
     {

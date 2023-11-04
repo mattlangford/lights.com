@@ -4,6 +4,10 @@
 #include "util.hh"
 #include <ArduinoJson.h>
 
+#include <vector>
+#include <map>
+#include <memory>
+
 
 // Many effects have some min/max bounds, this struct allows easy reuse for RGB effects.
 struct ValueConfig {
@@ -25,7 +29,7 @@ public:
 
     void set_values(const ValueConfig& values) { values_ = values; }
 
-    virtual void set_config_json(DynamicJsonDocument& json) {}
+    virtual void set_config_json(const DynamicJsonDocument& json) {}
     virtual DynamicJsonDocument get_config_json() const { return DynamicJsonDocument(100); };
 
 protected:
@@ -34,6 +38,34 @@ protected:
 
 private:
     ValueConfig values_;
+};
+
+class EffectMap {
+public:
+    template <typename Effect, typename... Args>
+    Effect& add_effect(const std::string& name, Args&&...args) {
+        auto effect_ptr = std::make_unique<Effect>(args...);
+        Effect& effect = *effect_ptr;
+        effects_[name] = std::move(effect_ptr);
+        return effect;
+    }
+
+    std::vector<std::string> names(const std::string& light_names) const {
+        std::vector<std::string> out;
+        out.reserve(effects_.size());
+        for (const auto& it : effects_) {
+            out.push_back(it.first);
+        }
+        return out;
+    }
+
+    Configurable* effect(const std::string& name) const {
+        auto it = effects_.find(name);
+        return it == effects_.end() ? nullptr : it->second.get();
+    }
+
+private:
+    std::map<std::string, std::unique_ptr<Configurable>> effects_;
 };
 
 ///
@@ -74,7 +106,7 @@ public:
     void set_config(const Config& config) { config_ = config; }
     const Config& config() const { return config_; }
 
-    void set_config_json(DynamicJsonDocument& json) override {
+    void set_config_json(const DynamicJsonDocument& json) override {
         auto trigger_dt_ms = json["trigger_dt_ms"];
         if (!trigger_dt_ms.isNull()) config_.trigger_dt_ms = trigger_dt_ms.as<uint32_t>();
         auto clear_dt_ms = json["clear_dt_ms"];
@@ -231,10 +263,46 @@ private:
 void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b);
 
 template <typename Effect>
+class CompositeEffect : public Configurable {
+public:
+    CompositeEffect() = default;
+    CompositeEffect(const typename Effect::Config& config) : init_config_(config) {}
+
+    ~CompositeEffect() override = default;
+
+    Effect& add() {
+        if (init_config_.has_value()) {
+            effects_.push_back(Effect(init_config_.value()));
+        } else {
+            effects_.push_back(Effect());
+        }
+        return effects_.back();
+    }
+
+    void set_config_json(const DynamicJsonDocument& json) override {
+        for (auto& effect : effects_) {
+            effect.set_config_json(json);
+        }
+    }
+
+    DynamicJsonDocument get_config_json() const {
+        if (effects_.empty()) return DynamicJsonDocument(0);
+
+        // Expecting these all to the same, just pick the first
+        return effects_.front().get_config_json();
+    };
+
+private:
+    Optional<typename Effect::Config> init_config_;
+    std::vector<Effect> effects_;
+};
+
+template <typename Effect>
 class RgbEffect final : public Configurable {
 public:
+    using Config = typename Effect::Config;
     RgbEffect() = default;
-    RgbEffect(const typename Effect::Config& config) : r_(config), g_(config), b_(config) {}
+    RgbEffect(const Config& config): r_(config), g_(config), b_(config) {};
     ~RgbEffect() override = default;
 
 public:
