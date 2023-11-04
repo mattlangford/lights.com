@@ -2,6 +2,8 @@
 
 #include "dmx.hh"
 #include "util.hh"
+#include <ArduinoJson.h>
+
 
 // Many effects have some min/max bounds, this struct allows easy reuse for RGB effects.
 struct ValueConfig {
@@ -23,6 +25,9 @@ public:
 
     void set_values(const ValueConfig& values) { values_ = values; }
 
+    virtual void set_config_json(DynamicJsonDocument& json) {}
+    virtual DynamicJsonDocument get_config_json() const { return DynamicJsonDocument(100); };
+
 protected:
     inline uint8_t min_value() const { return values_.min; }
     inline uint8_t max_value() const { return values_.max; }
@@ -40,6 +45,9 @@ public:
     struct Config {
         uint32_t trigger_dt_ms = 1000;
         uint32_t clear_dt_ms = 1000;
+
+        uint8_t min = 0;
+        uint8_t max = 255;
     };
 
     explicit LinearFade(Config config) { set_config(config); }
@@ -57,14 +65,34 @@ public:
     }
 
     void trigger(uint32_t now_ms) override {
-        set(now_ms, config_.trigger_dt_ms, min_value(), max_value());
+        set(now_ms, config_.trigger_dt_ms, config_.min, config_.max);
     }
     void clear(uint32_t now_ms) override {
-        set(now_ms, config_.clear_dt_ms, max_value(), min_value());
+        set(now_ms, config_.clear_dt_ms, config_.min, config_.min);
     }
 
     void set_config(const Config& config) { config_ = config; }
     const Config& config() const { return config_; }
+
+    void set_config_json(DynamicJsonDocument& json) override {
+        auto trigger_dt_ms = json["trigger_dt_ms"];
+        if (!trigger_dt_ms.isNull()) config_.trigger_dt_ms = trigger_dt_ms.as<uint32_t>();
+        auto clear_dt_ms = json["clear_dt_ms"];
+        if (!clear_dt_ms.isNull()) config_.clear_dt_ms = clear_dt_ms.as<uint32_t>();
+        auto min = json["min"];
+        if (!min.isNull()) config_.min = min.as<uint32_t>();
+        auto max = json["max"];
+        if (!max.isNull()) config_.max = max.as<uint32_t>();
+    }
+
+    DynamicJsonDocument get_config_json() const override {
+        DynamicJsonDocument json(256);
+        json["trigger_dt_ms"] = config_.trigger_dt_ms;
+        json["clear_dt_ms"] = config_.clear_dt_ms;
+        json["min"] = config_.min;
+        json["max"] = config_.max;
+        return json;
+    }
 
 private:
     void set(uint32_t now_ms, uint32_t duration_ms, uint8_t start, uint8_t end) {
