@@ -2,6 +2,8 @@
 
 #include "util.hh"
 
+#include <vector>
+
 class Effect {
 public:
     virtual ~Effect() = default;
@@ -18,16 +20,9 @@ protected:
 
 class Channel {
 public:
-    ~Channel() {
-        for (size_t i = 0; i < count_; ++i) { delete effects_[i]; }
-        if (effects_) { delete effects_; }
-    }
-
     uint8_t get_value(uint32_t now_ms) {
-        for (uint8_t i = 0; i < count_; ++i) {
-            if (Effect* effect = effects_[i]) {
-                value_ = effect->process(value_, now_ms);
-            }
+        for (auto* effect : effects_) {
+            value_ = effect->process(value_, now_ms);
         }
         return value_;
     }
@@ -35,22 +30,17 @@ public:
     void set_value(uint8_t value) { value_ = value; }
 
     void add_effect(Effect* effect) {
-        uint8_t last = count_++;
-        effects_ = move(effects_, count_);
-        effects_[last] = effect;
+        effects_.push_back(effect);
     }
 
     template <typename Effect=Effect>
     Effect* effect(uint8_t layer) const {
-        return layer < count_ ? dynamic_cast<Effect*>(effects_[layer]) : nullptr;
+        return layer < effects_.size() ? dynamic_cast<Effect*>(effects_[layer]) : nullptr;
     }
 
 private:
     uint8_t value_ = 0;
-
-    // Owned here
-    uint8_t count_ = 0;
-    Effect** effects_ = nullptr;
+    std::vector<Effect*> effects_;
 };
 
 class DMXController {

@@ -12,13 +12,13 @@ class Configurable {
 public:
     virtual ~Configurable() = default;
 
-    virtual void set_config_json(const JsonObject& json) {}
-    virtual void get_config_json(JsonObject& json) const {};
+    virtual void set_config_json(const JsonObject& json) = 0;
+    virtual void get_config_json(JsonObject& json) const = 0;
 
-    virtual void set_values_json(const JsonObject& json) {}
-    virtual void get_values_json(JsonObject& json) const {};
+    virtual void set_values_json(const JsonObject& json) = 0;
+    virtual void get_values_json(JsonObject& json) const = 0;
 
-    virtual std::string type() const;
+    virtual std::string type() const = 0;
 
 protected:
     template <typename T>
@@ -173,6 +173,8 @@ class CosBlend final : public Effect, public Configurable {
 public:
     ~CosBlend() override = default;
 
+    CosBlend() { update_waves(); }
+
 public:
     uint8_t process(uint8_t value, uint32_t now_ms) override {
         const float dt = static_cast<float>(now_ms - last_time_ms_) / 1000;
@@ -189,12 +191,7 @@ public:
 
     void set_config(const CosBlendConfig& config) {
         config_ = config;
-        waves_.resize(config_.depth);
-
-        for (size_t i = 0; i < config_.depth; ++i) {
-            waves_[i].freq = random(config_.min_freq, config_.max_freq);
-            waves_[i].phase = random(0, 2 * M_PI);
-        }
+        update_waves();
     }
     void set_values(uint8_t min, uint8_t max) {
         min_ = static_cast<float>(min);
@@ -205,10 +202,15 @@ public:
     std::string type() const override { return "CosBlend"; }
 
     void set_config_json(const JsonObject& json) override {
-        maybe_set(json, "depth", config_.depth);
-        maybe_set(json, "min_freq", config_.min_freq);
-        maybe_set(json, "max_freq", config_.max_freq);
-        maybe_set(json, "passthrough", config_.passthrough);
+        bool updated = false;
+        updated |= maybe_set(json, "depth", config_.depth);
+        updated |= maybe_set(json, "min_freq", config_.min_freq);
+        updated |= maybe_set(json, "max_freq", config_.max_freq);
+        updated |= maybe_set(json, "passthrough", config_.passthrough);
+
+        if (updated) {
+            update_waves();
+        }
     }
 
     void get_config_json(JsonObject& json) const override {
@@ -229,14 +231,22 @@ public:
     }
 
     void get_values_json(JsonObject& json) const override {
-        json["min"] = min_;
-        json["max"] = max_;
+        json["min"] = static_cast<uint8_t>(min_);
+        json["max"] = static_cast<uint8_t>(max_);
     }
-
 
 private:
     static float generate(float phase, float min, float max) {
         return (0.5 * (cosf(phase) + 1)) * (max - min) + min;
+    }
+
+    void update_waves() {
+        waves_.resize(config_.depth);
+
+        for (size_t i = 0; i < config_.depth; ++i) {
+            waves_[i].freq = random(config_.min_freq, config_.max_freq);
+            waves_[i].phase = random(0, 2 * M_PI);
+        }
     }
 
     CosBlendConfig config_;
@@ -320,12 +330,9 @@ public:
     Effect* blue() { return &b_; }
 
     void set_config_json(const JsonObject& json) override {
-        auto red = json["red"];
-        if (!red.isNull()) r_.set_config_json(red);
-        auto green = json["green"];
-        if (!green.isNull()) g_.set_config_json(green);
-        auto blue = json["blue"];
-        if (!blue.isNull()) b_.set_config_json(blue);
+        r_.set_config_json(json["red"]);
+        g_.set_config_json(json["green"]);
+        b_.set_config_json(json["blue"]);
     }
 
     void get_config_json(JsonObject& json) const {
