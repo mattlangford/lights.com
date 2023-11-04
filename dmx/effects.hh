@@ -12,8 +12,17 @@ class Configurable {
 public:
     virtual ~Configurable() = default;
 
-    virtual void set_config_json(const DynamicJsonDocument& json) {}
-    virtual DynamicJsonDocument get_config_json() const { return DynamicJsonDocument(100); };
+    virtual void set_config_json(const JsonObject& json) {}
+    virtual JsonObject get_config_json() const { return JsonObject(); };
+
+protected:
+    template <typename T>
+    void maybe_set(const JsonObject& obj, const char* name, T& out) {
+        auto field = obj[name];
+        if (!field.isNull()) {
+            out = field.as<T>();
+        }
+    }
 };
 
 class EffectMap {
@@ -48,16 +57,16 @@ private:
 ///
 ///
 
+struct LinearFadeConfig {
+    uint32_t trigger_dt_ms = 1000;
+    uint32_t clear_dt_ms = 1000;
+
+    uint8_t min = 0;
+    uint8_t max = 255;
+};
+
 class LinearFade final : public Effect, public Configurable {
 public:
-    struct Config {
-        uint32_t trigger_dt_ms = 1000;
-        uint32_t clear_dt_ms = 1000;
-
-        uint8_t min = 0;
-        uint8_t max = 255;
-    };
-
     ~LinearFade() override {}
 
 public:
@@ -77,21 +86,17 @@ public:
         set(now_ms, config_.clear_dt_ms, config_.min, config_.min);
     }
 
-    void set_config(const Config& config) { config_ = config; }
+    void set_config(const LinearFadeConfig& config) { config_ = config; }
 
-    void set_config_json(const DynamicJsonDocument& json) override {
-        auto trigger_dt_ms = json["trigger_dt_ms"];
-        if (!trigger_dt_ms.isNull()) config_.trigger_dt_ms = trigger_dt_ms.as<uint32_t>();
-        auto clear_dt_ms = json["clear_dt_ms"];
-        if (!clear_dt_ms.isNull()) config_.clear_dt_ms = clear_dt_ms.as<uint32_t>();
-        auto min = json["min"];
-        if (!min.isNull()) config_.min = min.as<uint32_t>();
-        auto max = json["max"];
-        if (!max.isNull()) config_.max = max.as<uint32_t>();
+    void set_config_json(const JsonObject& json) override {
+        maybe_set(json, "trigger_dt_ms", config_.trigger_dt_ms);
+        maybe_set(json, "clear_dt_ms", config_.clear_dt_ms);
+        maybe_set(json, "min", config_.min);
+        maybe_set(json, "max", config_.max);
     }
 
-    DynamicJsonDocument get_config_json() const override {
-        DynamicJsonDocument json(256);
+    JsonObject get_config_json() const override {
+        JsonObject json;
         json["trigger_dt_ms"] = config_.trigger_dt_ms;
         json["clear_dt_ms"] = config_.clear_dt_ms;
         json["min"] = config_.min;
@@ -107,7 +112,7 @@ private:
         end_value_ = end;
     }
 
-    Config config_;
+    LinearFadeConfig config_;
 
     uint32_t start_ms_ = 0;
     uint32_t end_ms_ = 0;
@@ -115,18 +120,18 @@ private:
     uint8_t end_value_ = 0;
 };
 
+struct CosBlendConfig {
+    uint8_t depth = 1;
+    float min_freq = 10;
+    float max_freq = 1000;
+    float passthrough = 0.0;
+
+    uint8_t min = 0;
+    uint8_t max = 255;
+};
+
 class CosBlend final : public Effect, public Configurable {
 public:
-    struct Config {
-        uint8_t depth = 1;
-        float min_freq = 10;
-        float max_freq = 1000;
-        float passthrough = 0.0;
-
-        uint8_t min = 0;
-        uint8_t max = 255;
-    };
-
     ~CosBlend() override = default;
 
 public:
@@ -143,7 +148,7 @@ public:
         return clip(new_value / config_.depth);
     }
 
-    void set_config(const Config& config) {
+    void set_config(const CosBlendConfig& config) {
         config_ = config;
         waves_.resize(config_.depth);
 
@@ -152,14 +157,34 @@ public:
             waves_[i].phase = random(0, 2 * M_PI);
         }
     }
-    const Config& config() const { return config_; }
+
+    void set_config_json(const JsonObject& json) override {
+        maybe_set(json, "depth", config_.depth);
+        maybe_set(json, "min_freq", config_.min_freq);
+        maybe_set(json, "max_freq", config_.max_freq);
+        maybe_set(json, "passthrough", config_.passthrough);
+        maybe_set(json, "min", config_.min);
+        maybe_set(json, "max", config_.max);
+    }
+
+    JsonObject get_config_json() const override {
+        JsonObject json;
+        json["depth"] = config_.depth;
+        json["min_freq"] = config_.min_freq;
+        json["max_freq"] = config_.max_freq;
+        json["passthrough"] = config_.passthrough;
+        json["min"] = config_.min;
+        json["max"] = config_.max;
+        return json;
+    }
+
 
 private:
     static float generate(float phase, float min, float max) {
         return (0.5 * (cosf(phase) + 1)) * (max - min) + min;
     }
 
-    Config config_;
+    CosBlendConfig config_;
 
     struct Wave {
         float phase = 0.0;
@@ -186,14 +211,14 @@ public:
         return effects_.back();
     }
 
-    void set_config_json(const DynamicJsonDocument& json) override {
+    void set_config_json(const JsonObject& json) override {
         for (auto& effect : effects_) {
             effect.set_config_json(json);
         }
     }
 
-    DynamicJsonDocument get_config_json() const {
-        if (effects_.empty()) return DynamicJsonDocument(0);
+    JsonObject get_config_json() const {
+        if (effects_.empty()) return JsonObject();
 
         // Expecting these all to the same, just pick the first
         return effects_.front().get_config_json();

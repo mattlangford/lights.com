@@ -40,7 +40,7 @@ void setup() {
     controller = new DMXController(41, 40);
     universe = new Universe(*controller);
 
-    const CosBlend::Config config {
+    const CosBlendConfig config {
         .depth = 2,
         .min_freq = 0.01,
         .max_freq = 1.0,
