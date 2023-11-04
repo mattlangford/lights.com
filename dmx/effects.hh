@@ -15,13 +15,20 @@ public:
     virtual void set_config_json(const JsonObject& json) {}
     virtual void get_config_json(JsonObject& json) const {};
 
+    virtual void set_values_json(const JsonObject& json) {}
+    virtual void get_values_json(JsonObject& json) const {};
+
+    virtual std::string type() const;
+
 protected:
     template <typename T>
-    void maybe_set(const JsonObject& obj, const char* name, T& out) {
+    bool maybe_set(const JsonObject& obj, const char* name, T& out) {
         auto field = obj[name];
-        if (!field.isNull()) {
-            out = field.as<T>();
+        if (field.isNull()) {
+            return false;
         }
+        out = field.as<T>();
+        return true;
     }
 };
 
@@ -49,7 +56,7 @@ public:
         return it == effects_.end() ? nullptr : it->second.get();
     }
 
-    void set_config_json(const JsonObject& object) {
+    void set_json(const JsonObject& object) {
         for (auto field : object) {
             auto it = effects_.find(field.key().c_str());
             if (it == effects_.end()) {
@@ -59,11 +66,17 @@ public:
         }
     }
 
-    DynamicJsonDocument get_config_json() {
+    DynamicJsonDocument get_json() {
         DynamicJsonDocument doc(1024);
         for (const auto& effect : effects_) {
             JsonObject object = doc.createNestedObject(effect.first);
-            effect.second->get_config_json(object);
+            object["type"] = effect.second->type();
+
+            JsonObject config = doc.createNestedObject("config");
+            JsonObject values = doc.createNestedObject("values");
+
+            effect.second->get_config_json(config);
+            effect.second->get_values_json(values);
         }
         return doc;
     }
@@ -79,9 +92,6 @@ private:
 struct LinearFadeConfig {
     uint32_t trigger_dt_ms = 1000;
     uint32_t clear_dt_ms = 1000;
-
-    uint8_t min = 0;
-    uint8_t max = 255;
 };
 
 class LinearFade final : public Effect, public Configurable {
@@ -99,26 +109,36 @@ public:
     }
 
     void trigger(uint32_t now_ms) override {
-        set(now_ms, config_.trigger_dt_ms, config_.min, config_.max);
+        set(now_ms, config_.trigger_dt_ms, min_, max_);
     }
     void clear(uint32_t now_ms) override {
-        set(now_ms, config_.clear_dt_ms, config_.min, config_.min);
+        set(now_ms, config_.clear_dt_ms, max_, min_);
     }
 
     void set_config(const LinearFadeConfig& config) { config_ = config; }
+    void set_values(uint8_t min, uint8_t max) { min_ = min; max_ = max; }
+
+public:
+    std::string type() const override { return "LinearFade"; }
 
     void set_config_json(const JsonObject& json) override {
         maybe_set(json, "trigger_dt_ms", config_.trigger_dt_ms);
         maybe_set(json, "clear_dt_ms", config_.clear_dt_ms);
-        maybe_set(json, "min", config_.min);
-        maybe_set(json, "max", config_.max);
     }
 
     void get_config_json(JsonObject& json) const override {
         json["trigger_dt_ms"] = config_.trigger_dt_ms;
         json["clear_dt_ms"] = config_.clear_dt_ms;
-        json["min"] = config_.min;
-        json["max"] = config_.max;
+    }
+
+    void set_values_json(const JsonObject& json) override {
+        maybe_set(json, "min", config_.trigger_dt_ms);
+        maybe_set(json, "max", config_.clear_dt_ms);
+    }
+
+    void get_values_json(JsonObject& json) const override {
+        json["min"] = min_;
+        json["max"] = max_;
     }
 
 private:
@@ -130,6 +150,8 @@ private:
     }
 
     LinearFadeConfig config_;
+    uint8_t min_ = 0;
+    uint8_t max_ = 255;
 
     uint32_t start_ms_ = 0;
     uint32_t end_ms_ = 0;
@@ -142,9 +164,6 @@ struct CosBlendConfig {
     float min_freq = 10;
     float max_freq = 1000;
     float passthrough = 0.0;
-
-    uint8_t min = 0;
-    uint8_t max = 255;
 };
 
 class CosBlend final : public Effect, public Configurable {
@@ -159,7 +178,7 @@ public:
         float new_value = config_.passthrough * value;
         for (auto& wave : waves_) {
             wave.phase = fmod(wave.phase + wave.freq * dt, 2.0f * M_PI);
-            new_value += generate(wave.phase, config_.min, config_.max);
+            new_value += generate(wave.phase, min_, max_);
         }
 
         return clip(new_value / config_.depth);
@@ -174,14 +193,19 @@ public:
             waves_[i].phase = random(0, 2 * M_PI);
         }
     }
+    void set_values(uint8_t min, uint8_t max) {
+        min_ = static_cast<float>(min);
+        max_ = static_cast<float>(max);
+    }
+
+public:
+    std::string type() const override { return "CosBlend"; }
 
     void set_config_json(const JsonObject& json) override {
         maybe_set(json, "depth", config_.depth);
         maybe_set(json, "min_freq", config_.min_freq);
         maybe_set(json, "max_freq", config_.max_freq);
         maybe_set(json, "passthrough", config_.passthrough);
-        maybe_set(json, "min", config_.min);
-        maybe_set(json, "max", config_.max);
     }
 
     void get_config_json(JsonObject& json) const override {
@@ -189,8 +213,21 @@ public:
         json["min_freq"] = config_.min_freq;
         json["max_freq"] = config_.max_freq;
         json["passthrough"] = config_.passthrough;
-        json["min"] = config_.min;
-        json["max"] = config_.max;
+    }
+
+    void set_values_json(const JsonObject& json) override {
+        uint8_t value = 0;
+        if (maybe_set(json, "min", value)) {
+            min_ = static_cast<float>(value);
+        }
+        if (maybe_set(json, "max", value)) {
+            max_ = static_cast<float>(value);
+        }
+    }
+
+    void get_values_json(JsonObject& json) const override {
+        json["min"] = min_;
+        json["max"] = max_;
     }
 
 
@@ -208,6 +245,8 @@ private:
     std::vector<Wave> waves_;
 
     uint32_t last_time_ms_ = 0;
+    float min_ = 0.0;
+    float max_ = 255.0;
 };
 
 ///
@@ -220,6 +259,13 @@ template <typename Effect>
 class CompositeEffect : public Configurable {
 public:
     ~CompositeEffect() override = default;
+
+    std::string type() const override {
+        std::string name = "CompositeEffect(";
+        name += effects_.empty() ? Effect().type() : effects_.front()->type();
+        name += ")";
+        return name;
+    }
 
     Effect& add() {
         effects_.push_back(std::make_unique<Effect>());
@@ -239,6 +285,19 @@ public:
         }
     };
 
+    void set_values_json(const JsonObject& json) {
+        for (auto& effect : effects_) {
+            effect->set_values_json(json);
+        }
+    }
+
+    void get_values_json(JsonObject& json) const {
+        if (!effects_.empty()) {
+            // Expecting these all to the same, just pick the first
+            effects_.front()->get_values_json(json);
+        }
+    };
+
 private:
     std::vector<std::unique_ptr<Effect>> effects_;
 };
@@ -250,6 +309,8 @@ public:
     ~RgbEffect() override = default;
 
 public:
+    std::string type() const override { return "RGB(" + r_.type() + ")";; }
+
     Effect* red() { return &r_; }
     Effect* green() { return &g_; }
     Effect* blue() { return &b_; }
@@ -270,6 +331,21 @@ public:
         g_.get_config_json(green);
         JsonObject blue = json.createNestedObject("blue");
         b_.get_config_json(blue);
+    };
+
+    void set_values_json(const JsonObject& json) {
+        r_.set_values_json(json["red"]);
+        g_.set_values_json(json["green"]);
+        b_.set_values_json(json["blue"]);
+    }
+
+    void get_values_json(JsonObject& json) const {
+        JsonObject red = json.createNestedObject("red");
+        r_.get_values_json(red);
+        JsonObject green = json.createNestedObject("green");
+        g_.get_values_json(green);
+        JsonObject blue = json.createNestedObject("blue");
+        b_.get_values_json(blue);
     };
 
 private:
