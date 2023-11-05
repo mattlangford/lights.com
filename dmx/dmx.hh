@@ -10,21 +10,18 @@ public:
 
     virtual uint8_t process(uint8_t value, uint32_t now_ms) = 0;
 
-    virtual void trigger(uint32_t now_ms) {}
-    virtual void clear(uint32_t now_ms) {}
-
 protected:
-    uint32_t now() const { return millis(); }
     uint8_t clip(float in) const { return in < 0 ? 0 : in > 255 ? 255 : static_cast<uint8_t>(in); }
 };
 
 class Channel {
 public:
     uint8_t get_value(uint32_t now_ms) {
+        uint8_t value = value_;
         for (auto* effect : effects_) {
-            value_ = effect->process(value_, now_ms);
+            value = effect->process(value, now_ms);
         }
-        return value_;
+        return value;
     }
 
     void set_value(uint8_t value) { value_ = value; }

@@ -20,7 +20,12 @@ public:
 
     virtual std::string type() const = 0;
 
+    virtual void trigger(uint32_t now_ms) {}
+    virtual void clear(uint32_t now_ms) {}
+
 protected:
+    uint32_t now() const { return millis(); }
+
     template <typename T>
     bool maybe_set(const JsonObject& obj, const char* name, T& out) {
         auto field = obj[name];
@@ -166,7 +171,6 @@ struct CosBlendConfig {
     uint8_t depth = 1;
     float min_freq = 10;
     float max_freq = 1000;
-    float passthrough = 0.0;
 };
 
 class CosBlend final : public ChannelEffect, public EffectBase {
@@ -180,7 +184,7 @@ public:
         const float dt = static_cast<float>(now_ms - last_time_ms_) / 1000;
         last_time_ms_ = now_ms;
 
-        float new_value = config_.passthrough * value;
+        float new_value = value;
         for (auto& wave : waves_) {
             wave.phase = fmod(wave.phase + wave.freq * dt, 2.0f * M_PI);
             new_value += generate(wave.phase, min_, max_);
@@ -206,7 +210,6 @@ public:
         updated |= maybe_set(json, "depth", config_.depth);
         updated |= maybe_set(json, "min_freq", config_.min_freq);
         updated |= maybe_set(json, "max_freq", config_.max_freq);
-        updated |= maybe_set(json, "passthrough", config_.passthrough);
 
         if (updated) {
             update_waves();
@@ -217,7 +220,6 @@ public:
         json["depth"] = config_.depth;
         json["min_freq"] = config_.min_freq;
         json["max_freq"] = config_.max_freq;
-        json["passthrough"] = config_.passthrough;
     }
 
     void set_values_json(const JsonObject& json) override {
@@ -262,6 +264,164 @@ private:
     float max_ = 255.0;
 };
 
+struct LinearPulseConfig {
+    uint32_t rise_dt_ms = 1000;
+    uint32_t hold_dt_ms = 250;
+    uint32_t fall_dt_ms = 1000;
+};
+
+class LinearPulse final : public ChannelEffect, public EffectBase {
+public:
+    ~LinearPulse() override = default;
+
+public:
+    uint8_t process(uint8_t value, uint32_t now_ms) override {
+        if (now_ms < start_time_ || now_ms >= end_time_) {
+            return clip(value + min_);
+        }
+
+        if (now_ms >= start_hold_time_ && now_ms < end_hold_time_) {
+            return clip(value + max_);
+        }
+
+        bool up = now_ms < start_hold_time_;
+        const uint32_t& start_ms = up ? start_time_ : end_hold_time_;
+        const uint32_t& start_value = up ? min_ : max_;
+        const uint32_t& duration = up ? config_.rise_dt_ms : config_.fall_dt_ms;
+        const float diff = (up ? 1.0 : -1.0) * (max_ - min_);
+        const float fade_ratio = (static_cast<float>(now_ms) - start_ms) / duration;
+        return clip(value + start_value + fade_ratio * diff);
+    }
+
+    void set_config(const LinearPulseConfig& config) {
+        config_ = config;
+        update_times(start_time_);
+    }
+    void set_values(uint8_t min, uint8_t max) {
+        min_ = static_cast<float>(min);
+        max_ = static_cast<float>(max);
+    }
+
+    void trigger(uint32_t now_ms) override {
+        update_times(now_ms);
+    }
+    void clear(uint32_t now_ms) override {
+        end_hold_time_ = now_ms;
+        end_time_ = end_hold_time_ + config_.fall_dt_ms;
+    }
+
+public:
+    std::string type() const override { return "LinearPulse"; }
+
+    void set_config_json(const JsonObject& json) override {
+        bool updated = false;
+        updated |= maybe_set(json, "rise_dt_ms", config_.rise_dt_ms);
+        updated |= maybe_set(json, "hold_dt_ms", config_.hold_dt_ms);
+        updated |= maybe_set(json, "fall_dt_ms", config_.fall_dt_ms);
+
+        if (updated) {
+            update_times(start_time_);
+        }
+    }
+
+    void get_config_json(JsonObject& json) const override {
+        json["rise_dt_ms"] = config_.rise_dt_ms;
+        json["hold_dt_ms"] = config_.hold_dt_ms;
+        json["fall_dt_ms"] = config_.fall_dt_ms;
+    }
+
+    void set_values_json(const JsonObject& json) override {
+        uint8_t value = 0;
+        if (maybe_set(json, "min", value)) {
+            min_ = static_cast<float>(value);
+        }
+        if (maybe_set(json, "max", value)) {
+            max_ = static_cast<float>(value);
+        }
+    }
+
+    void get_values_json(JsonObject& json) const override {
+        json["min"] = static_cast<uint8_t>(min_);
+        json["max"] = static_cast<uint8_t>(max_);
+    }
+
+private:
+    void update_times(uint32_t start_time) {
+        if (start_time == 0) return;
+
+        start_time_ = start_time;
+        start_hold_time_ = start_time + config_.rise_dt_ms;
+        end_hold_time_ = start_hold_time_ + config_.hold_dt_ms;
+        end_time_ = end_hold_time_ + config_.fall_dt_ms;
+    }
+
+    uint32_t start_time_ = 0;
+    uint32_t start_hold_time_ = 0;
+    uint32_t end_hold_time_ = 0;
+    uint32_t end_time_ = 0;
+
+    LinearPulseConfig config_;
+    uint8_t min_ = 0.0;
+    uint8_t max_ = 255.0;
+};
+
+
+class SweepingPulse : public EffectBase {
+public:
+    ~SweepingPulse() override = default;
+
+    std::string type() const override { return "SweepingPulse"; }
+
+    LinearPulse& add() {
+        effects_.push_back(std::make_unique<LinearPulse>());
+        return *effects_.back();
+    }
+
+    void set_config_json(const JsonObject& json) override {
+        maybe_set(json, "gap_ms", gap_ms_);
+        for (auto& effect : effects_) {
+            effect->set_config_json(json["pulse_config"]);
+        }
+    }
+
+    void get_config_json(JsonObject& json) const {
+        json["gap_ms"] = gap_ms_;
+        JsonObject pulse_config = json.createNestedObject("pulse_config");
+        if (!effects_.empty()) {
+            // Expecting these all to the same, just pick the first
+            effects_.front()->get_config_json(pulse_config);
+        }
+    };
+
+    void set_values_json(const JsonObject& json) {
+        for (auto& effect : effects_) {
+            effect->set_values_json(json);
+        }
+    }
+
+    void get_values_json(JsonObject& json) const {
+        if (!effects_.empty()) {
+            // Expecting these all to the same, just pick the first
+            effects_.front()->get_values_json(json);
+        }
+    };
+
+    void trigger(uint32_t now_ms) {
+        for (size_t i = 0; i < effects_.size(); ++i) {
+            effects_[i]->trigger(now_ms + i * gap_ms_);
+        }
+    }
+    void clear(uint32_t now_ms) {
+        for (auto& effect : effects_) {
+            effect->clear(now_ms);
+        }
+    }
+
+private:
+    uint32_t gap_ms_ = 100;
+    std::vector<std::unique_ptr<LinearPulse>> effects_;
+};
+
 
 ///
 ///
@@ -283,6 +443,8 @@ public:
         effects_.push_back(std::make_unique<Effect>());
         return *effects_.back();
     }
+
+    size_t size() const { return effects_.size(); };
 
     void set_config_json(const JsonObject& json) override {
         for (auto& effect : effects_) {
@@ -309,6 +471,19 @@ public:
             effects_.front()->get_values_json(json);
         }
     };
+
+    void trigger(uint32_t now_ms) {
+        if (effects_.empty()) return;
+        // Trigger a random effect
+        // TODO: Add a config for this.
+        effects_[random(effects_.size())]->trigger(now_ms);
+    }
+    void clear(uint32_t now_ms) {
+        for (auto& effect : effects_) {
+            effect->clear(now_ms);
+        }
+    }
+
 
 private:
     std::vector<std::unique_ptr<Effect>> effects_;
@@ -358,6 +533,17 @@ public:
         JsonObject blue = json.createNestedObject("blue");
         b_.get_values_json(blue);
     };
+
+    void trigger(uint32_t now_ms) {
+        r_.trigger(now_ms);
+        g_.trigger(now_ms);
+        b_.trigger(now_ms);
+    }
+    void clear(uint32_t now_ms) {
+        r_.clear(now_ms);
+        g_.clear(now_ms);
+        b_.clear(now_ms);
+    }
 
 private:
     Effect r_;

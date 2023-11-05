@@ -27,16 +27,7 @@ struct Universe {
 Universe* universe;
 
 const char BASE_CONFIG[] =  R"=====(
-    {"Background":{
-      "config":{
-        "red":{"depth":3,"min_freq":1,"max_freq":10,"passthrough":0},
-        "green":{"depth":3,"min_freq":1,"max_freq":10,"passthrough":0},
-        "blue":{"depth":3,"min_freq":1,"max_freq":10,"passthrough":0}},
-      "values":{
-        "red":{"min":1,"max":50},
-        "green":{"min":0,"max":0},
-        "blue":{"min":1,"max":100}}
-    }}"
+{"background":{"values":{"red":{"min":0,"max":0},"green":{"min":0,"max":0},"blue":{"min":0,"max":0}}},"flash":{ "config":{"rise_dt_ms":10,"hold_dt_ms":0,"fall_dt_ms":300},"values":{"min":0,"max":255}}}
 )=====";
 
 void setup() {
@@ -46,28 +37,34 @@ void setup() {
     controller = new DMXController(41, 40);
     universe = new Universe(*controller);
 
-    auto& background = effects.add_effect<CompositeEffect<RgbEffect<CosBlend>>>("Background");
+    // auto& background = effects.add_effect<CompositeEffect<RgbEffect<CosBlend>>>("background");
+    auto& pulse = effects.add_effect<SweepingPulse>("pulse");
 
     for (size_t l = 0; l < Universe::NUM_BARS; ++l) {
         for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
-            auto& rgb = background.add();
-            universe->bar[l]->red(i).add_effect(rgb.red());
-            universe->bar[l]->green(i).add_effect(rgb.green());
-            universe->bar[l]->blue(i).add_effect(rgb.blue());
+            // auto& rgb = background.add();
+            // universe->bar[l]->red(i).add_effect(rgb.red());
+            // universe->bar[l]->green(i).add_effect(rgb.green());
+            // universe->bar[l]->blue(i).add_effect(rgb.blue());
+
+            universe->bar[l]->red(i).add_effect(&pulse.add());
         }
     }
+    effects.effect("pulse")->trigger(millis());
 
     DynamicJsonDocument doc(1024);
     deserializeJson(doc, BASE_CONFIG);
     effects.set_json(doc.as<JsonObject>());
 }
 
+uint32_t last = 0;
 void loop() {
     const auto str = Serial.readString().trim();
     if (str.length() == 0) {
     } else if (str == "list") {
         serializeJson(effects.get_json(), Serial);
         Serial.println();
+    } else if (str == "stop") {
     } else if (str == "help") {
         Serial.println("Commands:");
         Serial.println(" - 'list' to show current configuration");
@@ -90,5 +87,11 @@ void loop() {
     }
 
     controller->write_frame();
+
+    uint32_t now = millis();
+    if (now - last > 20000) {
+        effects.effect("pulse")->trigger(now);
+        last = now;
+    }
 }
 
