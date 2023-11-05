@@ -8,9 +8,9 @@
 #include <map>
 #include <memory>
 
-class Configurable {
+class EffectBase {
 public:
-    virtual ~Configurable() = default;
+    virtual ~EffectBase() = default;
 
     virtual void set_config_json(const JsonObject& json) = 0;
     virtual void get_config_json(JsonObject& json) const = 0;
@@ -51,7 +51,7 @@ public:
         return out;
     }
 
-    Configurable* effect(const std::string& name) const {
+    EffectBase* effect(const std::string& name) const {
         auto it = effects_.find(name);
         return it == effects_.end() ? nullptr : it->second.get();
     }
@@ -85,7 +85,7 @@ public:
     }
 
 private:
-    std::map<std::string, std::unique_ptr<Configurable>> effects_;
+    std::map<std::string, std::unique_ptr<EffectBase>> effects_;
 };
 
 ///
@@ -97,7 +97,7 @@ struct LinearFadeConfig {
     uint32_t clear_dt_ms = 1000;
 };
 
-class LinearFade final : public Effect, public Configurable {
+class LinearFade final : public ChannelEffect, public EffectBase {
 public:
     ~LinearFade() override {}
 
@@ -169,7 +169,7 @@ struct CosBlendConfig {
     float passthrough = 0.0;
 };
 
-class CosBlend final : public Effect, public Configurable {
+class CosBlend final : public ChannelEffect, public EffectBase {
 public:
     ~CosBlend() override = default;
 
@@ -268,7 +268,7 @@ private:
 ///
 
 template <typename Effect>
-class CompositeEffect : public Configurable {
+class CompositeEffect : public EffectBase {
 public:
     ~CompositeEffect() override = default;
 
@@ -317,7 +317,7 @@ private:
 void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b);
 
 template <typename Effect>
-class RgbEffect final : public Configurable {
+class RgbEffect final : public EffectBase {
 public:
     RgbEffect() = default;
     ~RgbEffect() override = default;

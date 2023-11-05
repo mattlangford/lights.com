@@ -4,9 +4,9 @@
 
 #include <vector>
 
-class Effect {
+class ChannelEffect {
 public:
-    virtual ~Effect() = default;
+    virtual ~ChannelEffect() = default;
 
     virtual uint8_t process(uint8_t value, uint32_t now_ms) = 0;
 
@@ -29,18 +29,18 @@ public:
 
     void set_value(uint8_t value) { value_ = value; }
 
-    void add_effect(Effect* effect) {
+    void add_effect(ChannelEffect* effect) {
         effects_.push_back(effect);
     }
 
-    template <typename Effect=Effect>
+    template <typename Effect=ChannelEffect>
     Effect* effect(uint8_t layer) const {
-        return layer < effects_.size() ? dynamic_cast<Effect*>(effects_[layer]) : nullptr;
+        return layer < effects_.size() ? dynamic_cast<ChannelEffect*>(effects_[layer]) : nullptr;
     }
 
 private:
     uint8_t value_ = 0;
-    std::vector<Effect*> effects_;
+    std::vector<ChannelEffect*> effects_;
 };
 
 class DMXController {
