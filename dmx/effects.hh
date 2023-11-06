@@ -244,4 +244,5 @@ void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b) {
 #include "effects/cos_blend.hh"
 #include "effects/linear_pulse.hh"
 #include "effects/sweeping_pulse.hh"
+#include "effects/midi.hh"
 
