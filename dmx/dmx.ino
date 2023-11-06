@@ -3,6 +3,7 @@
 #include "dmx.hh"
 #include "effects.hh"
 #include "lights.hh"
+#include "cli.hh"
 
 #include <map>
 #include <set>
@@ -12,6 +13,7 @@
 #include <vector>
 
 DMXController* controller;
+Interface interface;
 EffectMap effects;
 
 struct Universe {
@@ -29,6 +31,45 @@ Universe* universe;
 const char BASE_CONFIG[] =  R"=====(
 {"background":{"values":{"red":{"min":0,"max":0},"green":{"min":0,"max":0},"blue":{"min":0,"max":0}}},"flash":{ "config":{"rise_dt_ms":10,"hold_dt_ms":0,"fall_dt_ms":300},"values":{"min":0,"max":255}}}
 )=====";
+
+void list(const std::string&) {
+    serializeJson(effects.get_json(), Serial);
+    Serial.println();
+}
+void trigger(const std::string& name) {
+    EffectBase* effect = effects.effect(name);
+    if (effect != nullptr) {
+        effect->trigger(millis());
+    } else {
+        Serial.print("Unable to find effect named '");
+        Serial.print(name.c_str());
+        Serial.println("'");
+    }
+}
+void clear(const std::string& name) {
+    EffectBase* effect = effects.effect(name);
+    if (effect != nullptr) {
+        effect->clear(millis());
+    } else {
+        Serial.print("Unable to find effect named '");
+        Serial.print(name.c_str());
+        Serial.println("'");
+    }
+}
+void set(const std::string& json) {
+    DynamicJsonDocument doc(1024);
+    const DeserializationError err = deserializeJson(doc, json);
+    if (err.code() == DeserializationError::Ok) {
+        effects.set_json(doc.as<JsonObject>());
+        Serial.println("Updated config!");
+    } else {
+        Serial.print("Unable to parse json input: ");
+        Serial.println(err.c_str());
+    }
+}
+void help(const std::string&) {
+    interface.help();
+}
 
 void setup() {
     Serial.begin(115200);
@@ -55,36 +96,17 @@ void setup() {
     DynamicJsonDocument doc(1024);
     deserializeJson(doc, BASE_CONFIG);
     effects.set_json(doc.as<JsonObject>());
+
+    interface.add_handler("list", "show current configuration", &list);
+    interface.add_handler("trigger", "trigger the specified effect", &trigger);
+    interface.add_handler("clear", "clear the specified effect", &clear);
+    interface.add_handler("set", "sets current config from a JSON string", &set);
+    interface.add_handler("help", "show this information", &help);
 }
 
 uint32_t last = 0;
 void loop() {
-    const auto str = Serial.readString().trim();
-    if (str.length() == 0) {
-    } else if (str == "list") {
-        serializeJson(effects.get_json(), Serial);
-        Serial.println();
-    } else if (str == "stop") {
-    } else if (str == "help") {
-        Serial.println("Commands:");
-        Serial.println(" - 'list' to show current configuration");
-        Serial.println(" - 'set JSON_STR' to set config");
-        Serial.println(" - 'help' to show this help");
-    } else if (str.startsWith("set ")) {
-        DynamicJsonDocument doc(1024);
-        const DeserializationError err = deserializeJson(doc, str.substring(4));
-        if (err.code() == DeserializationError::Ok) {
-            effects.set_json(doc.as<JsonObject>());
-            Serial.println("Updated config!");
-        } else {
-            Serial.print("Unable to parse json input: ");
-            Serial.println(err.c_str());
-        }
-    } else {
-        Serial.print("Unknown command: '");
-        Serial.print(str);
-        Serial.println("' Send 'help' for commands.");
-    }
+    interface.handle_serial();
 
     controller->write_frame();
 
