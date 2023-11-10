@@ -2,7 +2,7 @@
 
 #include "linear_pulse.hh"
 
-class SweepingPulse : public EffectBase {
+class SweepingPulse final : public EffectBase {
 public:
     ~SweepingPulse() override = default;
 
