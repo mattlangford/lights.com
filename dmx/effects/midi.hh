@@ -9,14 +9,14 @@ public:
     virtual void note(byte channel, byte note, byte velocity, bool on) = 0;
 };
 
-void note_off(byte channel, byte note, byte velocity);
-void note_on(byte channel, byte note, byte velocity);
-
 class MidiManager {
+private:
+    static void dispatch_note_off(byte channel, byte note, byte velocity);
+    static void dispatch_note_on(byte channel, byte note, byte velocity);
 public:
     void setup() {
-        usbMIDI.setHandleNoteOff(::note_off);
-        usbMIDI.setHandleNoteOn(::note_on);
+        usbMIDI.setHandleNoteOff(dispatch_note_off);
+        usbMIDI.setHandleNoteOn(dispatch_note_on);
     }
     void read() {
         usbMIDI.read();
@@ -66,10 +66,10 @@ private:
 
 MidiManager midi;
 
-void note_off(byte channel, byte note, byte velocity) {
+void MidiManager::dispatch_note_off(byte channel, byte note, byte velocity) {
     midi.note_off(channel, note, velocity);
 }
-void note_on(byte channel, byte note, byte velocity) {
+void MidiManager::dispatch_note_on(byte channel, byte note, byte velocity) {
     midi.note_on(channel, note, velocity);
 }
 

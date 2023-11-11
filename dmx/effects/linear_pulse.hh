@@ -67,18 +67,13 @@ public:
     }
 
     void set_values_json(const JsonObject& json) override {
-        uint8_t value = 0;
-        if (maybe_set(json, "min", value)) {
-            min_ = static_cast<float>(value);
-        }
-        if (maybe_set(json, "max", value)) {
-            max_ = static_cast<float>(value);
-        }
+        maybe_set(json, "min", min_);
+        maybe_set(json, "max", max_);
     }
 
     void get_values_json(JsonObject& json) const override {
-        json["min"] = static_cast<uint8_t>(min_);
-        json["max"] = static_cast<uint8_t>(max_);
+        json["min"] = min_;
+        json["max"] = max_;
     }
 
 private:

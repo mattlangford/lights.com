@@ -65,7 +65,6 @@ public:
     }
 
     void trigger(uint32_t now_ms) override {
-        fader_.clear(now_ms);
         fader_.fade_to(1.0, now_ms, config_.trigger_dt_ms);
     }
     void clear(uint32_t now_ms) override {
@@ -90,8 +89,8 @@ public:
     }
 
     void set_values_json(const JsonObject& json) override {
-        maybe_set(json, "min", config_.trigger_dt_ms);
-        maybe_set(json, "max", config_.clear_dt_ms);
+        maybe_set(json, "min", min_);
+        maybe_set(json, "max", max_);
     }
 
     void get_values_json(JsonObject& json) const override {

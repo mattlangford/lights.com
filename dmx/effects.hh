@@ -174,6 +174,19 @@ public:
     Effect* green() { return &g_; }
     Effect* blue() { return &b_; }
 
+    template <typename Config>
+    void set_config(const Config& config) {
+        r_.set_config(config);
+        g_.set_config(config);
+        b_.set_config(config);
+    }
+
+    void set_max_values(uint8_t red, uint8_t green, uint8_t blue) {
+        r_.set_values(0, red);
+        g_.set_values(0, green);
+        b_.set_values(0, blue);
+    }
+
     void set_config_json(const JsonObject& json) override {
         r_.set_config_json(json["red"]);
         g_.set_config_json(json["green"]);
@@ -251,4 +264,5 @@ void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b) {
 #include "effects/linear_pulse.hh"
 #include "effects/sweeping_pulse.hh"
 #include "effects/midi.hh"
+#include "effects/audio.hh"
 

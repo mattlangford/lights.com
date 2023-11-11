@@ -1,4 +1,3 @@
-
 #include "dmx.hh"
 #include "effects.hh"
 #include "lights.hh"
@@ -62,49 +61,74 @@ void help(const std::string&) {
     interface.help();
 }
 
+class AudioMeter : public EffectBase {
+public:
+    using Effect = RgbEffect<AudioLevel>;
+public:
+    AudioMeter(size_t count, uint8_t port) : effects_(count) {
+        size_t red_index = 0.2 * count;
+        size_t yellow_index = 0.5 * count;
+
+        for (size_t i = 0; i < count; ++i) {
+            AudioLevelConfig config;
+            config.threshold = 0.8 * std::pow(10, -static_cast<float>(i) / (count - 1));
+            config.port = port;
+
+            effects_[i].set_config(config);
+
+            if (i < red_index) {
+                effects_[i].set_max_values(128, 0, 0);
+            } else if (i < yellow_index) {
+                effects_[i].set_max_values(128, 128, 0);
+            } else {
+                effects_[i].set_max_values(0, 128, 0);
+            }
+        }
+    }
+    ~AudioMeter() override = default;
+
+    void set_config_json(const JsonObject& json) {}
+    void get_config_json(JsonObject& json) const {}
+    void set_values_json(const JsonObject& json) {}
+    void get_values_json(JsonObject& json) const {}
+
+    std::string type() const { return "AudioMeter"; }
+
+    virtual void trigger(uint32_t now_ms) {}
+    virtual void clear(uint32_t now_ms) {}
+
+    // Index 0 is the top of the meter (red)
+    Effect* effect(size_t i) { return i < effects_.size() ? &effects_[i] : nullptr; }
+
+private:
+    std::vector<Effect> effects_;
+};
+
 void setup() {
     Serial.begin(115200);
     Serial.setTimeout(100);
 
+    audio.setup();
     midi.setup();
     controller = new DMXController(41, 40);
     universe = new Universe(*controller);
 
-    // auto& background = effects.add_effect<CompositeEffect<RgbEffect<CosBlend>>>("background");
-    auto& midi_red1 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_red1");
-    auto& midi_green1 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_green1");
-    auto& midi_blue1 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_blue1");
-    auto& midi_red2 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_red2");
-    auto& midi_green2 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_green2");
-    auto& midi_blue2 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_blue2");
+    auto& meter_l = effects.add_effect<AudioMeter>("audio_l", WashBarLight112::NUM_LIGHTS, 0);
+    auto& meter_r = effects.add_effect<AudioMeter>("audio_r", WashBarLight112::NUM_LIGHTS, 1);
+    for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
+        auto& effect_l = *meter_l.effect(WashBarLight112::NUM_LIGHTS - i - 1);
+        auto& effect_r = *meter_r.effect(WashBarLight112::NUM_LIGHTS - i - 1);
 
-    for (size_t l = 0; l < Universe::NUM_BARS; ++l) {
-        auto& bar = *universe->bar[l];
-        for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
-            // auto& rgb = background.add();
-            // universe->bar[l]->red(i).add_effect(rgb.red());
-            // universe->bar[l]->green(i).add_effect(rgb.green());
-            // universe->bar[l]->blue(i).add_effect(rgb.blue());
+        auto& bar_l = *universe->bar[0];
+        bar_l.red(i).add_effect(effect_l.red());
+        bar_l.green(i).add_effect(effect_l.green());
+        bar_l.blue(i).add_effect(effect_l.blue());
 
-            if (i < 0.5 * WashBarLight112::NUM_LIGHTS) {
-                bar.red(i).add_effect(midi_red1.effect());
-                bar.green(i).add_effect(midi_green1.effect());
-                bar.blue(i).add_effect(midi_blue1.effect());
-            } else {
-                bar.red(i).add_effect(midi_red2.effect());
-                bar.green(i).add_effect(midi_green2.effect());
-                bar.blue(i).add_effect(midi_blue2.effect());
-            }
-        }
+        auto& bar_r = *universe->bar[1];
+        bar_r.red(i).add_effect(effect_r.red());
+        bar_r.green(i).add_effect(effect_r.green());
+        bar_r.blue(i).add_effect(effect_r.blue());
     }
-
-    midi_red2.set_note(72);
-    midi_green2.set_note(74);
-    midi_blue2.set_note(76);
-
-    midi_red1.set_note(84);
-    midi_green1.set_note(86);
-    midi_blue1.set_note(88);
 
     interface.add_handler("list", "show current configuration", &list);
     interface.add_handler("trigger", "trigger the specified effect", &trigger);
@@ -113,8 +137,10 @@ void setup() {
     interface.add_handler("help", "show this information", &help);
 }
 
+
 void loop() {
     midi.read();
+    audio.read();
     interface.handle_serial();
     controller->write_frame();
 }
