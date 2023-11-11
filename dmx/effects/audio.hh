@@ -3,18 +3,27 @@
 #include <Audio.h>
 
 
-AudioInputUSB      usb1;
-AudioAnalyzePeak  peak_l;
-AudioAnalyzePeak  peak_r;
-AudioConnection patch_l(usb1, 0, peak_l, 0);
-AudioConnection patch_r(usb1, 1, peak_r, 0);
+AudioInputUSB            usb_1;           //xy=193,468
+AudioFilterStateVariable filter_l;        //xy=377,401
+AudioFilterStateVariable filter_r;        //xy=370,487
+AudioAnalyzeRMS          rms_l;           //xy=575,387
+AudioAnalyzeRMS          rms_r;           //xy=596,468
+AudioConnection          patchCord1(usb_1, 0, filter_l, 0);
+AudioConnection          patchCord2(usb_1, 1, filter_r, 0);
+AudioConnection          patchCord3(filter_r, 0, rms_r, 0);
+AudioConnection          patchCord4(filter_l, 0, rms_l, 0);
+
 
 class AudioManager {
 public:
-    void setup() { AudioMemory(6); }
+    void setup() {
+        filter_l.frequency(2000);
+        filter_r.frequency(2000);
+        AudioMemory(6);
+    }
     void read() {
-        value_l_ = peak_l.available() ? peak_l.read() : -1.0;
-        value_r_ = peak_r.available() ? peak_r.read() : -1.0;
+        value_l_ = rms_l.available() ? rms_l.read() : -1.0;
+        value_r_ = rms_r.available() ? rms_r.read() : -1.0;
     }
     float value(uint8_t port=0) const {
         switch (port) {
