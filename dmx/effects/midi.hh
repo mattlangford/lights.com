@@ -1,16 +1,12 @@
 #pragma once
 
 #include <set>
-
-class MidiTriggerBase {
-public:
-    ~MidiTriggerBase() = default;
-
-    virtual void note(byte channel, byte note, byte velocity, bool on) = 0;
-};
+#include <functional>
 
 class MidiManager {
 private:
+    using Callback = std::function<void(byte channel, byte note, byte velocity, bool on)>;
+
     static void dispatch_note_off(byte channel, byte note, byte velocity);
     static void dispatch_note_on(byte channel, byte note, byte velocity);
 public:
@@ -22,9 +18,7 @@ public:
         usbMIDI.read();
     }
 
-    bool active(byte channel) const {
-        return active_channels_.find(channel) != active_channels_.end();
-    }
+    bool active(byte channel) const { return active_channels_.find(channel) != active_channels_.end(); }
     bool active(std::vector<byte> channels) const {
         for (const auto& channel : channels) {
             if (!active(channel)) {
@@ -34,34 +28,26 @@ public:
         return true;
     }
 
-    void add_callback(MidiTriggerBase* trigger) {
-        callbacks_.push_back(trigger);
-    }
-    void remove_callback(MidiTriggerBase* ptr) {
-        for (auto it = callbacks_.begin(); it != callbacks_.end(); ++it) {
-            if (*it == ptr) {
-                callbacks_.erase(it);
-                return;
-            }
-        }
+    void add_callback(Callback cb) {
+        callbacks_.emplace_back(std::move(cb));
     }
 
     void note_off(byte channel, byte note, byte velocity) {
         active_channels_.insert(note);
-        for (auto* ptr : callbacks_) {
-            ptr->note(channel, note, velocity, false);
+        for (auto& cb : callbacks_) {
+            cb(channel, note, velocity, false);
         }
     }
     void note_on(byte channel, byte note, byte velocity) {
         active_channels_.erase(note);
-        for (auto* ptr : callbacks_) {
-            ptr->note(channel, note, velocity, true);
+        for (auto& cb : callbacks_) {
+            cb(channel, note, velocity, true);
         }
     }
 
 private:
     std::set<byte> active_channels_;
-    std::vector<MidiTriggerBase*> callbacks_;
+    std::vector<Callback> callbacks_;
 };
 
 MidiManager midi;
@@ -74,10 +60,13 @@ void MidiManager::dispatch_note_on(byte channel, byte note, byte velocity) {
 }
 
 template <typename Effect>
-class MidiTrigger final : public EffectBase, public MidiTriggerBase {
+class MidiTrigger final : public EffectBase {
 public:
-    MidiTrigger() { midi.add_callback(static_cast<MidiTriggerBase*>(this)); }
-    ~MidiTrigger() override { midi.remove_callback(static_cast<MidiTriggerBase*>(this)); }
+    MidiTrigger() {
+        midi.add_callback([this](byte channel, byte note, byte velocity, bool on){
+            on_note(channel, note, velocity, on);
+        });
+    }
 
     std::string type() const override {
         std::string type = "MidiTrigger(";
@@ -110,7 +99,7 @@ public:
     void clear(uint32_t now_ms) { effect_.clear(now_ms); }
 
 private:
-    void note(byte channel, byte note, byte velocity, bool on) override {
+    void on_note(byte channel, byte note, byte velocity, bool on) override {
         if (note != note_) {
             return;
         }
