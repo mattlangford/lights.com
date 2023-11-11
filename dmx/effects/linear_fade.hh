@@ -15,7 +15,7 @@ public:
         if (now_ms >= end_ms_) { return clip(value + end_value_); }
 
         const float fade_ratio = (static_cast<float>(now_ms) - start_ms_) / (end_ms_ - start_ms_);
-        const float diff = static_cast<float>(start_value_) - end_value_;
+        const float diff = static_cast<float>(end_value_) - start_value_;
         return clip(value + start_value_ + fade_ratio * diff);
     }
 

@@ -15,8 +15,11 @@ void note_on(byte channel, byte note, byte velocity);
 class MidiManager {
 public:
     void setup() {
-        usbMIDI.setHandleNoteOff(::note_on);
-        usbMIDI.setHandleNoteOn(::note_off);
+        usbMIDI.setHandleNoteOff(::note_off);
+        usbMIDI.setHandleNoteOn(::note_on);
+    }
+    void read() {
+        usbMIDI.read();
     }
 
     bool active(byte channel) const {
@@ -101,6 +104,21 @@ public:
         effect_.get_values_json(json);
     };
 
+    void set_note(byte note) {
+        note_ = note;
+    }
+
+    Effect* effect() {
+        return &effect_;
+    }
+
+    void trigger(uint32_t now_ms) {
+        effect_.trigger(now_ms);
+    }
+    void clear(uint32_t now_ms) {
+        effect_.clear(now_ms);
+    }
+
 private:
     void note(byte channel, byte note, byte velocity, bool on) override {
         if (note != note_) {
@@ -110,7 +128,7 @@ private:
         if (on) {
             trigger(now());
         } else {
-            clear(now());
+            // clear(now());
         }
     }
 

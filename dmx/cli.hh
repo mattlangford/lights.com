@@ -5,6 +5,7 @@
 class Interface {
 public:
     void handle_serial() {
+        if (!Serial.available()) return;
         const auto str = Serial.readString().trim();
         if (str.length() == 0) return;
         for (const auto& handler : handlers_) {
