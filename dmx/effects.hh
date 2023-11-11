@@ -58,7 +58,13 @@ public:
 
     EffectBase* effect(const std::string& name) const {
         auto it = effects_.find(name);
-        return it == effects_.end() ? nullptr : it->second.get();
+        if (it == effects_.end()) {
+            Serial.print("No effect named '");
+            Serial.print(name.c_str());
+            Serial.println("' found!");
+            return nullptr;
+        }
+        return it->second.get();
     }
 
     void set_json(const JsonObject& object) {

@@ -1,3 +1,4 @@
+
 #include "dmx.hh"
 #include "effects.hh"
 #include "lights.hh"
@@ -37,21 +38,17 @@ void list(const std::string&) {
 void trigger(const std::string& name) {
     EffectBase* effect = effects.effect(name);
     if (effect != nullptr) {
+        Serial.print("Triggering ");
+        Serial.println(name.c_str());
         effect->trigger(millis());
-    } else {
-        Serial.print("Unable to find effect named '");
-        Serial.print(name.c_str());
-        Serial.println("'");
     }
 }
 void clear(const std::string& name) {
     EffectBase* effect = effects.effect(name);
     if (effect != nullptr) {
+        Serial.print("Clearing ");
+        Serial.println(name.c_str());
         effect->clear(millis());
-    } else {
-        Serial.print("Unable to find effect named '");
-        Serial.print(name.c_str());
-        Serial.println("'");
     }
 }
 void set(const std::string& json) {
@@ -77,7 +74,8 @@ void setup() {
     universe = new Universe(*controller);
 
     // auto& background = effects.add_effect<CompositeEffect<RgbEffect<CosBlend>>>("background");
-    auto& pulse = effects.add_effect<SweepingPulse>("pulse");
+    auto& midi_red = efects.add_effect<MidiTrigger<LinearFade>>("midi_red");
+    auto& midi_blue = efects.add_effect<MidiTrigger<LinearFade>>("midi_blue");
 
     for (size_t l = 0; l < Universe::NUM_BARS; ++l) {
         for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
@@ -86,10 +84,10 @@ void setup() {
             // universe->bar[l]->green(i).add_effect(rgb.green());
             // universe->bar[l]->blue(i).add_effect(rgb.blue());
 
-            universe->bar[l]->red(i).add_effect(&pulse.add());
+            universe->bar[l]->red(i).add_effect(&midi_red);
+            universe->bar[l]->blue(i).add_effect(&midi_blue);
         }
     }
-    effects.effect("pulse")->trigger(millis());
 
     DynamicJsonDocument doc(1024);
     deserializeJson(doc, BASE_CONFIG);
@@ -100,18 +98,32 @@ void setup() {
     interface.add_handler("clear", "clear the specified effect", &clear);
     interface.add_handler("set", "sets current config from a JSON string", &set);
     interface.add_handler("help", "show this information", &help);
+
+    usbMIDI.setHandleNoteOff(note_on);
+    usbMIDI.setHandleNoteOn(note_off);
 }
 
-uint32_t last = 0;
+elapsedMillis counter1;
+elapsedMillis counter2;
+
 void loop() {
     interface.handle_serial();
 
     controller->write_frame();
 
-    uint32_t now = millis();
-    if (now - last > 20000) {
-        effects.effect("pulse")->trigger(now);
-        last = now;
+    if (counter1 > 12000) {
+        effects.effect("pulse1")->trigger(millis());
+        counter1 = 0;
     }
+
+    if (counter2 > 14000) {
+        effects.effect("pulse2")->trigger(millis());
+        counter2 = 0;
+    }
+
+    // if (counter > 5000) {
+    //     effects.effect("pulse2")->trigger(now);
+    // }
 }
+
 

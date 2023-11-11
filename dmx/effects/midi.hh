@@ -1,31 +1,24 @@
 #pragma once
 
-
-#include "MIDI.h"
 #include <set>
 
 class MidiTriggerBase {
 public:
     ~MidiTriggerBase() = default;
 
-    virtual void note(Channel channel, byte note, byte velocity, bool on) = 0;
+    virtual void note(byte channel, byte note, byte velocity, bool on) = 0;
 };
+
+void note_off(byte channel, byte note, byte velocity);
+void note_on(byte channel, byte note, byte velocity);
 
 class MidiManager {
 public:
-    static MidiManager& instance() {
-        static MidiManager* manager_ = new MidiManager();
-        return *manager_;
+    void setup() {
+        usbMIDI.setHandleNoteOff(::note_on);
+        usbMIDI.setHandleNoteOn(::note_off);
     }
 
-    static void note_off(Channel channel, byte note, byte velocity) {
-        instance().note_off(channel, note, velocity);
-    }
-    static void note_on(Channel channel, byte note, byte velocity) {
-        instance().note_on(channel, note, velocity);
-    }
-
-public:
     bool active(byte channel) const {
         return active_channels_.find(channel) != active_channels_.end();
     }
@@ -50,14 +43,13 @@ public:
         }
     }
 
-private:
-    void note_off_impl(Channel channel, byte note, byte velocity) {
+    void note_off(byte channel, byte note, byte velocity) {
         active_channels_.insert(note);
         for (auto* ptr : callbacks_) {
             ptr->note(channel, note, velocity, false);
         }
     }
-    void note_on_impl(Channel channel, byte note, byte velocity) {
+    void note_on(byte channel, byte note, byte velocity) {
         active_channels_.erase(note);
         for (auto* ptr : callbacks_) {
             ptr->note(channel, note, velocity, true);
@@ -69,11 +61,20 @@ private:
     std::vector<MidiTriggerBase*> callbacks_;
 };
 
+MidiManager midi;
+
+void note_off(byte channel, byte note, byte velocity) {
+    midi.note_off(channel, note, velocity);
+}
+void note_on(byte channel, byte note, byte velocity) {
+    midi.note_on(channel, note, velocity);
+}
+
 template <typename Effect>
 class MidiTrigger final : public EffectBase, public MidiTriggerBase {
 public:
-    MidiTrigger() { MidiManager::instance().add_callback(static_cast<MidiTriggerBase*>(this)); }
-    ~MidiTrigger() override { MidiManager::instance().remove_callback(static_cast<MidiTriggerBase*>(this)); }
+    MidiTrigger() { midi.add_callback(static_cast<MidiTriggerBase*>(this)); }
+    ~MidiTrigger() override { midi.remove_callback(static_cast<MidiTriggerBase*>(this)); }
 
     std::string type() const override {
         std::string type = "MidiTrigger(";
@@ -101,7 +102,7 @@ public:
     };
 
 private:
-    void note(Channel channel, byte note, byte velocity, bool on) override {
+    void note(byte channel, byte note, byte velocity, bool on) override {
         if (note != note_) {
             return;
         }

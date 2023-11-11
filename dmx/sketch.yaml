@@ -1,1 +1,1 @@
-default_fqbn: teensy:avr:teensy41:usb=serialmidi4
+default_fqbn: teensy:avr:teensy41:usb=serialmidiaudio
