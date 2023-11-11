@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <algorithm>
+#include <type_traits>
 
 class EffectBase {
 public:
@@ -89,6 +90,7 @@ public:
         fades_.clear();
         fades_.emplace_back(std::move(now));
     }
+
 protected:
     float level(uint32_t now_ms) {
         if (fades_.empty()) return 0.0;
@@ -111,139 +113,137 @@ private:
 };
 
 
-template <typename Effect>
+template <typename Effect, size_t Count = 0>
 class CompositeEffect : public EffectBase {
 public:
     ~CompositeEffect() override = default;
 
     String type() const override {
         String name = "CompositeEffect(";
-        name += effects_.empty() ? Effect().type() : effects_.front()->type();
+        name += effects_.empty() ? Effect().type() : effect(0).type();
         name += ")";
         return name;
     }
 
+    template <size_t C = Count, std::enable_if_t<C == 0, bool> = true>
     Effect& add() {
         effects_.push_back(std::make_unique<Effect>());
         return *effects_.back();
     }
 
-    size_t size() const { return effects_.size(); };
-
     void set_config_json(const JsonObject& json) override {
-        for (auto& effect : effects_) {
-            effect->set_config_json(json);
+        for (size_t i = 0; i < effects_.size(); ++i) {
+            effect(i).set_config_json(json);
         }
     }
 
-    void get_config_json(JsonObject& json) const {
+    void get_config_json(JsonObject& json) const override {
         if (!effects_.empty()) {
             // Expecting these all to the same, just pick the first
-            effects_.front()->get_config_json(json);
+            effect(0).get_config_json(json);
         }
     };
 
-    void set_values_json(const JsonObject& json) {
-        for (auto& effect : effects_) {
-            effect->set_values_json(json);
+    void set_values_json(const JsonObject& json) override {
+        for (size_t i = 0; i < effects_.size(); ++i) {
+            effect(i).set_values_json(json);
         }
     }
 
-    void get_values_json(JsonObject& json) const {
+    void get_values_json(JsonObject& json) const override {
         if (!effects_.empty()) {
             // Expecting these all to the same, just pick the first
-            effects_.front()->get_values_json(json);
+            effect(0).get_values_json(json);
         }
     };
 
-    void trigger(uint32_t now_ms) {
-        if (effects_.empty()) return;
-        // Trigger a random effect
-        // TODO: Add a config for this.
-        effects_[random(effects_.size())]->trigger(now_ms);
+    void trigger(uint32_t now_ms) override {
+        for (size_t i = 0; i < effects_.size(); ++i) {
+            effect(i).trigger(now_ms);
+        }
     }
-    void clear(uint32_t now_ms) {
-        for (auto& effect : effects_) {
-            effect->clear(now_ms);
+    void clear(uint32_t now_ms) override {
+        for (size_t i = 0; i < effects_.size(); ++i) {
+            effect(i).clear(now_ms);
         }
     }
 
+    template <size_t C = Count, std::enable_if_t<C == 0, bool> = true>
+    Effect& effect(size_t index) { return *effects_[index]; }
+    template <size_t C = Count, std::enable_if_t<C != 0, bool> = true>
+    Effect& effect(size_t index) { return effects_[index]; }
+    template <size_t C = Count, std::enable_if_t<C == 0, bool> = true>
+    const Effect& effect(size_t index) const { return *effects_[index]; }
+    template <size_t C = Count, std::enable_if_t<C != 0, bool> = true>
+    const Effect& effect(size_t index) const { return effects_[index]; }
+
+    template <typename Config>
+    void set_config(const Config& config) {
+        for (size_t i = 0; i < effects_.size(); ++i) {
+            effect(i).set_config(config);
+        }
+    }
 
 private:
-    std::vector<std::unique_ptr<Effect>> effects_;
+    using Container = std::conditional_t<Count == 0,
+            std::vector<std::unique_ptr<Effect>>,
+            std::array<Effect, Count>>;
+    Container effects_;
 };
 
 template <typename Effect>
-class RgbEffect final : public EffectBase {
+class RgbEffect final : public CompositeEffect<Effect, 3> {
 public:
     RgbEffect() = default;
     ~RgbEffect() override = default;
 
 public:
-    String type() const override { return "RGB(" + r_.type() + ")";; }
+    String type() const override { return "RGB(" + red().type() + ")"; }
 
-    Effect* red() { return &r_; }
-    Effect* green() { return &g_; }
-    Effect* blue() { return &b_; }
+    Effect& red() { return this->effect(0); }
+    Effect& green() { return this->effect(1); }
+    Effect& blue() { return this->effect(2); }
+    const Effect& red() const { return this->effect(0); }
+    const Effect& green() const { return this->effect(1); }
+    const Effect& blue() const { return this->effect(2); }
 
-    template <typename Config>
-    void set_config(const Config& config) {
-        r_.set_config(config);
-        g_.set_config(config);
-        b_.set_config(config);
+    void set_max_values(uint8_t r, uint8_t g, uint8_t b) {
+        red().set_values(0, r);
+        green().set_values(0, g);
+        blue().set_values(0, b);
     }
 
-    void set_max_values(uint8_t red, uint8_t green, uint8_t blue) {
-        r_.set_values(0, red);
-        g_.set_values(0, green);
-        b_.set_values(0, blue);
-    }
-
+    // Split configs out by name
     void set_config_json(const JsonObject& json) override {
-        r_.set_config_json(json["red"]);
-        g_.set_config_json(json["green"]);
-        b_.set_config_json(json["blue"]);
+        red().set_config_json(json["red"]);
+        green().set_config_json(json["green"]);
+        blue().set_config_json(json["blue"]);
     }
 
     void get_config_json(JsonObject& json) const {
-        JsonObject red = json.createNestedObject("red");
-        r_.get_config_json(red);
-        JsonObject green = json.createNestedObject("green");
-        g_.get_config_json(green);
-        JsonObject blue = json.createNestedObject("blue");
-        b_.get_config_json(blue);
+        JsonObject r = json.createNestedObject("red");
+        red().get_config_json(r);
+        JsonObject g = json.createNestedObject("green");
+        green().get_config_json(g);
+        JsonObject b = json.createNestedObject("blue");
+        blue().get_config_json(b);
     };
 
+    // Split values out by name
     void set_values_json(const JsonObject& json) {
-        r_.set_values_json(json["red"]);
-        g_.set_values_json(json["green"]);
-        b_.set_values_json(json["blue"]);
+        red().set_values_json(json["red"]);
+        green().set_values_json(json["green"]);
+        blue().set_values_json(json["blue"]);
     }
 
     void get_values_json(JsonObject& json) const {
-        JsonObject red = json.createNestedObject("red");
-        r_.get_values_json(red);
-        JsonObject green = json.createNestedObject("green");
-        g_.get_values_json(green);
-        JsonObject blue = json.createNestedObject("blue");
-        b_.get_values_json(blue);
+        JsonObject r = json.createNestedObject("red");
+        red().get_values_json(r);
+        JsonObject g = json.createNestedObject("green");
+        green().get_values_json(g);
+        JsonObject b = json.createNestedObject("blue");
+        blue().get_values_json(b);
     };
-
-    void trigger(uint32_t now_ms) {
-        r_.trigger(now_ms);
-        g_.trigger(now_ms);
-        b_.trigger(now_ms);
-    }
-    void clear(uint32_t now_ms) {
-        r_.clear(now_ms);
-        g_.clear(now_ms);
-        b_.clear(now_ms);
-    }
-
-private:
-    Effect r_;
-    Effect g_;
-    Effect b_;
 };
 
 // Copied from ChatGPT

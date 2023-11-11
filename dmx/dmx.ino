@@ -126,14 +126,14 @@ void setup() {
         auto& effect_r = *meter_r.effect(WashBarLight112::NUM_LIGHTS - i - 1);
 
         auto& bar_l = *universe.bar[0];
-        bar_l.red(i).add_effect(effect_l.red());
-        bar_l.green(i).add_effect(effect_l.green());
-        bar_l.blue(i).add_effect(effect_l.blue());
+        bar_l.red(i).add_effect(&effect_l.red());
+        bar_l.green(i).add_effect(&effect_l.green());
+        bar_l.blue(i).add_effect(&effect_l.blue());
 
         auto& bar_r = *universe.bar[1];
-        bar_r.red(i).add_effect(effect_r.red());
-        bar_r.green(i).add_effect(effect_r.green());
-        bar_r.blue(i).add_effect(effect_r.blue());
+        bar_r.red(i).add_effect(&effect_r.red());
+        bar_r.green(i).add_effect(&effect_r.green());
+        bar_r.blue(i).add_effect(&effect_r.blue());
     }
 }
 
