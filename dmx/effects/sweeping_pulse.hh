@@ -6,7 +6,7 @@ class SweepingPulse final : public EffectBase {
 public:
     ~SweepingPulse() override = default;
 
-    std::string type() const override { return "SweepingPulse"; }
+    String type() const override { return "SweepingPulse"; }
 
     LinearPulse& add() {
         effects_.push_back(std::make_unique<LinearPulse>());

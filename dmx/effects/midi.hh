@@ -68,8 +68,8 @@ public:
         });
     }
 
-    std::string type() const override {
-        std::string type = "MidiTrigger(";
+    String type() const override {
+        String type = "MidiTrigger(";
         type += effect_.type();
         return type + ")";
     }

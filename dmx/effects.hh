@@ -18,7 +18,7 @@ public:
     virtual void set_values_json(const JsonObject& json) = 0;
     virtual void get_values_json(JsonObject& json) const = 0;
 
-    virtual std::string type() const = 0;
+    virtual String type() const = 0;
 
     virtual void trigger(uint32_t now_ms) {}
     virtual void clear(uint32_t now_ms) {}
@@ -40,15 +40,15 @@ protected:
 class EffectMap {
 public:
     template <typename Effect, typename... Args>
-    Effect& add_effect(const std::string& name, Args&&...args) {
+    Effect& add_effect(const String& name, Args&&...args) {
         auto effect_ptr = std::make_unique<Effect>(args...);
         Effect& effect = *effect_ptr;
         effects_[name] = std::move(effect_ptr);
         return effect;
     }
 
-    std::vector<std::string> names(const std::string& light_names) const {
-        std::vector<std::string> out;
+    std::vector<String> names(const String& light_names) const {
+        std::vector<String> out;
         out.reserve(effects_.size());
         for (const auto& it : effects_) {
             out.push_back(it.first);
@@ -56,7 +56,7 @@ public:
         return out;
     }
 
-    EffectBase* effect(const std::string& name) const {
+    EffectBase* effect(const String& name) const {
         auto it = effects_.find(name);
         if (it == effects_.end()) {
             Serial.print("No effect named '");
@@ -96,7 +96,7 @@ public:
     }
 
 private:
-    std::map<std::string, std::unique_ptr<EffectBase>> effects_;
+    std::map<String, std::unique_ptr<EffectBase>> effects_;
 };
 
 template <typename Effect>
@@ -104,8 +104,8 @@ class CompositeEffect : public EffectBase {
 public:
     ~CompositeEffect() override = default;
 
-    std::string type() const override {
-        std::string name = "CompositeEffect(";
+    String type() const override {
+        String name = "CompositeEffect(";
         name += effects_.empty() ? Effect().type() : effects_.front()->type();
         name += ")";
         return name;
@@ -168,7 +168,7 @@ public:
     ~RgbEffect() override = default;
 
 public:
-    std::string type() const override { return "RGB(" + r_.type() + ")";; }
+    String type() const override { return "RGB(" + r_.type() + ")";; }
 
     Effect* red() { return &r_; }
     Effect* green() { return &g_; }

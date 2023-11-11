@@ -49,7 +49,7 @@ public:
     }
 
 public:
-    std::string type() const override { return "LinearPulse"; }
+    String type() const override { return "LinearPulse"; }
 
     void set_config_json(const JsonObject& json) override {
         bool updated = false;

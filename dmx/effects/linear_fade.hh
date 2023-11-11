@@ -76,7 +76,7 @@ public:
     void set_values(uint8_t min, uint8_t max) { min_ = min; max_ = max; }
 
 public:
-    std::string type() const override { return "LinearFade"; }
+    String type() const override { return "LinearFade"; }
 
     void set_config_json(const JsonObject& json) override {
         maybe_set(json, "trigger_dt_ms", config_.trigger_dt_ms);

@@ -36,7 +36,7 @@ public:
     }
 
 public:
-    std::string type() const override { return "CosBlend"; }
+    String type() const override { return "CosBlend"; }
 
     void set_config_json(const JsonObject& json) override {
         bool updated = false;

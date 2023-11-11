@@ -26,11 +26,11 @@ struct Universe {
 };
 Universe* universe;
 
-void list(const std::string&) {
+void list(const String&) {
     serializeJson(effects.get_json(), Serial);
     Serial.println();
 }
-void trigger(const std::string& name) {
+void trigger(const String& name) {
     EffectBase* effect = effects.effect(name);
     if (effect != nullptr) {
         Serial.print("Triggering ");
@@ -38,7 +38,7 @@ void trigger(const std::string& name) {
         effect->trigger(millis());
     }
 }
-void clear(const std::string& name) {
+void clear(const String& name) {
     EffectBase* effect = effects.effect(name);
     if (effect != nullptr) {
         Serial.print("Clearing ");
@@ -46,7 +46,7 @@ void clear(const std::string& name) {
         effect->clear(millis());
     }
 }
-void set(const std::string& json) {
+void set(const String& json) {
     DynamicJsonDocument doc(1024);
     const DeserializationError err = deserializeJson(doc, json);
     if (err.code() == DeserializationError::Ok) {
@@ -57,7 +57,7 @@ void set(const std::string& json) {
         Serial.println(err.c_str());
     }
 }
-void help(const std::string&) {
+void help(const String&) {
     interface.help();
 }
 
@@ -92,7 +92,7 @@ public:
     void set_values_json(const JsonObject& json) {}
     void get_values_json(JsonObject& json) const {}
 
-    std::string type() const { return "AudioMeter"; }
+    String type() const { return "AudioMeter"; }
 
     virtual void trigger(uint32_t now_ms) {}
     virtual void clear(uint32_t now_ms) {}

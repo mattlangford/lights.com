@@ -12,7 +12,7 @@ public:
             if (str.startsWith(handler.first)) {
                 // Assume there is a space at the end of the command
                 const auto data = str.substring(handler.first.length() + 1);
-                handler.second.function(std::string(data.c_str()));
+                handler.second.function(data);
                 return;
             }
         }
@@ -30,7 +30,7 @@ public:
         }
     }
 
-    using HandlerFunction = void(*)(const std::string&);
+    using HandlerFunction = void(*)(const String&);
     void add_handler(const String& command, String description, HandlerFunction function) {
         auto& impl = handlers_[command];
         impl.function = function;
