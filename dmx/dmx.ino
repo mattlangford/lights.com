@@ -6,7 +6,6 @@
 #include <map>
 #include <set>
 #include <vector>
-#include <string>
 #include <memory>
 #include <vector>
 
@@ -18,13 +17,13 @@ struct Universe {
     static constexpr size_t NUM_BARS = 3;
     WashBarLight112* bar[NUM_BARS];
 
-    Universe(DMXController& controller) {
+    void setup(const DmxController& controller) {
         bar[0] = new WashBarLight112(1, controller);
         bar[1] = new WashBarLight112(113, controller);
         bar[2] = new WashBarLight112(225, controller);
     }
 };
-Universe* universe;
+Universe universe;
 
 void list(const String&) {
     serializeJson(effects.get_json(), Serial);
@@ -108,10 +107,17 @@ void setup() {
     Serial.begin(115200);
     Serial.setTimeout(100);
 
+    interface.add_handler("list", "show current configuration", &list);
+    interface.add_handler("trigger", "trigger the specified effect", &trigger);
+    interface.add_handler("clear", "clear the specified effect", &clear);
+    interface.add_handler("set", "sets current config from a JSON string", &set);
+    interface.add_handler("help", "show this information", &help);
+
+    controller = new DMXController(41, 40);
+
     audio.setup();
     midi.setup();
-    controller = new DMXController(41, 40);
-    universe = new Universe(*controller);
+    universe.setup(*controller);
 
     auto& meter_l = effects.add_effect<AudioMeter>("audio_l", WashBarLight112::NUM_LIGHTS, 0);
     auto& meter_r = effects.add_effect<AudioMeter>("audio_r", WashBarLight112::NUM_LIGHTS, 1);
@@ -129,12 +135,6 @@ void setup() {
         bar_r.green(i).add_effect(effect_r.green());
         bar_r.blue(i).add_effect(effect_r.blue());
     }
-
-    interface.add_handler("list", "show current configuration", &list);
-    interface.add_handler("trigger", "trigger the specified effect", &trigger);
-    interface.add_handler("clear", "clear the specified effect", &clear);
-    interface.add_handler("set", "sets current config from a JSON string", &set);
-    interface.add_handler("help", "show this information", &help);
 }
 
 
