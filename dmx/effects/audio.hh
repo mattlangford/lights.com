@@ -2,7 +2,6 @@
 
 #include <Audio.h>
 
-
 AudioInputUSB            usb_1;           //xy=193,468
 AudioFilterStateVariable filter_l;        //xy=377,401
 AudioFilterStateVariable filter_r;        //xy=370,487
@@ -45,21 +44,19 @@ struct AudioLevelConfig {
     uint8_t port = 0;
 };
 
-class AudioLevel final : public ChannelEffect, public EffectBase {
+class AudioLevel final : public FaderEffect {
 public:
     ~AudioLevel() override {}
 
 public:
-    uint8_t process(uint8_t value, uint32_t now_ms) override {
+    float level(uint32_t now_ms) override {
         if (audio.value(config_.port) >= config_.threshold) {
             change_ = now_ms;
-            return max_;
+            return max_value();
         }
 
-        return now_ms > (change_ + 20) ? min_ : max_;
+        return now_ms > (change_ + 20) ? min_value() : max_value();
     }
-
-    void set_values(uint8_t min, uint8_t max) { min_ = min; max_ = max; }
 
 public:
     String type() const override { return "LinearFade"; }
@@ -74,25 +71,11 @@ public:
         json["port"] = config_.port;
     }
 
-    void set_values_json(const JsonObject& json) override {
-        maybe_set(json, "min", min_);
-        maybe_set(json, "max", max_);
-    }
-
-    void get_values_json(JsonObject& json) const override {
-        json["min"] = min_;
-        json["max"] = max_;
-    }
-
     void set_config(AudioLevelConfig config) {
         config_ = std::move(config);
     }
 
 private:
     uint32_t change_ = 0;
-
     AudioLevelConfig config_;
-
-    uint8_t min_ = 0;
-    uint8_t max_ = 255;
 };

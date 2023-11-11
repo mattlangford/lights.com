@@ -8,10 +8,26 @@ class ChannelEffect {
 public:
     virtual ~ChannelEffect() = default;
 
-    virtual uint8_t process(uint8_t value, uint32_t now_ms) = 0;
+    uint8_t process(uint8_t value, uint32_t now_ms) {
+        return clip((max_ - min_) * level(now_ms) + min_ + input_gain_ * value);
+    }
+
+    void set_values(uint8_t min, uint8_t max) { min_ = min; max_ = max; }
+    void set_input_gain(float gain) { input_gain_ = gain; }
 
 protected:
     uint8_t clip(float in) const { return in < 0 ? 0 : in > 255 ? 255 : static_cast<uint8_t>(in); }
+
+    uint8_t min_value() const { return min_; }
+    uint8_t max_value() const { return max_; }
+
+    // Return the current level, between 0.0 and 1.0
+    virtual float level(uint32_t now_ms) { return 0.0; }
+
+private:
+    float input_gain_ = 1.0;
+    uint8_t min_ = 0;
+    uint8_t max_ = 255;
 };
 
 class Channel {

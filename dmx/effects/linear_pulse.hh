@@ -1,7 +1,5 @@
 #pragma once
 
-#include "linear_fade.hh"
-
 struct LinearPulseConfig {
     uint32_t rise_dt_ms = 100;
     uint32_t hold_dt_ms = 1000;
@@ -9,43 +7,35 @@ struct LinearPulseConfig {
     uint32_t clear_dt_ms = 100;
 };
 
-class LinearPulse final : public ChannelEffect, public EffectBase {
+class LinearPulse final : public FaderEffect {
 public:
     ~LinearPulse() override = default;
 
 public:
-    uint8_t process(uint8_t value, uint32_t now_ms) override {
-        return clip(value + (max_ - min_) * fader_.value_at(now_ms) + min_);
-    }
-
     void set_config(const LinearPulseConfig& config) {
         config_ = config;
-    }
-    void set_values(uint8_t min, uint8_t max) {
-        min_ = static_cast<float>(min);
-        max_ = static_cast<float>(max);
     }
 
     void trigger(uint32_t now_ms) override {
         uint32_t start = now_ms;
 
         uint32_t end = start + config_.rise_dt_ms;
-        fader_.fade_to(1.0, start, end);
+        fade_to(1.0, start, end);
 
         if (config_.hold_dt_ms > 0) {
             start = end;
             end = start + config_.hold_dt_ms;
-            fader_.fade_to(1.0, start, end);
+            fade_to(1.0, start, end);
         }
 
         start = end;
         end = start + config_.fall_dt_ms;
-        fader_.fade_to(0.0, start, end);
+        fade_to(0.0, start, end);
     }
 
     void clear(uint32_t now_ms) override {
-        fader_.clear(now_ms);
-        fader_.fade_to(0.0, now_ms, now_ms + config_.clear_dt_ms);
+        FaderEffect::clear(now_ms);
+        fade_to(0.0, now_ms, now_ms + config_.clear_dt_ms);
     }
 
 public:
@@ -66,20 +56,7 @@ public:
         json["clear_dt_ms"] = config_.clear_dt_ms;
     }
 
-    void set_values_json(const JsonObject& json) override {
-        maybe_set(json, "min", min_);
-        maybe_set(json, "max", max_);
-    }
-
-    void get_values_json(JsonObject& json) const override {
-        json["min"] = min_;
-        json["max"] = max_;
-    }
-
 private:
-    Fader fader_;
     LinearPulseConfig config_;
-    uint8_t min_ = 0.0;
-    uint8_t max_ = 255.0;
 };
 

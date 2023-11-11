@@ -53,7 +53,7 @@ void set(const String& json) {
         Serial.println("Updated config!");
     } else {
         Serial.print("Unable to parse json input: ");
-        Serial.println(err);
+        Serial.println(err.c_str());
     }
 }
 void help(const String&) {

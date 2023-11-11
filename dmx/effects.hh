@@ -7,18 +7,19 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <algorithm>
 
 class EffectBase {
 public:
     virtual ~EffectBase() = default;
+
+    virtual String type() const = 0;
 
     virtual void set_config_json(const JsonObject& json) = 0;
     virtual void get_config_json(JsonObject& json) const = 0;
 
     virtual void set_values_json(const JsonObject& json) = 0;
     virtual void get_values_json(JsonObject& json) const = 0;
-
-    virtual String type() const = 0;
 
     virtual void trigger(uint32_t now_ms) {}
     virtual void clear(uint32_t now_ms) {}
@@ -35,69 +36,80 @@ protected:
         out = field.as<T>();
         return true;
     }
+
+    template <typename T>
+    T value_or(const JsonObject& obj, const char* name, const T& fallback) {
+        auto field = obj[name];
+        if (field.isNull()) {
+            return fallback;
+        }
+        return field.as<T>();
+    }
 };
 
-class EffectMap {
+class SingleChannelEffect : public ChannelEffect, public EffectBase {
 public:
-    template <typename Effect, typename... Args>
-    Effect& add_effect(const String& name, Args&&...args) {
-        auto effect_ptr = std::make_unique<Effect>(args...);
-        Effect& effect = *effect_ptr;
-        effects_[name] = std::move(effect_ptr);
-        return effect;
+    ~SingleChannelEffect() override = default;
+
+    void set_values_json(const JsonObject& json) override {
+        uint8_t min = value_or(json, "min", min_value());
+        uint8_t max = value_or(json, "max", max_value());
+        set_values(min, max);
     }
 
-    std::vector<String> names(const String& light_names) const {
-        std::vector<String> out;
-        out.reserve(effects_.size());
-        for (const auto& it : effects_) {
-            out.push_back(it.first);
+    void get_values_json(JsonObject& json) const override {
+        json["min"] = min_value();
+        json["max"] = max_value();
+    }
+};
+
+class FaderEffect : public SingleChannelEffect {
+private:
+    struct FadePoint {
+        uint32_t time_ms = 0;
+        float value = 0.0;
+    };
+
+public:
+    ~FaderEffect() override = default;
+
+    void fade_to(float end, uint32_t now_ms, uint32_t end_ms) {
+        if (!fades_.empty() && end_ms < fades_.back().time_ms) {
+            fades_.push_back(FadePoint{now_ms, level(now_ms)});
         }
-        return out;
+
+        fades_.push_back(FadePoint{end_ms, end});
+        std::sort(fades_.begin(), fades_.end(), [](const FadePoint& lhs, const FadePoint& rhs){
+            return lhs.time_ms < rhs.time_ms;
+        });
     }
 
-    EffectBase* effect(const String& name) const {
-        auto it = effects_.find(name);
-        if (it == effects_.end()) {
-            Serial.print("No effect named '");
-            Serial.print(name);
-            Serial.println("' found!");
-            return nullptr;
-        }
-        return it->second.get();
+    void clear(uint32_t now_ms) override {
+        FadePoint now{now_ms, level(now_ms)};
+        fades_.clear();
+        fades_.emplace_back(std::move(now));
     }
+protected:
+    float level(uint32_t now_ms) {
+        if (fades_.empty()) return 0.0;
+        if (now_ms < fades_.front().time_ms) return fades_.front().value;
 
-    void set_json(const JsonObject& object) {
-        for (auto field : object) {
-            auto it = effects_.find(field.key());
-            if (it == effects_.end()) {
+        for (size_t i = 0; i < fades_.size() - 1; ++i) {
+            const FadePoint& next = fades_[i + 1];
+            if (now_ms > next.time_ms) {
                 continue;
             }
-            auto config = field.value()["config"];
-            if (!config.isNull()) it->second->set_config_json(config);
-            auto values = field.value()["values"];
-            if (!values.isNull()) it->second->set_values_json(values);
+            const FadePoint& prev = fades_[i];
+            const float percent = (static_cast<float>(now_ms) - prev.time_ms) / (next.time_ms - prev.time_ms);
+            return prev.value + percent * (next.value - prev.value);
         }
+
+        return fades_.back().value;
     }
-
-    DynamicJsonDocument get_json() {
-        DynamicJsonDocument doc(1024);
-        for (const auto& effect : effects_) {
-            JsonObject object = doc.createNestedObject(effect.first);
-            object["type"] = effect.second->type();
-
-            JsonObject config = object.createNestedObject("config");
-            JsonObject values = object.createNestedObject("values");
-
-            effect.second->get_config_json(config);
-            effect.second->get_values_json(values);
-        }
-        return doc;
-    }
-
 private:
-    std::map<String, std::unique_ptr<EffectBase>> effects_;
+    std::vector<FadePoint> fades_;
 };
+
 
 template <typename Effect>
 class CompositeEffect : public EffectBase {
@@ -265,4 +277,66 @@ void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b) {
 #include "effects/sweeping_pulse.hh"
 #include "effects/midi.hh"
 #include "effects/audio.hh"
+
+class EffectMap {
+public:
+    template <typename Effect, typename... Args>
+    Effect& add_effect(const String& name, Args&&...args) {
+        auto effect_ptr = std::make_unique<Effect>(args...);
+        Effect& effect = *effect_ptr;
+        effects_[name] = std::move(effect_ptr);
+        return effect;
+    }
+
+    std::vector<String> names(const String& light_names) const {
+        std::vector<String> out;
+        out.reserve(effects_.size());
+        for (const auto& it : effects_) {
+            out.push_back(it.first);
+        }
+        return out;
+    }
+
+    EffectBase* effect(const String& name) const {
+        auto it = effects_.find(name);
+        if (it == effects_.end()) {
+            Serial.print("No effect named '");
+            Serial.print(name);
+            Serial.println("' found!");
+            return nullptr;
+        }
+        return it->second.get();
+    }
+
+    void set_json(const JsonObject& object) {
+        for (auto field : object) {
+            auto it = effects_.find(field.key().c_str());
+            if (it == effects_.end()) {
+                continue;
+            }
+            auto config = field.value()["config"];
+            if (!config.isNull()) it->second->set_config_json(config);
+            auto values = field.value()["values"];
+            if (!values.isNull()) it->second->set_values_json(values);
+        }
+    }
+
+    DynamicJsonDocument get_json() {
+        DynamicJsonDocument doc(1024);
+        for (const auto& effect : effects_) {
+            JsonObject object = doc.createNestedObject(effect.first);
+            object["type"] = effect.second->type();
+
+            JsonObject config = object.createNestedObject("config");
+            JsonObject values = object.createNestedObject("values");
+
+            effect.second->get_config_json(config);
+            effect.second->get_values_json(values);
+        }
+        return doc;
+    }
+
+private:
+    std::map<String, std::unique_ptr<EffectBase>> effects_;
+};
 
