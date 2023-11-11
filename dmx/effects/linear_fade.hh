@@ -1,5 +1,55 @@
 #pragma once
 
+#include <algorithm>
+
+class Fader {
+public:
+    struct FadePoint {
+        uint32_t time_ms = 0;
+        float value = 0.0;
+    };
+
+public:
+    void fade_to(float end, uint32_t now_ms, uint32_t end_ms) {
+        if (!fades_.empty() && end_ms < fades_.back().time_ms) {
+            fades_.push_back(FadePoint{now_ms, value_at(now_ms)});
+        }
+
+        fades_.push_back(FadePoint{end_ms, end});
+        std::sort(fades_.begin(), fades_.end(),
+                [](const FadePoint& lhs, const FadePoint& rhs){
+                    return lhs.time_ms < rhs.time_ms;
+                });
+    }
+
+    float value_at(uint32_t now_ms) {
+        if (fades_.empty()) return 0.0;
+        if (now_ms < fades_.front().time_ms) return fades_.front().value;
+
+        for (size_t i = 0; i < fades_.size() - 1; ++i) {
+            const FadePoint& next = fades_[i + 1];
+            if (now_ms > next.time_ms) {
+                continue;
+            }
+            const FadePoint& prev = fades_[i];
+            const float percent = (static_cast<float>(now_ms) - prev.time_ms) / (next.time_ms - prev.time_ms);
+            return prev.value + percent * (next.value - prev.value);
+        }
+
+        return fades_.back().value;
+    }
+
+    void clear(uint32_t now_ms) {
+        FadePoint now{now_ms, value_at(now_ms)};
+        fades_.clear();
+        fades_.emplace_back(std::move(now));
+    }
+
+private:
+    std::vector<FadePoint> fades_;
+};
+
+
 struct LinearFadeConfig {
     uint32_t trigger_dt_ms = 1000;
     uint32_t clear_dt_ms = 1000;
@@ -11,19 +61,16 @@ public:
 
 public:
     uint8_t process(uint8_t value, uint32_t now_ms) override {
-        if (now_ms < start_ms_) { return clip(value + start_value_); }
-        if (now_ms >= end_ms_) { return clip(value + end_value_); }
-
-        const float fade_ratio = (static_cast<float>(now_ms) - start_ms_) / (end_ms_ - start_ms_);
-        const float diff = static_cast<float>(end_value_) - start_value_;
-        return clip(value + start_value_ + fade_ratio * diff);
+        return clip(value + (max_ - min_) * fader_.value_at(now_ms) + min_);
     }
 
     void trigger(uint32_t now_ms) override {
-        set(now_ms, config_.trigger_dt_ms, min_, max_);
+        fader_.clear(now_ms);
+        fader_.fade_to(1.0, now_ms, config_.trigger_dt_ms);
     }
     void clear(uint32_t now_ms) override {
-        set(now_ms, config_.clear_dt_ms, max_, min_);
+        fader_.clear(now_ms);
+        fader_.fade_to(0.0, now_ms, config_.clear_dt_ms);
     }
 
     void set_config(const LinearFadeConfig& config) { config_ = config; }
@@ -53,20 +100,9 @@ public:
     }
 
 private:
-    void set(uint32_t now_ms, uint32_t duration_ms, uint8_t start, uint8_t end) {
-        start_ms_ = now_ms;
-        end_ms_ = now_ms + duration_ms;
-        start_value_ = start;
-        end_value_ = end;
-    }
-
+    Fader fader_;
     LinearFadeConfig config_;
     uint8_t min_ = 0;
     uint8_t max_ = 255;
-
-    uint32_t start_ms_ = 0;
-    uint32_t end_ms_ = 0;
-    uint8_t start_value_ = 0;
-    uint8_t end_value_ = 0;
 };
 

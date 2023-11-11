@@ -1,9 +1,12 @@
 #pragma once
 
+#include "linear_fade.hh"
+
 struct LinearPulseConfig {
-    uint32_t rise_dt_ms = 1000;
-    uint32_t hold_dt_ms = 250;
-    uint32_t fall_dt_ms = 1000;
+    uint32_t rise_dt_ms = 100;
+    uint32_t hold_dt_ms = 1000;
+    uint32_t fall_dt_ms = 2000;
+    uint32_t clear_dt_ms = 100;
 };
 
 class LinearPulse final : public ChannelEffect, public EffectBase {
@@ -12,26 +15,11 @@ public:
 
 public:
     uint8_t process(uint8_t value, uint32_t now_ms) override {
-        if (now_ms < start_time_ || now_ms >= end_time_) {
-            return clip(value + min_);
-        }
-
-        if (now_ms >= start_hold_time_ && now_ms < end_hold_time_) {
-            return clip(value + max_);
-        }
-
-        bool up = now_ms < start_hold_time_;
-        const uint32_t& start_ms = up ? start_time_ : end_hold_time_;
-        const uint32_t& start_value = up ? min_ : max_;
-        const uint32_t& duration = up ? config_.rise_dt_ms : config_.fall_dt_ms;
-        const float diff = (up ? 1.0 : -1.0) * (max_ - min_);
-        const float fade_ratio = (static_cast<float>(now_ms) - start_ms) / duration;
-        return clip(value + start_value + fade_ratio * diff);
+        return clip(value + (max_ - min_) * fader_.value_at(now_ms) + min_);
     }
 
     void set_config(const LinearPulseConfig& config) {
         config_ = config;
-        update_times(start_time_);
     }
     void set_values(uint8_t min, uint8_t max) {
         min_ = static_cast<float>(min);
@@ -39,11 +27,25 @@ public:
     }
 
     void trigger(uint32_t now_ms) override {
-        update_times(now_ms);
+        uint32_t start = now_ms;
+
+        uint32_t end = start + config_.rise_dt_ms;
+        fader_.fade_to(1.0, start, end);
+
+        if (config_.hold_dt_ms > 0) {
+            start = end;
+            end = start + config_.hold_dt_ms;
+            fader_.fade_to(1.0, start, end);
+        }
+
+        start = end;
+        end = start + config_.fall_dt_ms;
+        fader_.fade_to(0.0, start, end);
     }
+
     void clear(uint32_t now_ms) override {
-        end_hold_time_ = now_ms;
-        end_time_ = end_hold_time_ + config_.fall_dt_ms;
+        fader_.clear(now_ms);
+        fader_.fade_to(0.0, now_ms, now_ms + config_.clear_dt_ms);
     }
 
 public:
@@ -54,16 +56,14 @@ public:
         updated |= maybe_set(json, "rise_dt_ms", config_.rise_dt_ms);
         updated |= maybe_set(json, "hold_dt_ms", config_.hold_dt_ms);
         updated |= maybe_set(json, "fall_dt_ms", config_.fall_dt_ms);
-
-        if (updated) {
-            update_times(start_time_);
-        }
+        updated |= maybe_set(json, "clear_dt_ms", config_.clear_dt_ms);
     }
 
     void get_config_json(JsonObject& json) const override {
         json["rise_dt_ms"] = config_.rise_dt_ms;
         json["hold_dt_ms"] = config_.hold_dt_ms;
         json["fall_dt_ms"] = config_.fall_dt_ms;
+        json["clear_dt_ms"] = config_.clear_dt_ms;
     }
 
     void set_values_json(const JsonObject& json) override {
@@ -82,20 +82,7 @@ public:
     }
 
 private:
-    void update_times(uint32_t start_time) {
-        if (start_time == 0) return;
-
-        start_time_ = start_time;
-        start_hold_time_ = start_time + config_.rise_dt_ms;
-        end_hold_time_ = start_hold_time_ + config_.hold_dt_ms;
-        end_time_ = end_hold_time_ + config_.fall_dt_ms;
-    }
-
-    uint32_t start_time_ = 0;
-    uint32_t start_hold_time_ = 0;
-    uint32_t end_hold_time_ = 0;
-    uint32_t end_time_ = 0;
-
+    Fader fader_;
     LinearPulseConfig config_;
     uint8_t min_ = 0.0;
     uint8_t max_ = 255.0;

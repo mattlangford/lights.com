@@ -62,7 +62,6 @@ void help(const std::string&) {
     interface.help();
 }
 
-LinearPulse *pulse;
 void setup() {
     Serial.begin(115200);
     Serial.setTimeout(100);
@@ -72,23 +71,40 @@ void setup() {
     universe = new Universe(*controller);
 
     // auto& background = effects.add_effect<CompositeEffect<RgbEffect<CosBlend>>>("background");
-    auto& midi_red = effects.add_effect<MidiTrigger<LinearFade>>("midi_red");
-    pulse = &effects.add_effect<LinearPulse>("pulse");
+    auto& midi_red1 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_red1");
+    auto& midi_green1 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_green1");
+    auto& midi_blue1 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_blue1");
+    auto& midi_red2 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_red2");
+    auto& midi_green2 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_green2");
+    auto& midi_blue2 = effects.add_effect<MidiTrigger<LinearPulse>>("midi_blue2");
 
     for (size_t l = 0; l < Universe::NUM_BARS; ++l) {
+        auto& bar = *universe->bar[l];
         for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
             // auto& rgb = background.add();
             // universe->bar[l]->red(i).add_effect(rgb.red());
             // universe->bar[l]->green(i).add_effect(rgb.green());
             // universe->bar[l]->blue(i).add_effect(rgb.blue());
 
-            universe->bar[l]->red(i).add_effect(midi_red.effect());
-            universe->bar[l]->red(i).add_effect(pulse);
+            if (i < 0.5 * WashBarLight112::NUM_LIGHTS) {
+                bar.red(i).add_effect(midi_red1.effect());
+                bar.green(i).add_effect(midi_green1.effect());
+                bar.blue(i).add_effect(midi_blue1.effect());
+            } else {
+                bar.red(i).add_effect(midi_red2.effect());
+                bar.green(i).add_effect(midi_green2.effect());
+                bar.blue(i).add_effect(midi_blue2.effect());
+            }
         }
     }
 
-    midi_red.set_note(72);
-    pulse->trigger(millis());
+    midi_red2.set_note(72);
+    midi_green2.set_note(74);
+    midi_blue2.set_note(76);
+
+    midi_red1.set_note(84);
+    midi_green1.set_note(86);
+    midi_blue1.set_note(88);
 
     interface.add_handler("list", "show current configuration", &list);
     interface.add_handler("trigger", "trigger the specified effect", &trigger);
@@ -97,16 +113,10 @@ void setup() {
     interface.add_handler("help", "show this information", &help);
 }
 
-elapsedMillis pulse_t;
 void loop() {
     midi.read();
     interface.handle_serial();
     controller->write_frame();
-
-    if (pulse_t > 3000) {
-        pulse->trigger(millis());
-        pulse_t = 0;
-    }
 }
 
 
