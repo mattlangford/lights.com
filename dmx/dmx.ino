@@ -17,7 +17,7 @@ struct Universe {
     static constexpr size_t NUM_BARS = 3;
     WashBarLight112* bar[NUM_BARS];
 
-    void setup(const DmxController& controller) {
+    void setup(DMXController& controller) {
         bar[0] = new WashBarLight112(1, controller);
         bar[1] = new WashBarLight112(113, controller);
         bar[2] = new WashBarLight112(225, controller);
@@ -33,7 +33,7 @@ void trigger(const String& name) {
     EffectBase* effect = effects.effect(name);
     if (effect != nullptr) {
         Serial.print("Triggering ");
-        Serial.println(name.c_str());
+        Serial.println(name);
         effect->trigger(millis());
     }
 }
@@ -41,7 +41,7 @@ void clear(const String& name) {
     EffectBase* effect = effects.effect(name);
     if (effect != nullptr) {
         Serial.print("Clearing ");
-        Serial.println(name.c_str());
+        Serial.println(name);
         effect->clear(millis());
     }
 }
@@ -53,7 +53,7 @@ void set(const String& json) {
         Serial.println("Updated config!");
     } else {
         Serial.print("Unable to parse json input: ");
-        Serial.println(err.c_str());
+        Serial.println(err);
     }
 }
 void help(const String&) {
@@ -125,12 +125,12 @@ void setup() {
         auto& effect_l = *meter_l.effect(WashBarLight112::NUM_LIGHTS - i - 1);
         auto& effect_r = *meter_r.effect(WashBarLight112::NUM_LIGHTS - i - 1);
 
-        auto& bar_l = *universe->bar[0];
+        auto& bar_l = *universe.bar[0];
         bar_l.red(i).add_effect(effect_l.red());
         bar_l.green(i).add_effect(effect_l.green());
         bar_l.blue(i).add_effect(effect_l.blue());
 
-        auto& bar_r = *universe->bar[1];
+        auto& bar_r = *universe.bar[1];
         bar_r.red(i).add_effect(effect_r.red());
         bar_r.green(i).add_effect(effect_r.green());
         bar_r.blue(i).add_effect(effect_r.blue());

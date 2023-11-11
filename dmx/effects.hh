@@ -60,7 +60,7 @@ public:
         auto it = effects_.find(name);
         if (it == effects_.end()) {
             Serial.print("No effect named '");
-            Serial.print(name.c_str());
+            Serial.print(name);
             Serial.println("' found!");
             return nullptr;
         }
@@ -69,7 +69,7 @@ public:
 
     void set_json(const JsonObject& object) {
         for (auto field : object) {
-            auto it = effects_.find(field.key().c_str());
+            auto it = effects_.find(field.key());
             if (it == effects_.end()) {
                 continue;
             }
