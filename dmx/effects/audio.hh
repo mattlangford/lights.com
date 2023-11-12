@@ -50,44 +50,27 @@ struct AudioLevelConfig {
 };
 
 template <typename Effect>
-class AudioTrigger final : public EffectBase {
+class AudioTrigger final : public NestedEffect<Effect> {
 public:
-    AudioTrigger() {
-        audio.add_callback([this](float left, float right){ callback(left, right); });
-    }
+    AudioTrigger() { audio.add_callback([this](float left, float right){ callback(left, right); }); }
     ~AudioTrigger() override {}
-
-public:
-    String type() const override {
-        String type = "MidiTrigger(";
-        type += effect_.type();
-        return type + ")";
-    }
-
-    void set_config_json(const JsonObject& json) override {
-        maybe_set(json, "threshold", config_.threshold);
-        maybe_set(json, "port", config_.port);
-        effect_.set_config_json(json["effect_config"]);
-    }
-
-    void get_config_json(JsonObject& json) const override {
-        json["threshold"] = config_.threshold;
-        json["port"] = config_.port;
-        JsonObject effect_config = json.createNestedObject("effect_config");
-        effect_.get_config_json(effect_config);
-    };
 
     void set_config(AudioLevelConfig config) {
         config_ = std::move(config);
     }
 
-    void set_values_json(const JsonObject& json) override { effect_.set_values_json(json); }
-    void get_values_json(JsonObject& json) const override { effect_.get_values_json(json); };
+protected:
+    void set_parent_config_json(const JsonObject& json) override {
+        this->maybe_set(json, "threshold", config_.threshold);
+        this->maybe_set(json, "port", config_.port);
+    }
 
-    Effect& effect() { return effect_; }
+    void get_parent_config_json(JsonObject& json) const override {
+        json["threshold"] = config_.threshold;
+        json["port"] = config_.port;
+    };
 
-    void trigger(uint32_t now) override { effect_.trigger(now); }
-    void clear(uint32_t now) override { effect_.clear(now); }
+    String parent_type() const override { return "AudioTrigger"; }
 
 private:
     void callback(float left, float right) {
@@ -96,9 +79,9 @@ private:
 
         if (state != last_state_) {
             if (state) {
-                trigger(now());
+                this->trigger(this->now());
             } else {
-                clear(now());
+                this->clear(this->now());
             }
         }
         last_state_ = state;
@@ -106,6 +89,4 @@ private:
 
     bool last_state_ = false;
     AudioLevelConfig config_;
-
-    Effect effect_;
 };

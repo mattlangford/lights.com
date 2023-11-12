@@ -272,6 +272,44 @@ void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b) {
     }
 }
 
+template <typename Effect>
+class NestedEffect : public EffectBase {
+public:
+    ~NestedEffect() override = default;
+
+public:
+    Effect& effect() { return effect_; }
+    const Effect& effect() const { return effect_; }
+
+    String type() const override { return parent_type() + "(" + effect_.type() + ")"; }
+
+    void set_config_json(const JsonObject& json) override {
+        set_parent_config_json(json);
+        effect().set_config_json(json["nested"]);
+    }
+
+    void get_config_json(JsonObject& json) const override {
+        get_parent_config_json(json);
+        JsonObject nested = json.createNestedObject("nested");
+        effect().get_config_json(nested);
+    };
+
+    void set_values_json(const JsonObject& json) override { effect().set_values_json(json); }
+    void get_values_json(JsonObject& json) const override { effect().get_values_json(json); };
+
+    void trigger(uint32_t now_ms) override { effect().trigger(now_ms); }
+    void clear(uint32_t now_ms) override { effect().clear(now_ms); }
+
+protected:
+    // To be implemented by the parent class to set configuration
+    virtual void set_parent_config_json(const JsonObject& json) {}
+    virtual void get_parent_config_json(JsonObject& json) const {}
+    virtual String parent_type() const = 0;
+
+private:
+    Effect effect_;
+};
+
 #include "effects/linear_fade.hh"
 #include "effects/cos_blend.hh"
 #include "effects/linear_pulse.hh"
