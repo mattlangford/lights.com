@@ -60,7 +60,7 @@ void MidiManager::dispatch_note_on(byte channel, byte note, byte velocity) {
 }
 
 template <typename Effect>
-class MidiTrigger final : public EffectBase {
+class MidiTrigger final : public NestedEffect<Effect> {
 public:
     MidiTrigger() {
         midi.add_callback([this](byte channel, byte note, byte velocity, bool on){
@@ -68,35 +68,12 @@ public:
         });
     }
 
-    String type() const override {
-        String type = "MidiTrigger(";
-        type += effect_.type();
-        return type + ")";
-    }
-
-    void set_config_json(const JsonObject& json) override {
-        maybe_set(json, "note", note_);
-        effect_.set_config_json(json["effect_config"]);
-    }
-
-    void get_config_json(JsonObject& json) const override {
-        json["note"] = note_;
-        JsonObject effect_config = json.createNestedObject("effect_config");
-        effect_.get_config_json(effect_config);
-    };
-
-    void set_values_json(const JsonObject& json) override {
-        effect_.set_values_json(json);
-    }
-
-    void get_values_json(JsonObject& json) const override {
-        effect_.get_values_json(json);
-    };
-
     void set_note(byte note) { note_ = note; }
-    Effect* effect() { return &effect_; }
-    void trigger(uint32_t now_ms) { effect_.trigger(now_ms); }
-    void clear(uint32_t now_ms) { effect_.clear(now_ms); }
+
+protected:
+    String parent_type() const override { return "MidiTrigger"; }
+    void set_parent_config_json(const JsonObject& json) override { this->maybe_set(json, "note", note_); }
+    void get_parent_config_json(JsonObject& json) const override { json["note"] = note_; };
 
 private:
     void on_note(byte channel, byte note, byte velocity, bool on) override {
@@ -105,13 +82,12 @@ private:
         }
 
         if (on) {
-            trigger(now());
+            this->trigger(this->now());
         } else {
-            clear(now());
+            this->clear(this->now());
         }
     }
 
     uint8_t note_ = 0;
-    Effect effect_;
 };
 
