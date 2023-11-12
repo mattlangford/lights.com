@@ -62,7 +62,8 @@ void help(const String&) {
 
 class AudioMeter : public EffectBase {
 public:
-    using Effect = RgbEffect<AudioLevel>;
+    using Effect = AudioTrigger<RgbEffect<LinearFade>>;
+
 public:
     AudioMeter(size_t count, uint8_t port) : effects_(count) {
         size_t red_index = 0.2 * count;
@@ -76,11 +77,11 @@ public:
             effects_[i].set_config(config);
 
             if (i < red_index) {
-                effects_[i].set_max_values(128, 0, 0);
+                rgb(i).set_max_values(128, 0, 0);
             } else if (i < yellow_index) {
-                effects_[i].set_max_values(128, 128, 0);
+                rgb(i).set_max_values(128, 128, 0);
             } else {
-                effects_[i].set_max_values(0, 128, 0);
+                rgb(i).set_max_values(0, 128, 0);
             }
         }
     }
@@ -96,8 +97,7 @@ public:
     virtual void trigger(uint32_t now_ms) {}
     virtual void clear(uint32_t now_ms) {}
 
-    // Index 0 is the top of the meter (red)
-    Effect* effect(size_t i) { return i < effects_.size() ? &effects_[i] : nullptr; }
+    RgbEffect<LinearFade>& rgb(size_t i) { return effects_[i].effect(); }
 
 private:
     std::vector<Effect> effects_;
@@ -122,8 +122,8 @@ void setup() {
     auto& meter_l = effects.add_effect<AudioMeter>("audio_l", WashBarLight112::NUM_LIGHTS, 0);
     auto& meter_r = effects.add_effect<AudioMeter>("audio_r", WashBarLight112::NUM_LIGHTS, 1);
     for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
-        auto& effect_l = *meter_l.effect(WashBarLight112::NUM_LIGHTS - i - 1);
-        auto& effect_r = *meter_r.effect(WashBarLight112::NUM_LIGHTS - i - 1);
+        auto& effect_l = meter_l.rgb(WashBarLight112::NUM_LIGHTS - i - 1);
+        auto& effect_r = meter_r.rgb(WashBarLight112::NUM_LIGHTS - i - 1);
 
         auto& bar_l = *universe.bar[0];
         bar_l.red(i).add_effect(&effect_l.red());

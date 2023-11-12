@@ -76,20 +76,20 @@ public:
 
     void set_config_json(const JsonObject& json) override {
         maybe_set(json, "note", note_);
-        effect_.set_config_json(json);
+        effect_.set_config_json(json["effect_config"]);
     }
 
-    void get_config_json(JsonObject& json) const {
+    void get_config_json(JsonObject& json) const override {
         json["note"] = note_;
         JsonObject effect_config = json.createNestedObject("effect_config");
         effect_.get_config_json(effect_config);
     };
 
-    void set_values_json(const JsonObject& json) {
+    void set_values_json(const JsonObject& json) override {
         effect_.set_values_json(json);
     }
 
-    void get_values_json(JsonObject& json) const {
+    void get_values_json(JsonObject& json) const override {
         effect_.get_values_json(json);
     };
 

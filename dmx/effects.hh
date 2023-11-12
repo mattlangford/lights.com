@@ -120,7 +120,8 @@ public:
 
     String type() const override {
         String name = "CompositeEffect(";
-        name += effects_.empty() ? Effect().type() : effect(0).type();
+        // Awkward, but just hope they don't call this before populating
+        name += effects_.empty() ? "?" : effect(0).type();
         name += ")";
         return name;
     }
