@@ -77,13 +77,15 @@ public:
 
             const LinearFadeConfig fade_config{.trigger_dt_ms = 0, .clear_dt_ms = 0 };
             rgb(i).set_config(fade_config);
+            rgb(i).set_max_values(0, 0, 0);
 
             if (i < red_index) {
-                rgb(i).set_max_values(128, 0, 0);
+                rgb(i).red().set_values(10, 128);
             } else if (i < yellow_index) {
-                rgb(i).set_max_values(128, 128, 0);
+                rgb(i).red().set_values(10, 100);
+                rgb(i).green().set_values(10, 100);
             } else {
-                rgb(i).set_max_values(0, 128, 0);
+                rgb(i).green().set_values(10, 75);
             }
         }
     }
@@ -121,8 +123,11 @@ void setup() {
     midi.setup();
     universe.setup(*controller);
 
+    auto& freq = effects.add_effect<CompositeEffect<RgbEffect<AudioFrequencyValues>>>("freq");
+
     auto& meter_l = effects.add_effect<AudioMeter>("audio_l", WashBarLight112::NUM_LIGHTS, 0);
     auto& meter_r = effects.add_effect<AudioMeter>("audio_r", WashBarLight112::NUM_LIGHTS, 1);
+
     for (size_t i = 0; i < WashBarLight112::NUM_LIGHTS; ++i) {
         auto& effect_l = meter_l.rgb(WashBarLight112::NUM_LIGHTS - i - 1);
         auto& effect_r = meter_r.rgb(WashBarLight112::NUM_LIGHTS - i - 1);
@@ -136,6 +141,20 @@ void setup() {
         bar_r.red(i).add_effect(&effect_r.red());
         bar_r.green(i).add_effect(&effect_r.green());
         bar_r.blue(i).add_effect(&effect_r.blue());
+
+        auto& this_freq = freq.add();
+        AudioFrequencyLevelConfig freq_config;
+        constexpr size_t SPACING = 1;
+        freq_config.min_bin = SPACING * i;
+        freq_config.max_bin = SPACING * (i + 1);
+        this_freq.red().set_values(10, 255);
+        this_freq.green().set_values(3, 75);
+        this_freq.blue().set_values(0, 0);
+        this_freq.set_config(freq_config);
+        auto& bar_freq = *universe.bar[2];
+        bar_freq.red(i).add_effect(&this_freq.red());
+        bar_freq.green(i).add_effect(&this_freq.green());
+        bar_freq.blue(i).add_effect(&this_freq.blue());
     }
 }
 

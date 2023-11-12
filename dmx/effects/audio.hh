@@ -5,8 +5,10 @@
 AudioInputUSB            usb_1;
 AudioAnalyzePeak         peak_l;
 AudioAnalyzePeak         peak_r;
+AudioAnalyzeFFT1024       fft;
 AudioConnection          patchCord1(usb_1, 0, peak_l, 0);
 AudioConnection          patchCord2(usb_1, 1, peak_r, 0);
+AudioConnection          patchCord3(usb_1, fft);
 
 
 class AudioManager {
@@ -15,7 +17,7 @@ public:
 
 public:
     void setup() {
-        AudioMemory(6);
+        AudioMemory(25);
     }
     void read() {
         float left = peak_l.available() ? peak_l.read() : -1.0;
@@ -77,4 +79,40 @@ private:
 
     bool last_state_ = false;
     AudioLevelConfig config_;
+};
+
+struct AudioFrequencyLevelConfig {
+    int min_bin = 0;
+    int max_bin = 0;
+    float gain = 7.0;
+};
+
+class AudioFrequencyValues final : public SingleChannelEffect {
+public:
+    ~AudioFrequencyValues() override {}
+
+    void set_config(AudioFrequencyLevelConfig config) {
+        config_ = std::move(config);
+    }
+
+    String type() const override { return "AudioFrequencyValues"; }
+
+    void set_config_json(const JsonObject& json) override {
+        maybe_set(json, "min_bin", config_.min_bin);
+        maybe_set(json, "max_bin", config_.max_bin);
+        maybe_set(json, "gain", config_.gain);
+    }
+    void get_config_json(JsonObject& json) const override {
+        json["min_bin"] = config_.min_bin;
+        json["max_bin"] = config_.max_bin;
+        json["gain"] = config_.gain;
+    }
+
+protected:
+    float level(uint32_t now_ms) {
+        return config_.gain * fft.read(config_.min_bin, config_.max_bin);
+    }
+
+private:
+    AudioFrequencyLevelConfig config_;
 };
