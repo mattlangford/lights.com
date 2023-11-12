@@ -17,7 +17,7 @@ public:
     }
     void clear(uint32_t now_ms) override {
         FaderEffect::clear(now_ms);
-        fade_to(0.0, now_ms, config_.clear_dt_ms);
+        fade_to(0.0, now_ms, now_ms + config_.clear_dt_ms);
     }
 
     String type() const override { return "LinearFade"; }

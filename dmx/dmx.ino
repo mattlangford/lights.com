@@ -71,10 +71,12 @@ public:
 
         for (size_t i = 0; i < count; ++i) {
             AudioLevelConfig config;
-            config.threshold = 0.8 * std::pow(10, -static_cast<float>(i) / (count - 1));
             config.port = port;
-
+            config.threshold = 0.8 * std::pow(10, -static_cast<float>(i) / (count - 1));
             effects_[i].set_config(config);
+
+            const LinearFadeConfig fade_config{.trigger_dt_ms = 0, .clear_dt_ms = 0 };
+            rgb(i).set_config(fade_config);
 
             if (i < red_index) {
                 rgb(i).set_max_values(128, 0, 0);

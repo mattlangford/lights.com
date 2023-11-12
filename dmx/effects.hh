@@ -75,14 +75,25 @@ public:
     ~FaderEffect() override = default;
 
     void fade_to(float end, uint32_t now_ms, uint32_t end_ms) {
-        if (!fades_.empty() && end_ms < fades_.back().time_ms) {
+        if (fades_.empty()) {
+            fades_.push_back(FadePoint{end_ms, end});
+            return;
+        }
+
+        // If this could change the current state, put in a bookmark
+        if (end_ms < fades_.back().time_ms) {
             fades_.push_back(FadePoint{now_ms, level(now_ms)});
         }
 
         fades_.push_back(FadePoint{end_ms, end});
-        std::sort(fades_.begin(), fades_.end(), [](const FadePoint& lhs, const FadePoint& rhs){
+        std::stable_sort(fades_.begin(), fades_.end(), [](const FadePoint& lhs, const FadePoint& rhs){
             return lhs.time_ms < rhs.time_ms;
         });
+
+        // Erase anything before the start, expensive but these should be small
+        auto to_remove = fades_.begin();
+        for (; to_remove != fades_.end() && to_remove->time_ms <= now_ms; ++to_remove) {}
+        fades_.erase(fades_.begin(), to_remove);
     }
 
     void clear(uint32_t now_ms) override {

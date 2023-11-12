@@ -2,15 +2,11 @@
 
 #include <Audio.h>
 
-AudioInputUSB            usb_1;           //xy=193,468
-AudioFilterStateVariable filter_l;        //xy=377,401
-AudioFilterStateVariable filter_r;        //xy=370,487
-AudioAnalyzeRMS          rms_l;           //xy=575,387
-AudioAnalyzeRMS          rms_r;           //xy=596,468
-AudioConnection          patchCord1(usb_1, 0, filter_l, 0);
-AudioConnection          patchCord2(usb_1, 1, filter_r, 0);
-AudioConnection          patchCord3(filter_r, 0, rms_r, 0);
-AudioConnection          patchCord4(filter_l, 0, rms_l, 0);
+AudioInputUSB            usb_1;
+AudioAnalyzePeak         peak_l;
+AudioAnalyzePeak         peak_r;
+AudioConnection          patchCord1(usb_1, 0, peak_l, 0);
+AudioConnection          patchCord2(usb_1, 1, peak_r, 0);
 
 
 class AudioManager {
@@ -19,26 +15,19 @@ public:
 
 public:
     void setup() {
-        filter_l.frequency(2000);
-        filter_r.frequency(2000);
         AudioMemory(6);
     }
     void read() {
-        float left = rms_l.available() ? rms_l.read() : -1.0;
-        float right = rms_r.available() ? rms_r.read() : -1.0;
+        float left = peak_l.available() ? peak_l.read() : -1.0;
+        float right = peak_r.available() ? peak_r.read() : -1.0;
         for (auto& cb : callbacks_) {
             cb(left, right);
         }
     }
 
-    void add_callback(Callback cb) {
-        callbacks_.emplace_back(std::move(cb));
-    }
+    void add_callback(Callback cb) { callbacks_.emplace_back(std::move(cb)); }
 
 private:
-    float value_l_ = -1.0;
-    float value_r_ = -1.0;
-
     std::vector<Callback> callbacks_;
 };
 
@@ -76,7 +65,6 @@ private:
     void callback(float left, float right) {
         float value = config_.port == 0 ? left : right;
         bool state = value > config_.threshold;
-
         if (state != last_state_) {
             if (state) {
                 this->trigger(this->now());
