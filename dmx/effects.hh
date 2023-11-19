@@ -22,7 +22,8 @@ public:
     virtual void set_values_json(const JsonObject& json) = 0;
     virtual void get_values_json(JsonObject& json) const = 0;
 
-    virtual void trigger(uint32_t now_ms) {}
+    virtual void trigger(uint32_t now_ms) { trigger(now_ms, 1.0); }
+    virtual void trigger(uint32_t now_ms, float scale) {}
     virtual void clear(uint32_t now_ms) {}
 
 protected:

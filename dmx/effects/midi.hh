@@ -45,6 +45,54 @@ public:
         }
     }
 
+public:
+    struct MidiNote {
+        char base = 'A';
+        byte octive = 0;
+        bool sharp = false;
+
+        static constexpr byte C0_BASE = 12;
+        static constexpr byte OCTIVE_SIZE = 12;
+        byte note() const {
+            byte offset = 0;
+            switch (base) {
+                case 'C': case 'c': offset = 0; break;
+                case 'D': case 'd': offset = 2; break;
+                case 'E': case 'e': offset = 4; break;
+                case 'F': case 'f': offset = 5; break;
+                case 'G': case 'g': offset = 7; break;
+                case 'A': case 'a': offset = 9; break;
+                case 'B': case 'b': offset = 11; break;
+                default: break;
+            }
+            return C0_BASE + OCTIVE_SIZE * octive + offset + sharp ? 1 : 0;
+        }
+
+        static MidiNote from_note(byte note) {
+            MidiNote output;
+
+            note -= C0_BASE;
+            output.octive = note / OCTIVE_SIZE;
+
+            switch (note % OCTIVE_SIZE) {
+                case 11: output.base = 'B'; break;
+                case 10: output.sharp = true;
+                case 9: output.base = 'A'; break;
+                case 8: output.sharp = true;
+                case 7: output.base = 'G'; break;
+                case 6: output.sharp = true;
+                case 5: output.base = 'F'; break;
+                case 4: output.base = 'E'; break;
+                case 3: output.sharp = true;
+                case 2: output.base = 'D'; break;
+                case 1: output.sharp = true;
+                case 0: output.base = 'C'; break;
+                default: break;
+            }
+            return output;
+        }
+    };
+
 private:
     std::set<byte> active_channels_;
     std::vector<Callback> callbacks_;
@@ -82,7 +130,7 @@ private:
         }
 
         if (on) {
-            this->trigger(this->now());
+            this->trigger(this->now(), static_cast<float>(velocity) / 255.0);
         } else {
             this->clear(this->now());
         }
