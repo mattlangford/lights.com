@@ -19,8 +19,7 @@ public:
     virtual void set_config_json(const JsonObject& json) = 0;
     virtual void get_config_json(JsonObject& json) const = 0;
 
-    virtual void trigger(uint32_t now_ms) { trigger(now_ms, 1.0); }
-    virtual void trigger(uint32_t now_ms, float scale) {}
+    virtual void trigger(uint32_t now_ms) {}
     virtual void clear(uint32_t now_ms) {}
 
 protected:
@@ -184,6 +183,8 @@ public:
             effect(i).set_config(config);
         }
     }
+
+    size_t size() const { return effects_.size(); }
 
 private:
     // Statically sized if the Count is known, otherwise use a vector

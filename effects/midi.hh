@@ -128,7 +128,7 @@ protected:
     void get_parent_config_json(JsonObject& json) const override { json["note"] = note_; };
 
 private:
-    void on_note(byte channel, byte note, byte velocity, bool on) override {
+    void on_note(byte channel, byte note, byte velocity, bool on) {
         if (note != note_) {
             return;
         }
@@ -145,7 +145,7 @@ private:
 
 /// @brief Similar to MidiTrigger, but aggregates many instances of Effect 
 template <typename Effect>
-class MidiMap final : public EffectBase {
+class MidiMap final : public CompositeEffect<Effect> {
 public:
     MidiMap() {
         midi.add_callback([this](byte channel, byte note, byte velocity, bool on){
@@ -153,47 +153,43 @@ public:
         });
     }
 
-    String type() const override {
-        String name = "MidiMap(";
-        // Awkward, but just hope they don't call this before populating
-        name += effects_.empty() ? "?" : effects_.begin()->type();
-        name += ")";
-        return name;
-    }
-
-    void set_config_json(const JsonObject& json) override {
-        for (auto& effect_it : effects_) {
-            effect_it->second.set_config_json(json);
-        }
-    }
-
-    void get_config_json(JsonObject& json) const override {
-        if (!effects_.empty()) {
-            effects_.begin()->get_config_json(json);
-        }
-    }
-
-    void trigger(uint32_t now_ms, float scale) {}
-    void clear(uint32_t now_ms) {}
-
-    Effect& add() {
-        effects_.push_back(std::make_unique<Effect>());
-        return *effects_.back();
+    Effect& add_effect_for_note(uint8_t note) {
+        note_to_effect_[note] = this->size();
+        return this->add();
     }
 
 private:
-    void on_note(byte channel, byte note, byte velocity, bool on) override {
-        auto it = effects_.find(note);
-        if (it == effects_.end()) {
+    // So that callers have to go through our public accessors
+    using CompositeEffect<Effect>::add;
+    using CompositeEffect<Effect>::effect;
+
+    void on_note(byte channel, byte note, byte velocity, bool on) {
+        Effect* effect = effect_for_note(note);
+        if (effect == nullptr) {
             return;
         }
+
         if (on) {
-            it->second->trigger(this->now(), static_cast<float>(velocity) / 255.0);
+            effect->trigger(this->now());
         } else {
-            it->second->clear(this->now());
+            effect->clear(this->now());
         }
     }
 
 private:
-    std::unordered_map<uint8_t, std::unique_ptr<Effect>> effects_;
+    Effect* effect_for_note(uint8_t note) {
+        auto it = note_to_effect_.find(note);
+        if (it == note_to_effect_.end()) {
+            return nullptr;
+        }
+
+        if (it->second >= this->size()) {
+            return nullptr;
+        }
+
+        return &this->effect(it->second);
+    }
+
+    // Maps the note number to underlying effect number.
+    std::unordered_map<uint8_t, size_t> note_to_effect_;
 };

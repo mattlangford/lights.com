@@ -72,6 +72,7 @@ void setup() {
     midi.setup();
     universe.setup(*controller);
 
+    auto& midi = effects.add_effect<MidiMap<LinearPulse>>("midi");
     auto& freq = effects.add_effect<CompositeEffect<RgbEffect<AudioFrequencyValues>>>("freq");
 
     auto& meter_l = effects.add_effect<AudioMeter>("audio_l", WashBarLight112::NUM_LIGHTS, 0);
@@ -104,6 +105,11 @@ void setup() {
         bar_freq.red(i).add_effect(&this_freq.red());
         bar_freq.green(i).add_effect(&this_freq.green());
         bar_freq.blue(i).add_effect(&this_freq.blue());
+
+        LinearPulse& midi_trigger = midi.add_effect_for_note(i);
+        bar_l.blue(i).add_effect(&midi_trigger);
+        bar_r.blue(i).add_effect(&midi_trigger);
+        bar_freq.blue(i).add_effect(&midi_trigger);
     }
 }
 
