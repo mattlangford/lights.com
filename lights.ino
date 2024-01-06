@@ -56,9 +56,6 @@ void set(const String& json) {
         Serial.println(err.c_str());
     }
 }
-void help(const String&) {
-    interface.help();
-}
 
 class AudioMeter : public EffectBase {
 public:
@@ -115,7 +112,6 @@ void setup() {
     interface.add_handler("trigger", "trigger the specified effect", &trigger);
     interface.add_handler("clear", "clear the specified effect", &clear);
     interface.add_handler("set", "sets current config from a JSON string", &set);
-    interface.add_handler("help", "show this information", &help);
 
     controller = new DMXController(41, 40);
 

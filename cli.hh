@@ -6,6 +6,13 @@ public:
         if (!Serial.available()) return;
         const auto str = Serial.readString().trim();
         if (str.length() == 0) return;
+
+        // Special case "help"
+        if (str == "help") {
+            help();
+            return;
+        }
+
         for (const auto& handler : handlers_) {
             if (str.startsWith(handler.first)) {
                 // Assume there is a space at the end of the command
