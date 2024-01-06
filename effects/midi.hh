@@ -2,6 +2,7 @@
 
 #include <set>
 #include <functional>
+#include <unordered_map>
 
 class MidiManager {
 private:
@@ -107,6 +108,9 @@ void MidiManager::dispatch_note_on(byte channel, byte note, byte velocity) {
     midi.note_on(channel, note, velocity);
 }
 
+///
+/// @brief Triggers an effect when the given MIDI note is provided.
+///
 template <typename Effect>
 class MidiTrigger final : public NestedEffect<Effect> {
 public:
@@ -139,3 +143,51 @@ private:
     uint8_t note_ = 0;
 };
 
+/// @brief Similar to MidiTrigger, but aggregates many instances of Effect 
+template <typename Effect>
+class MidiMap final : public EffectBase {
+public:
+    MidiMap() {
+        midi.add_callback([this](byte channel, byte note, byte velocity, bool on){
+            on_note(channel, note, velocity, on);
+        });
+    }
+
+    String type() const override {
+        String name = "MidiMap(";
+        // Awkward, but just hope they don't call this before populating
+        name += effects_.empty() ? "?" : effects_.begin()->type();
+        name += ")";
+        return name;
+    }
+
+    void set_config_json(const JsonObject& json) override;
+    void get_config_json(JsonObject& json) const override;
+
+    void set_values_json(const JsonObject& json) override;
+    void get_values_json(JsonObject& json) const override;
+
+    void trigger(uint32_t now_ms, float scale) {}
+    void clear(uint32_t now_ms) {}
+
+    Effect& add() {
+        effects_.push_back(std::make_unique<Effect>());
+        return *effects_.back();
+    }
+
+private:
+    void on_note(byte channel, byte note, byte velocity, bool on) override {
+        auto it = effects_.find(note);
+        if (it == effects_.end()) {
+            return;
+        }
+        if (on) {
+            it->second->trigger(this->now(), static_cast<float>(velocity) / 255.0);
+        } else {
+            it->second->clear(this->now());
+        }
+    }
+
+private:
+    std::unordered_map<uint8_t, std::unique_ptr<Effect>> effects_;
+};

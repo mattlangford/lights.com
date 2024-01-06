@@ -30,7 +30,7 @@ private:
 
 ///
 /// @brief Each Channel is composed of a stack of ChannelEffects which are processed serially to
-///        generate the value at each timestamp.
+///        generate the value at each timestamp. The channel does NOT own its effects.
 ///
 class Channel {
 public:
