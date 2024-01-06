@@ -29,20 +29,7 @@ public:
             // Expecting these all to the same, just pick the first
             effects_.front()->get_config_json(pulse_config);
         }
-    };
-
-    void set_values_json(const JsonObject& json) {
-        for (auto& effect : effects_) {
-            effect->set_values_json(json);
-        }
     }
-
-    void get_values_json(JsonObject& json) const {
-        if (!effects_.empty()) {
-            // Expecting these all to the same, just pick the first
-            effects_.front()->get_values_json(json);
-        }
-    };
 
     void trigger(uint32_t now_ms) {
         if (reversed_) {
@@ -56,6 +43,7 @@ public:
             }
         }
     }
+
     void clear(uint32_t now_ms) {
         for (auto& effect : effects_) {
             effect->clear(now_ms);

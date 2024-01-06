@@ -19,9 +19,6 @@ public:
     virtual void set_config_json(const JsonObject& json) = 0;
     virtual void get_config_json(JsonObject& json) const = 0;
 
-    virtual void set_values_json(const JsonObject& json) = 0;
-    virtual void get_values_json(JsonObject& json) const = 0;
-
     virtual void trigger(uint32_t now_ms) { trigger(now_ms, 1.0); }
     virtual void trigger(uint32_t now_ms, float scale) {}
     virtual void clear(uint32_t now_ms) {}
@@ -52,17 +49,6 @@ protected:
 class SingleChannelEffect : public ChannelEffect, public EffectBase {
 public:
     ~SingleChannelEffect() override = default;
-
-    void set_values_json(const JsonObject& json) override {
-        uint8_t min = value_or(json, "min", min_value());
-        uint8_t max = value_or(json, "max", max_value());
-        set_values(min, max);
-    }
-
-    void get_values_json(JsonObject& json) const override {
-        json["min"] = min_value();
-        json["max"] = max_value();
-    }
 };
 
 class FaderEffect : public SingleChannelEffect {
@@ -160,19 +146,6 @@ public:
         }
     };
 
-    void set_values_json(const JsonObject& json) override {
-        for (size_t i = 0; i < effects_.size(); ++i) {
-            effect(i).set_values_json(json);
-        }
-    }
-
-    void get_values_json(JsonObject& json) const override {
-        if (!effects_.empty()) {
-            // Expecting these all to the same, just pick the first
-            effect(0).get_values_json(json);
-        }
-    };
-
     void trigger(uint32_t now_ms) override {
         for (size_t i = 0; i < effects_.size(); ++i) {
             effect(i).trigger(now_ms);
@@ -227,12 +200,6 @@ public:
     const Effect& green() const { return this->effect(1); }
     const Effect& blue() const { return this->effect(2); }
 
-    void set_max_values(uint8_t r, uint8_t g, uint8_t b) {
-        red().set_values(0, r);
-        green().set_values(0, g);
-        blue().set_values(0, b);
-    }
-
     // Split configs out by name
     void set_config_json(const JsonObject& json) override {
         red().set_config_json(json["red"]);
@@ -247,22 +214,6 @@ public:
         green().get_config_json(g);
         JsonObject b = json.createNestedObject("blue");
         blue().get_config_json(b);
-    };
-
-    // Split values out by name
-    void set_values_json(const JsonObject& json) override {
-        red().set_values_json(json["red"]);
-        green().set_values_json(json["green"]);
-        blue().set_values_json(json["blue"]);
-    }
-
-    void get_values_json(JsonObject& json) const override {
-        JsonObject r = json.createNestedObject("red");
-        red().get_values_json(r);
-        JsonObject g = json.createNestedObject("green");
-        green().get_values_json(g);
-        JsonObject b = json.createNestedObject("blue");
-        blue().get_values_json(b);
     };
 };
 
@@ -315,9 +266,6 @@ public:
         JsonObject nested = json.createNestedObject("nested");
         effect().get_config_json(nested);
     };
-
-    void set_values_json(const JsonObject& json) override { effect().set_values_json(json); }
-    void get_values_json(JsonObject& json) const override { effect().get_values_json(json); };
 
     void trigger(uint32_t now_ms) override { effect().trigger(now_ms); }
     void clear(uint32_t now_ms) override { effect().clear(now_ms); }
@@ -377,8 +325,6 @@ public:
             }
             auto config = field.value()["config"];
             if (!config.isNull()) it->second->set_config_json(config);
-            auto values = field.value()["values"];
-            if (!values.isNull()) it->second->set_values_json(values);
         }
     }
 
@@ -389,10 +335,7 @@ public:
             object["type"] = effect.second->type();
 
             JsonObject config = object.createNestedObject("config");
-            JsonObject values = object.createNestedObject("values");
-
             effect.second->get_config_json(config);
-            effect.second->get_values_json(values);
         }
         return doc;
     }

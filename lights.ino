@@ -57,52 +57,6 @@ void set(const String& json) {
     }
 }
 
-class AudioMeter : public EffectBase {
-public:
-    using Effect = AudioTrigger<RgbEffect<LinearFade>>;
-
-public:
-    AudioMeter(size_t count, uint8_t port) : effects_(count) {
-        size_t red_index = 0.2 * count;
-        size_t yellow_index = 0.5 * count;
-
-        for (size_t i = 0; i < count; ++i) {
-            AudioLevelConfig config;
-            config.port = port;
-            config.threshold = 0.8 * std::pow(10, -static_cast<float>(i) / (count - 1));
-            effects_[i].set_config(config);
-
-            const LinearFadeConfig fade_config{.trigger_dt_ms = 0, .clear_dt_ms = 0 };
-            rgb(i).set_config(fade_config);
-            rgb(i).set_max_values(0, 0, 0);
-
-            if (i < red_index) {
-                rgb(i).red().set_values(10, 128);
-            } else if (i < yellow_index) {
-                rgb(i).red().set_values(10, 100);
-                rgb(i).green().set_values(10, 100);
-            } else {
-                rgb(i).green().set_values(10, 75);
-            }
-        }
-    }
-    ~AudioMeter() override = default;
-
-    void set_config_json(const JsonObject& json) {}
-    void get_config_json(JsonObject& json) const {}
-    void set_values_json(const JsonObject& json) {}
-    void get_values_json(JsonObject& json) const {}
-
-    String type() const { return "AudioMeter"; }
-
-    virtual void trigger(uint32_t now_ms) {}
-    virtual void clear(uint32_t now_ms) {}
-
-    RgbEffect<LinearFade>& rgb(size_t i) { return effects_[i].effect(); }
-
-private:
-    std::vector<Effect> effects_;
-};
 
 void setup() {
     Serial.begin(115200);
