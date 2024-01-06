@@ -33,6 +33,8 @@ public:
             Serial.print("': ");
             Serial.println(handler.second.description);
         }
+
+        Serial.println(" - 'help': shows the list of commands");
     }
 
     using HandlerFunction = void(*)(const String&);

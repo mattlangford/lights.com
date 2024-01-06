@@ -335,8 +335,7 @@ public:
             if (it == effects_.end()) {
                 continue;
             }
-            auto config = field.value()["config"];
-            if (!config.isNull()) it->second->set_config_json(config);
+            it->second->set_config_json(field.value());
         }
     }
 

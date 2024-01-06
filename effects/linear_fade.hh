@@ -23,11 +23,13 @@ public:
     String type() const override { return "LinearFade"; }
 
     void set_config_json(const JsonObject& json) override {
+        SingleChannelEffect::set_config_json(json);
         maybe_set(json, "trigger_dt_ms", config_.trigger_dt_ms);
         maybe_set(json, "clear_dt_ms", config_.clear_dt_ms);
     }
 
     void get_config_json(JsonObject& json) const override {
+        SingleChannelEffect::get_config_json(json);
         json["trigger_dt_ms"] = config_.trigger_dt_ms;
         json["clear_dt_ms"] = config_.clear_dt_ms;
     }
