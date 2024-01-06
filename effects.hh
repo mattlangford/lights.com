@@ -130,13 +130,8 @@ class CompositeEffect : public EffectBase {
 public:
     ~CompositeEffect() override = default;
 
-    String type() const override {
-        String name = "CompositeEffect(";
-        // Awkward, but just hope they don't call this before populating
-        name += effects_.empty() ? "?" : effect(0).type();
-        name += ")";
-        return name;
-    }
+    String type() const override { return "CompositeEffect(" + subtype() + ")"; }
+    String subtype() const { return effects_.empty() ? "?" : effect(0).type(); }
 
     template <size_t C = Count, std::enable_if_t<C == 0, bool> = true>
     Effect& add() {

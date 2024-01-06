@@ -153,6 +153,8 @@ public:
         });
     }
 
+    String type() const override { return "MidiMap(" + subtype() + ")"; }
+
     Effect& add_effect_for_note(uint8_t note) {
         note_to_effect_[note] = this->size();
         return this->add();
