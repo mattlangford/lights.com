@@ -10,7 +10,9 @@ public:
         return clip((max_ - min_) * level(now_ms) + min_ + input_gain_ * value);
     }
 
-    void set_values(uint8_t min, uint8_t max) { min_ = min; max_ = max; }
+    void set_values(uint8_t min, uint8_t max) { set_min(min); set_max(max); }
+    void set_min(uint8_t min) { min_ = min; }
+    void set_max(uint8_t max) { max_ = max; }
     void set_input_gain(float gain) { input_gain_ = gain; }
 
 protected:
@@ -18,6 +20,7 @@ protected:
 
     uint8_t min_value() const { return min_; }
     uint8_t max_value() const { return max_; }
+    float input_gain() const { return input_gain_; }
 
     // Return the current level, between 0.0 and 1.0
     virtual float level(uint32_t now_ms) { return 0.0; }

@@ -83,7 +83,7 @@ private:
 struct AudioFrequencyLevelConfig {
     int min_bin = 0;
     int max_bin = 0;
-    float gain = 7.0;
+    float fft_gain = 7.0;
 };
 
 class AudioFrequencyValues final : public SingleChannelEffect {
@@ -97,19 +97,21 @@ public:
     String type() const override { return "AudioFrequencyValues"; }
 
     void set_config_json(const JsonObject& json) override {
+        SingleChannelEffect::set_config_json(json);
         maybe_set(json, "min_bin", config_.min_bin);
         maybe_set(json, "max_bin", config_.max_bin);
-        maybe_set(json, "gain", config_.gain);
+        maybe_set(json, "fft_gain", config_.fft_gain);
     }
     void get_config_json(JsonObject& json) const override {
+        SingleChannelEffect::get_config_json(json);
         json["min_bin"] = config_.min_bin;
         json["max_bin"] = config_.max_bin;
-        json["gain"] = config_.gain;
+        json["fft_gain"] = config_.fft_gain;
     }
 
 protected:
     float level(uint32_t now_ms) {
-        return config_.gain * audio.fft.read(config_.min_bin, config_.max_bin);
+        return config_.fft_gain * audio.fft.read(config_.min_bin, config_.max_bin);
     }
 
 private:

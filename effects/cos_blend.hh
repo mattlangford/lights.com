@@ -29,17 +29,16 @@ public:
     String type() const override { return "CosBlend"; }
 
     void set_config_json(const JsonObject& json) override {
-        bool updated = false;
-        updated |= maybe_set(json, "depth", config_.depth);
-        updated |= maybe_set(json, "min_freq", config_.min_freq);
-        updated |= maybe_set(json, "max_freq", config_.max_freq);
+        SingleChannelEffect::set_config_json(json);
+        maybe_set(json, "depth", config_.depth);
+        maybe_set(json, "min_freq", config_.min_freq);
+        maybe_set(json, "max_freq", config_.max_freq);
 
-        if (updated) {
-            update_waves();
-        }
+        update_waves();
     }
 
     void get_config_json(JsonObject& json) const override {
+        SingleChannelEffect::get_config_json(json);
         json["depth"] = config_.depth;
         json["min_freq"] = config_.min_freq;
         json["max_freq"] = config_.max_freq;

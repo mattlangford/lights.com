@@ -42,14 +42,15 @@ public:
     String type() const override { return "LinearPulse"; }
 
     void set_config_json(const JsonObject& json) override {
-        bool updated = false;
-        updated |= maybe_set(json, "rise_dt_ms", config_.rise_dt_ms);
-        updated |= maybe_set(json, "hold_dt_ms", config_.hold_dt_ms);
-        updated |= maybe_set(json, "fall_dt_ms", config_.fall_dt_ms);
-        updated |= maybe_set(json, "clear_dt_ms", config_.clear_dt_ms);
+        SingleChannelEffect::set_config_json(json);
+        maybe_set(json, "rise_dt_ms", config_.rise_dt_ms);
+        maybe_set(json, "hold_dt_ms", config_.hold_dt_ms);
+        maybe_set(json, "fall_dt_ms", config_.fall_dt_ms);
+        maybe_set(json, "clear_dt_ms", config_.clear_dt_ms);
     }
 
     void get_config_json(JsonObject& json) const override {
+        SingleChannelEffect::get_config_json(json);
         json["rise_dt_ms"] = config_.rise_dt_ms;
         json["hold_dt_ms"] = config_.hold_dt_ms;
         json["fall_dt_ms"] = config_.fall_dt_ms;

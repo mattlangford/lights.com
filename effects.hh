@@ -49,6 +49,18 @@ protected:
 class SingleChannelEffect : public ChannelEffect, public EffectBase {
 public:
     ~SingleChannelEffect() override = default;
+
+    // Provide min/max value overloads for config
+    void set_config_json(const JsonObject& json) override {
+        set_min(value_or(json, "min", min_value()));
+        set_max(value_or(json, "max", max_value()));
+        set_input_gain(value_or(json, "gain", input_gain()));
+    }
+    void get_config_json(JsonObject& json) const override {
+        json["min"] = min_value();
+        json["max"] = max_value();
+        json["gain"] = input_gain();
+    }
 };
 
 class FaderEffect : public SingleChannelEffect {
@@ -337,11 +349,14 @@ public:
             JsonObject config = object.createNestedObject("config");
             effect.second->get_config_json(config);
         }
+
+        // Overflows are silent, so make them loud here!
         if (doc.overflowed()) {
             DynamicJsonDocument err(1024);
             err["error"] = "Config for " + std::to_string(effects_.size()) + " effects overflowed the json buffer.";
             return err;
         }
+
         return doc;
     }
 

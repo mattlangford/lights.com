@@ -161,11 +161,17 @@ public:
         return name;
     }
 
-    void set_config_json(const JsonObject& json) override;
-    void get_config_json(JsonObject& json) const override;
+    void set_config_json(const JsonObject& json) override {
+        for (auto& effect_it : effects_) {
+            effect_it->second.set_config_json(json);
+        }
+    }
 
-    void set_values_json(const JsonObject& json) override;
-    void get_values_json(JsonObject& json) const override;
+    void get_config_json(JsonObject& json) const override {
+        if (!effects_.empty()) {
+            effects_.begin()->get_config_json(json);
+        }
+    }
 
     void trigger(uint32_t now_ms, float scale) {}
     void clear(uint32_t now_ms) {}
