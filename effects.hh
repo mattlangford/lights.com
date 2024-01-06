@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dmx.hh"
-#include "util.hh"
+
 #include <ArduinoJson.h>
 
 #include <vector>
@@ -125,6 +125,9 @@ private:
 };
 
 
+///
+/// @brief Composite Effect where each sug effect is statically typed, and configured in the same way.
+///
 template <typename Effect, size_t Count = 0>
 class CompositeEffect : public EffectBase {
 public:
@@ -198,12 +201,16 @@ public:
     }
 
 private:
+    // Statically sized if the Count is known, otherwise use a vector
     using Container = std::conditional_t<Count == 0,
             std::vector<std::unique_ptr<Effect>>,
             std::array<Effect, Count>>;
     Container effects_;
 };
 
+///
+/// @brief Composite Effect where each channel is split out
+///
 template <typename Effect>
 class RgbEffect final : public CompositeEffect<Effect, 3> {
 public:
@@ -233,7 +240,7 @@ public:
         blue().set_config_json(json["blue"]);
     }
 
-    void get_config_json(JsonObject& json) const {
+    void get_config_json(JsonObject& json) const override {
         JsonObject r = json.createNestedObject("red");
         red().get_config_json(r);
         JsonObject g = json.createNestedObject("green");
@@ -243,13 +250,13 @@ public:
     };
 
     // Split values out by name
-    void set_values_json(const JsonObject& json) {
+    void set_values_json(const JsonObject& json) override {
         red().set_values_json(json["red"]);
         green().set_values_json(json["green"]);
         blue().set_values_json(json["blue"]);
     }
 
-    void get_values_json(JsonObject& json) const {
+    void get_values_json(JsonObject& json) const override {
         JsonObject r = json.createNestedObject("red");
         red().get_values_json(r);
         JsonObject g = json.createNestedObject("green");
@@ -284,6 +291,9 @@ void hsv_to_rgb(float h, float s, float v, uint8_t& r, uint8_t& g, uint8_t& b) {
     }
 }
 
+///
+/// @brief An effect that allows for a parent/child configuration relationship.
+///
 template <typename Effect>
 class NestedEffect : public EffectBase {
 public:

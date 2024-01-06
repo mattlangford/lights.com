@@ -2,7 +2,6 @@
 
 #include "dmx.hh"
 #include "effects.hh"
-#include "util.hh"
 
 class Missyee36Light {
 public:

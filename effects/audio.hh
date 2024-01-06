@@ -2,18 +2,17 @@
 
 #include <Audio.h>
 
-AudioInputUSB            usb_1;
-AudioAnalyzePeak         peak_l;
-AudioAnalyzePeak         peak_r;
-AudioAnalyzeFFT1024       fft;
-AudioConnection          patchCord1(usb_1, 0, peak_l, 0);
-AudioConnection          patchCord2(usb_1, 1, peak_r, 0);
-AudioConnection          patchCord3(usb_1, fft);
-
-
 class AudioManager {
 public:
     using Callback = std::function<void(float, float)>;
+
+    AudioInputUSB        usb_1;
+    AudioAnalyzePeak     peak_l;
+    AudioAnalyzePeak     peak_r;
+    AudioAnalyzeFFT1024  fft;
+    AudioConnection      patchCord1{usb_1, 0, peak_l, 0};
+    AudioConnection      patchCord2{usb_1, 1, peak_r, 0};
+    AudioConnection      patchCord3{usb_1, fft};
 
 public:
     void setup() {
@@ -110,7 +109,7 @@ public:
 
 protected:
     float level(uint32_t now_ms) {
-        return config_.gain * fft.read(config_.min_bin, config_.max_bin);
+        return config_.gain * audio.fft.read(config_.min_bin, config_.max_bin);
     }
 
 private:

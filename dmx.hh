@@ -1,7 +1,5 @@
 #pragma once
 
-#include "util.hh"
-
 #include <vector>
 
 class ChannelEffect {
@@ -30,6 +28,10 @@ private:
     uint8_t max_ = 255;
 };
 
+///
+/// @brief Each Channel is composed of a stack of ChannelEffects which are processed serially to
+///        generate the value at each timestamp.
+///
 class Channel {
 public:
     uint8_t get_value(uint32_t now_ms) {
@@ -56,6 +58,10 @@ private:
     std::vector<ChannelEffect*> effects_;
 };
 
+///
+/// @brief Main controller class, call write_frame periodically to query the latest state and write it.
+///        Computing channel values is done between writing slots, since the spec allows for flexible gaps.
+///
 class DMXController {
 public:
     static constexpr uint16_t MAX_CHANNELS = 512;
