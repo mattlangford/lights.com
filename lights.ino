@@ -57,7 +57,6 @@ void set(const String& json) {
     }
 }
 
-
 void setup() {
     Serial.begin(115200);
     Serial.setTimeout(100);

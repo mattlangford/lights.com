@@ -337,6 +337,11 @@ public:
             JsonObject config = object.createNestedObject("config");
             effect.second->get_config_json(config);
         }
+        if (doc.overflowed()) {
+            DynamicJsonDocument err(1024);
+            err["error"] = "Config for " + std::to_string(effects_.size()) + " effects overflowed the json buffer.";
+            return err;
+        }
         return doc;
     }
 
