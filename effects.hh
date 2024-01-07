@@ -131,7 +131,7 @@ public:
     ~CompositeEffect() override = default;
 
     String type() const override { return "CompositeEffect(" + subtype() + ")"; }
-    String subtype() const { return effects_.empty() ? "?" : effect(0).type(); }
+    String subtype() const { return effects_.empty() ? "?" : effect(0)->type(); }
 
     template <size_t C = Count, std::enable_if_t<C == 0, bool> = true>
     Effect& add() {
@@ -141,41 +141,41 @@ public:
 
     void set_config_json(const JsonObject& json) override {
         for (size_t i = 0; i < effects_.size(); ++i) {
-            effect(i).set_config_json(json);
+            effect(i)->set_config_json(json);
         }
     }
 
     void get_config_json(JsonObject& json) const override {
-        if (!effects_.empty()) {
-            // Expecting these all to the same, just pick the first
-            effect(0).get_config_json(json);
+        // Expecting these all to the same, just pick the first
+        if (const Effect* e = effect(0)) {
+            e->get_config_json(json);
         }
     };
 
     void trigger(uint32_t now_ms) override {
         for (size_t i = 0; i < effects_.size(); ++i) {
-            effect(i).trigger(now_ms);
+            effect(i)->trigger(now_ms);
         }
     }
     void clear(uint32_t now_ms) override {
         for (size_t i = 0; i < effects_.size(); ++i) {
-            effect(i).clear(now_ms);
+            effect(i)->clear(now_ms);
         }
     }
 
     template <size_t C = Count, std::enable_if_t<C == 0, bool> = true>
-    Effect& effect(size_t index) { return *effects_[index]; }
+    Effect* effect(size_t index) { if (index >= size()) return nullptr; return effects_[index].get(); }
     template <size_t C = Count, std::enable_if_t<C != 0, bool> = true>
-    Effect& effect(size_t index) { return effects_[index]; }
+    Effect* effect(size_t index) { if (index >= size()) return nullptr; return &effects_[index]; }
     template <size_t C = Count, std::enable_if_t<C == 0, bool> = true>
-    const Effect& effect(size_t index) const { return *effects_[index]; }
+    const Effect* effect(size_t index) const { if (index >= size()) return nullptr; return effects_[index].get(); }
     template <size_t C = Count, std::enable_if_t<C != 0, bool> = true>
-    const Effect& effect(size_t index) const { return effects_[index]; }
+    const Effect* effect(size_t index) const { if (index >= size()) return nullptr; return &effects_[index]; }
 
     template <typename Config>
     void set_config(const Config& config) {
         for (size_t i = 0; i < effects_.size(); ++i) {
-            effect(i).set_config(config);
+            effect(i)->set_config(config);
         }
     }
 
@@ -199,14 +199,14 @@ public:
     ~RgbEffect() override = default;
 
 public:
-    String type() const override { return "RGB(" + red().type() + ")"; }
+    String type() const override { return "RGB(" + this->subtype() + ")"; }
 
-    Effect& red() { return this->effect(0); }
-    Effect& green() { return this->effect(1); }
-    Effect& blue() { return this->effect(2); }
-    const Effect& red() const { return this->effect(0); }
-    const Effect& green() const { return this->effect(1); }
-    const Effect& blue() const { return this->effect(2); }
+    Effect& red() { return *this->effect(0); }
+    Effect& green() { return *this->effect(1); }
+    Effect& blue() { return *this->effect(2); }
+    const Effect& red() const { return *this->effect(0); }
+    const Effect& green() const { return *this->effect(1); }
+    const Effect& blue() const { return *this->effect(2); }
 
     // Split configs out by name
     void set_config_json(const JsonObject& json) override {

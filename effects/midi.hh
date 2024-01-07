@@ -153,7 +153,7 @@ public:
         });
     }
 
-    String type() const override { return "MidiMap(" + subtype() + ")"; }
+    String type() const override { return "MidiMap(" + this->subtype() + ")"; }
 
     Effect& add_effect_for_note(uint8_t note) {
         note_to_effect_[note] = this->size();
@@ -185,11 +185,7 @@ private:
             return nullptr;
         }
 
-        if (it->second >= this->size()) {
-            return nullptr;
-        }
-
-        return &this->effect(it->second);
+        return this->effect(it->second);
     }
 
     // Maps the note number to underlying effect number.
