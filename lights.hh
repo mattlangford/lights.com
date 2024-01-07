@@ -3,13 +3,15 @@
 #include "dmx.hh"
 #include "effects.hh"
 
-class Missyee36Light {
+class MissyeeLight {
 public:
-    Missyee36Light(uint16_t address, DMXController& controller) :
+    MissyeeLight(uint16_t address, DMXController& controller) :
         brightness(controller.channel(address)),
         red(controller.channel(address + 1)),
         green(controller.channel(address + 2)),
         blue(controller.channel(address + 3)) {
+
+        brightness.set_value(255);
         controller.set_max_channel(address + 7);
     }
 
@@ -19,15 +21,15 @@ public:
     Channel& blue;
 };
 
-class Electro86Light {
+class LitakeLight {
 public:
-    Electro86Light(uint16_t address, DMXController& controller) :
-        red(controller.channel(address + 0)),
-        green(controller.channel(address + 1)),
-        blue(controller.channel(address + 2)) {
+    LitakeLight(uint16_t address, DMXController& controller) :
+        red(controller.channel(address + 1)),
+        green(controller.channel(address + 2)),
+        blue(controller.channel(address + 3)) {
 
-        // Max brightness
-        controller.channel(address + 3).set_value(189);
+        // Max brightness.
+        controller.channel(address).set_value(127);
     }
 
     Channel& red;

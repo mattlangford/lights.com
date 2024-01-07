@@ -18,5 +18,11 @@ arduino-cli monitor -p /dev/tty.usbmodem101
 These are the lights I have and the associated manuals:
  * [Missyee36](https://images-na.ssl-images-amazon.com/images/I/B1TmOuEgH2S.pdf) RGB light
  * [Electro86](https://cdb.s3.amazonaws.com/ItemRelatedFiles/13224/electro86.pdf) (Maybe called litake?) RGB light 
+    - The DIP switch settings seem correct according to that manual
+    - The DMX channels seem wrong. I found:
+        0: 0-127 brightness 128-255 strobe
+        1: red
+        2: green
+        3: blue
  * [Betopper](https://cdn.shopify.com/s/files/1/0084/5230/9047/files/BETOPPER_Moving_Head_Stage_Led_Light_LM70_LM70S_Standard_User_Manual.pdf?v=1630045250) Moving Light
  * [Washbar112](https://m.media-amazon.com/images/I/C1CE5BB5CrL.pdf) Bar light (not sure of the name)
