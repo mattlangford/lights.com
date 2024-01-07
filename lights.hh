@@ -49,7 +49,7 @@ public:
         speed(controller.channel(address + 7)) {
 
         // Max brightness
-        controller.channel(address + 2).set_value(135);
+        controller.channel(address + 2).set_value(255);
         controller.set_max_channel(address + 9);
     }
 

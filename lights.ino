@@ -57,6 +57,26 @@ void set(const String& json) {
         Serial.println(err.c_str());
     }
 }
+void values(const String& json) {
+    auto pad100 = [](size_t in){
+        if (in < 100) Serial.print(' ');
+        if (in < 10) Serial.print(' ');
+        Serial.print(in);
+    };
+
+    size_t max_channel = controller->max_channel();
+    for (size_t ch = 0; ch < max_channel; ++ch) {
+        if (ch % 10 == 0) {
+            if (ch > 0) Serial.println();
+            pad100(ch);
+            Serial.print(" : ");
+        }
+
+        pad100(controller->channel(ch).get_value(millis()));
+        Serial.print(", ");
+    }
+    Serial.println();
+}
 
 void setup() {
     Serial.begin(115200);
@@ -66,6 +86,7 @@ void setup() {
     interface.add_handler("trigger", "trigger the specified effect", &trigger);
     interface.add_handler("clear", "clear the specified effect", &clear);
     interface.add_handler("set", "sets current config from a JSON string", &set);
+    interface.add_handler("values", "gets the current values of all channels", &values);
 
     controller = new DMXController(41, 40);
 
@@ -73,6 +94,21 @@ void setup() {
     midi.setup();
 
     universe = new Universe(*controller);
+
+    auto* x = &effects.add_effect<CosBlend>("x");
+    auto* y = &effects.add_effect<CosBlend>("y");
+    auto* r = &effects.add_effect<CosBlend>("r");
+
+    x->set_config(CosBlendConfig{.freq={0.5}, .phase0={0.0}});
+    y->set_config(CosBlendConfig{.freq={0.1}, .phase0={M_PI / 2.0}});
+    r->set_config(CosBlendConfig{.freq={1.0, 0.25}, .phase0={0.2, 0.0}});
+
+    universe->l0.red.add_effect(r);
+    universe->l1.red.add_effect(r);
+    universe->l2.red.add_effect(r);
+
+    universe->l2.x.add_effect(x);
+    universe->l2.y.add_effect(y);
 }
 
 
@@ -80,14 +116,6 @@ void loop() {
     midi.read();
     audio.read();
     interface.handle_serial();
-
-    uint8_t value = 128 * (sin(float(millis()) / 1000.0) + 1.0);
-    universe->l0.ch0.set_value(127);
-    universe->l0.ch2.set_value(value);
-    universe->l0.ch3.set_value(255);
-
-    universe->l1.red.set_value(value);
-
     controller->write_frame();
 }
 

@@ -1,28 +1,23 @@
 #pragma once
 
 struct CosBlendConfig {
-    uint8_t depth = 1;
-    float min_freq = 10;
-    float max_freq = 1000;
+    std::vector<float> freq;
+    std::vector<float> phase0;
 };
 
 class CosBlend final : public SingleChannelEffect {
 public:
     ~CosBlend() override = default;
 
-    CosBlend() { update_waves(); }
-
 protected:
     float level(uint32_t now_ms) override {
-        const float dt = static_cast<float>(now_ms - last_time_ms_) / 1000;
-        last_time_ms_ = now_ms;
+        const float now_s = float(now_ms) / 1000.0;
 
         float value = 0.0;
-        for (auto& wave : waves_) {
-            wave.phase = fmod(wave.phase + wave.freq * dt, 2.0f * M_PI);
-            value += generate(wave.phase, min_value(), max_value());
+        for (size_t i = 0; i < config_.freq.size(); ++i) {
+            value += generate(config_.phase0[i] + config_.freq[i] * now_s, 0.0, 1.0);
         }
-        return value / config_.depth;
+        return value / config_.freq.size();
     }
 
 public:
@@ -30,47 +25,47 @@ public:
 
     void set_config_json(const JsonObject& json) override {
         SingleChannelEffect::set_config_json(json);
-        maybe_set(json, "depth", config_.depth);
-        maybe_set(json, "min_freq", config_.min_freq);
-        maybe_set(json, "max_freq", config_.max_freq);
 
-        update_waves();
+        CosBlendConfig config;
+        config.freq.resize(json["freq"].size());
+        config.phase0.resize(json["phase0"].size());
+        for (size_t i = 0; i < config.freq.size(); ++i) {
+            config.freq[i] = json["freq"][i];
+        }
+        for (size_t i = 0; i < config.phase0.size(); ++i) {
+            config.phase0[i] = json["phase0"][i];
+        }
+        set_config(config);
     }
 
     void get_config_json(JsonObject& json) const override {
         SingleChannelEffect::get_config_json(json);
-        json["depth"] = config_.depth;
-        json["min_freq"] = config_.min_freq;
-        json["max_freq"] = config_.max_freq;
+        JsonArray freq_array = json.createNestedArray("freq");
+        for (auto& freq : config_.freq) {
+            freq_array.add(freq);
+        }
+
+        JsonArray phase_array = json.createNestedArray("phase0");
+        for (auto& phase : config_.phase0) {
+            phase_array.add(phase);
+        }
     }
 
     void set_config(const CosBlendConfig& config) {
         config_ = config;
-        update_waves();
+
+        while (config_.phase0.size() < config_.freq.size()) {
+            // Start at phase=0 if not specified
+            config_.phase0.push_back(0.0);
+        }
     }
 
 private:
     static float generate(float phase, float min, float max) {
-        return (0.5 * (cosf(phase) + 1)) * (max - min) + min;
-    }
-
-    void update_waves() {
-        waves_.resize(config_.depth);
-
-        for (size_t i = 0; i < config_.depth; ++i) {
-            waves_[i].freq = random(config_.min_freq, config_.max_freq);
-            waves_[i].phase = random(0, 2 * M_PI);
-        }
+        return (0.5 * (cosf(phase) + 1.0)) * (max - min) + min;
     }
 
     CosBlendConfig config_;
-
-    struct Wave {
-        float phase = 0.0;
-        float freq = 0.0;
-    };
-    std::vector<Wave> waves_;
-
     uint32_t last_time_ms_ = 0;
 };
 

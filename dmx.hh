@@ -74,11 +74,13 @@ public:
         pinMode(neg_pin, OUTPUT);
     }
 
+    uint16_t max_channel() const { return channel_count_; }
     void set_max_channel(uint16_t index) {
         if (index <= MAX_CHANNELS) {
             channel_count_ = index > channel_count_ ? index : channel_count_;
         }
     }
+
     Channel& channel(uint16_t index) {
         set_max_channel(index);
         return channels_[index];
