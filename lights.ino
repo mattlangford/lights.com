@@ -14,14 +14,29 @@ Interface interface;
 EffectMap effects;
 
 struct Universe {
-    LitakeLight l0;
-    MissyeeLight l1;
-    BetopperMover9Light l2;
+    LitakeLight litake[2];
+    MissyeeLight missyee[4];
+    BetopperMover9Light mover;
+    WashBarLight112 bar[3];
 
     Universe(DMXController& controller):
-        l0(1, controller),
-        l1(10, controller),
-        l2(20, controller) {
+        litake{{1, controller}, {5, controller}},
+        missyee{{10, controller}, {17, controller}, {24, controller}, {31, controller}},
+        mover{40, controller},
+        bar{{50, controller}, {162, controller}, {274, controller}} {
+        
+        controller.set_max_channel(512);
+
+        litake[0].red.set_value(255);
+        litake[1].red.set_value(255);
+        missyee[0].red.set_value(255);
+        missyee[1].red.set_value(255);
+        missyee[2].red.set_value(255);
+        missyee[3].red.set_value(255);
+        mover.red.set_value(255);
+        bar[0].set_color(255, 0, 0);
+        bar[1].set_color(255, 0, 0);
+        bar[2].set_color(255, 0, 0);
     }
 };
 Universe* universe;
@@ -95,22 +110,12 @@ void setup() {
 
     universe = new Universe(*controller);
 
-    auto* x = &effects.add_effect<CosBlend>("x");
-    auto* y = &effects.add_effect<CosBlend>("y");
-    auto* r = &effects.add_effect<CosBlend>("r");
-
-    x->set_config(CosBlendConfig{.freq={0.5}, .phase0={0.0}});
-    y->set_config(CosBlendConfig{.freq={0.1}, .phase0={M_PI / 2.0}});
-    r->set_config(CosBlendConfig{.freq={1.0, 0.25}, .phase0={0.2, 0.0}});
-
-    universe->l0.red.add_effect(r);
-    universe->l1.red.add_effect(r);
-    universe->l2.red.add_effect(r);
-
-    universe->l2.x.add_effect(x);
-    universe->l2.y.add_effect(y);
+    auto* pan = &effects.add_effect<CosBlend>("pan");
+    pan->set_config(CosBlendConfig{.freq={0.3}});
+    pan->set_values(170, 250); // sweep the room!
+    universe->mover.y.set_value(20);
+    universe->mover.x.add_effect(pan);
 }
-
 
 void loop() {
     midi.read();

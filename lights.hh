@@ -80,6 +80,15 @@ public:
         }
     }
 
+    void set_color(uint8_t red, uint8_t green, uint8_t blue, uint8_t white=0) {
+        for (auto& rgb : rgb_) {
+            rgb.r->set_value(red);
+            rgb.g->set_value(green);
+            rgb.b->set_value(blue);
+            rgb.w->set_value(white);
+        }
+    }
+
     Channel& red(uint8_t index) { return *rgb_[index].r; }
     Channel& green(uint8_t index) { return *rgb_[index].g; }
     Channel& blue(uint8_t index) { return *rgb_[index].b; }
