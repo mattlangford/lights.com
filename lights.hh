@@ -19,6 +19,49 @@ public:
     Channel& blue;
 };
 
+class Electro86Light {
+public:
+    Electro86Light(uint16_t address, DMXController& controller) :
+        red(controller.channel(address + 0)),
+        green(controller.channel(address + 1)),
+        blue(controller.channel(address + 2)) {
+
+        // Max brightness
+        controller.channel(address + 3).set_value(189);
+    }
+
+    Channel& red;
+    Channel& green;
+    Channel& blue;
+};
+
+class BetopperMover9Light {
+public:
+    BetopperMover9Light(uint16_t address, DMXController& controller) :
+        x(controller.channel(address + 0)),
+        y(controller.channel(address + 1)),
+        red(controller.channel(address + 3)),
+        green(controller.channel(address + 4)),
+        blue(controller.channel(address + 5)),
+        white(controller.channel(address + 6)),
+        speed(controller.channel(address + 7)) {
+
+        // Max brightness
+        controller.channel(address + 2).set_value(135);
+        controller.set_max_channel(address + 9);
+    }
+
+    Channel& x;
+    Channel& y;
+
+    Channel& red;
+    Channel& green;
+    Channel& blue;
+    Channel& white;
+
+    Channel& speed;
+};
+
 class WashBarLight112 {
 public:
     static constexpr uint8_t NUM_LIGHTS = 28;
