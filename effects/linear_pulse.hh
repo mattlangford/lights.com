@@ -1,7 +1,7 @@
 #pragma once
 
 struct LinearPulseConfig {
-    uint32_t rise_dt_ms = 100;
+    uint32_t rise_dt_ms = 1000;
     uint32_t hold_dt_ms = 1000;
     uint32_t fall_dt_ms = 2000;
     uint32_t clear_dt_ms = 100;

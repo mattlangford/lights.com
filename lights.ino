@@ -25,18 +25,18 @@ struct Universe {
         mover{40, controller},
         bar{{50, controller}, {162, controller}, {274, controller}} {
         
-        controller.set_max_channel(512);
+        // controller.set_max_channel(512);
 
         litake[0].red.set_value(255);
         litake[1].red.set_value(255);
-        missyee[0].red.set_value(255);
-        missyee[1].red.set_value(255);
-        missyee[2].red.set_value(255);
-        missyee[3].red.set_value(255);
-        mover.red.set_value(255);
-        bar[0].set_color(255, 0, 0);
-        bar[1].set_color(255, 0, 0);
-        bar[2].set_color(255, 0, 0);
+        // missyee[0].red.set_value(255);
+        // missyee[1].red.set_value(255);
+        // missyee[2].red.set_value(255);
+        // missyee[3].red.set_value(255);
+        // mover.red.set_value(255);
+        // bar[0].set_color(255, 0, 0);
+        // bar[1].set_color(255, 0, 0);
+        // bar[2].set_color(255, 0, 0);
     }
 };
 Universe* universe;
@@ -120,22 +120,19 @@ void setup() {
     universe->missyee[0].blue.add_effect(&pulse.add());
     universe->litake[0].blue.add_effect(&pulse.add());
     universe->litake[1].blue.add_effect(&pulse.add());
-    // universe->mover.blue.add_effect(&pulse.add());
+    universe->mover.blue.add_effect(&pulse.add());
     universe->missyee[1].blue.add_effect(&pulse.add());
-    // for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-    //     universe->bar[0].blue(l).add_effect(&pulse.add());
-    // }
-    // universe->missyee[2].blue.add_effect(&pulse.add());
-    // universe->missyee[3].blue.add_effect(&pulse.add());
-    // for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-    //     universe->bar[1].blue(l).add_effect(&pulse.add());
-    // }
-    // for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-    //     universe->bar[2].blue(l).add_effect(&pulse.add());
-    // }
-
-    auto& test = effects.add_effect<LinearPulse>("test");
-    universe->missyee[1].green.add_effect(&test);
+    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+        universe->bar[0].blue(l).add_effect(&pulse.add());
+    }
+    universe->missyee[2].blue.add_effect(&pulse.add());
+    universe->missyee[3].blue.add_effect(&pulse.add());
+    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+        universe->bar[1].blue(l).add_effect(&pulse.add());
+    }
+    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+        universe->bar[2].blue(l).add_effect(&pulse.add());
+    }
 
     // auto* pan = &effects.add_effect<CosBlend>("pan");
     // pan->set_config(CosBlendConfig{.freq={0.3}});

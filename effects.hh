@@ -73,23 +73,25 @@ private:
 public:
     ~FaderEffect() override = default;
 
-    void fade_to(float end, uint32_t now_ms, uint32_t end_ms) {
-        if (fades_.empty()) {
-            // Fade from the current (default) value to the specified value
-            fades_.push_back(FadePoint{now_ms, level_impl(now_ms)});
+    void fade_to(float end, uint32_t start_ms, uint32_t end_ms) {
+        // If we're starting from scratch or interleveling, reset the future.
+        if (fades_.empty() || start_ms < fades_.back().time_ms) {
+            // Grab current level before clearing
+            float start_level = level_impl(start_ms);
+            fades_.clear();
+
+            // Fade from the current value to the specified value
+            fades_.push_back(FadePoint{start_ms, start_level});
             fades_.push_back(FadePoint{end_ms, end});
             return;
         }
 
-        // If this could change the current state, put in a bookmark
-        if (end_ms < fades_.back().time_ms) {
-            fades_.push_back(FadePoint{now_ms, level_impl(now_ms)});
+        // Make sure the start time has a bookmark
+        if (start_ms != fades_.back().time_ms) {
+            fades_.push_back(FadePoint{start_ms, level_impl(start_ms)});
         }
 
         fades_.push_back(FadePoint{end_ms, end});
-        std::stable_sort(fades_.begin(), fades_.end(), [](const FadePoint& lhs, const FadePoint& rhs){
-            return lhs.time_ms < rhs.time_ms;
-        });
     }
 
     void clear(uint32_t now_ms) override {
