@@ -100,6 +100,10 @@ public:
         fades_.emplace_back(std::move(now));
     }
 
+    bool is_done(uint32_t now_ms) const {
+        return fades_.empty() || now_ms > fades_.back().time_ms;
+    }
+
 protected:
     float level(uint32_t now_ms) {
         const float value = level_impl(now_ms);

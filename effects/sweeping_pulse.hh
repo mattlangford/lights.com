@@ -6,50 +6,40 @@ class SweepingPulse final : public NestedEffect<CompositeEffect<LinearPulse>> {
 public:
     ~SweepingPulse() override = default;
 
-    void set_parent_config_json(const JsonObject& json)  {
-        maybe_set(json, "gap_ms", gap_ms_);
-        maybe_set(json, "reversed", reversed_);
-    }
+    void set_parent_config_json(const JsonObject& json)  {}
 
-    void get_parent_config_json(JsonObject& json) const {
-        json["gap_ms"] = gap_ms_;
-        json["reversed"] = reversed_;
-    }
+    void get_parent_config_json(JsonObject& json) const {}
 
     String parent_type() const { return "SweepingPulse"; }
 
-    LinearPulse& add() { return effect().add(); }
+    LinearPulse& add(uint32_t gap_ms=1000) {
+        gaps_ms_.push_back(gap_ms);
+        return effect().add();
+    }
 
     void trigger(uint32_t now_ms) {
         CompositeEffect<LinearPulse>& effects = effect();
         size_t count = effects.size();
+
+        uint64_t trigger_time = now_ms;
         for (size_t i = 0; i < count; ++i) {
-            uint64_t trigger_time = now_ms;
-
-            if (reversed_) {
-                // Go from the end if we're reversed
-                trigger_time += (count - 1 - i) * gap_ms_;
-            } else {
-                trigger_time += i * gap_ms_;
-            }
-
+            trigger_time += gaps_ms_[i];
             effects.effect(i)->trigger(trigger_time);
         }
     }
 
-    void clear(uint32_t now_ms) {
-        for (auto& effect : effects_) {
-            effect->clear(now_ms);
+    bool is_done(uint32_t now_ms) const {
+        const CompositeEffect<LinearPulse>& effects = effect();
+        size_t count = effects.size();
+        for (size_t i = 0; i < count; ++i) {
+            if (!effects.effect(i)->is_done(now_ms)) {
+                return false;
+            }
         }
-    }
-
-    void reverse() {
-        reversed_ = !reversed_;
+        return true;
     }
 
 private:
-    uint32_t gap_ms_ = 100;
-    bool reversed_ = false;
-    std::vector<std::unique_ptr<LinearPulse>> effects_;
+    std::vector<uint32_t> gaps_ms_;
 };
 

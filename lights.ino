@@ -117,21 +117,21 @@ void setup() {
 
     // This is ordered around the room 
     auto& pulse = effects.add_effect<SweepingPulse>("pulse");
-    universe->missyee[0].blue.add_effect(&pulse.add());
-    universe->litake[0].blue.add_effect(&pulse.add());
-    universe->litake[1].blue.add_effect(&pulse.add());
-    universe->mover.blue.add_effect(&pulse.add());
-    universe->missyee[1].blue.add_effect(&pulse.add());
+    universe->missyee[0].blue.add_effect(&pulse.add(300));
+    universe->litake[0].blue.add_effect(&pulse.add(300));
+    universe->litake[1].blue.add_effect(&pulse.add(300));
+    universe->mover.blue.add_effect(&pulse.add(300));
+    universe->missyee[1].blue.add_effect(&pulse.add(300));
     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[0].blue(l).add_effect(&pulse.add());
+        universe->bar[0].blue(l).add_effect(&pulse.add(l == 0 ? 1000 : 10));
     }
-    universe->missyee[2].blue.add_effect(&pulse.add());
-    universe->missyee[3].blue.add_effect(&pulse.add());
+    universe->missyee[2].blue.add_effect(&pulse.add(10));
+    universe->missyee[3].blue.add_effect(&pulse.add(300));
     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[1].blue(l).add_effect(&pulse.add());
+        universe->bar[1].blue(l).add_effect(&pulse.add(10));
     }
     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[2].blue(l).add_effect(&pulse.add());
+        universe->bar[2].blue(l).add_effect(&pulse.add(10));
     }
 
     // auto* pan = &effects.add_effect<CosBlend>("pan");
@@ -142,6 +142,12 @@ void setup() {
 }
 
 void loop() {
+    auto* pulse = effects.effect("pulse");
+    uint32_t now = millis();
+    if (pulse && reinterpret_cast<SweepingPulse*>(pulse)->is_done(now)) {
+        pulse->trigger(now);
+    }
+
     midi.read();
     audio.read();
     interface.handle_serial();
