@@ -32,6 +32,8 @@ public:
             } else {
                 trigger_time += i * gap_ms_;
             }
+
+            effects.effect(i)->trigger(trigger_time);
         }
     }
 

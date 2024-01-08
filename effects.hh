@@ -70,33 +70,26 @@ private:
         float value = 0.0;
     };
 
-    // Not sure of the best way to prune entries here...
-    static constexpr size_t MAX_COUNT = 25;
-
 public:
     ~FaderEffect() override = default;
 
     void fade_to(float end, uint32_t now_ms, uint32_t end_ms) {
         if (fades_.empty()) {
             // Fade from the current (default) value to the specified value
-            fades_.push_back(FadePoint{now_ms, level(now_ms)});
+            fades_.push_back(FadePoint{now_ms, level_impl(now_ms)});
             fades_.push_back(FadePoint{end_ms, end});
             return;
         }
 
         // If this could change the current state, put in a bookmark
         if (end_ms < fades_.back().time_ms) {
-            fades_.push_back(FadePoint{now_ms, level(now_ms)});
+            fades_.push_back(FadePoint{now_ms, level_impl(now_ms)});
         }
 
         fades_.push_back(FadePoint{end_ms, end});
         std::stable_sort(fades_.begin(), fades_.end(), [](const FadePoint& lhs, const FadePoint& rhs){
             return lhs.time_ms < rhs.time_ms;
         });
-
-        while (fades_.size() > MAX_COUNT) {
-            fades_.pop_front();
-        }
     }
 
     void clear(uint32_t now_ms) override {
@@ -107,6 +100,23 @@ public:
 
 protected:
     float level(uint32_t now_ms) {
+        const float value = level_impl(now_ms);
+
+        // Pruning logic
+        if (fades_.size() > 1 && now_ms > 1000 + fades_.front().time_ms) {
+            size_t i = 0;
+            for (; i < fades_.size() && fades_[i].time_ms < now_ms; ++i) { }
+            // Start at j=1 so we keep the most recent timestamp before now.
+            for (size_t j = 1; j < i; ++j) {
+                fades_.pop_front();
+            }
+        }
+
+        return value;
+    }
+
+private:
+    float level_impl(uint32_t now_ms) const {
         if (fades_.empty()) return 0.0;
         if (now_ms < fades_.front().time_ms) return fades_.front().value;
         if (now_ms >= fades_.back().time_ms) return fades_.back().value;
@@ -125,8 +135,6 @@ protected:
 
         return fades_.back().value;
     }
-
-private:
     std::deque<FadePoint> fades_;
 };
 

@@ -120,19 +120,19 @@ void setup() {
     universe->missyee[0].blue.add_effect(&pulse.add());
     universe->litake[0].blue.add_effect(&pulse.add());
     universe->litake[1].blue.add_effect(&pulse.add());
-    universe->mover.blue.add_effect(&pulse.add());
+    // universe->mover.blue.add_effect(&pulse.add());
     universe->missyee[1].blue.add_effect(&pulse.add());
-    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[0].red(l).add_effect(&pulse.add());
-    }
-    universe->missyee[2].blue.add_effect(&pulse.add());
-    universe->missyee[3].blue.add_effect(&pulse.add());
-    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[1].red(l).add_effect(&pulse.add());
-    }
-    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[2].red(l).add_effect(&pulse.add());
-    }
+    // for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+    //     universe->bar[0].blue(l).add_effect(&pulse.add());
+    // }
+    // universe->missyee[2].blue.add_effect(&pulse.add());
+    // universe->missyee[3].blue.add_effect(&pulse.add());
+    // for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+    //     universe->bar[1].blue(l).add_effect(&pulse.add());
+    // }
+    // for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+    //     universe->bar[2].blue(l).add_effect(&pulse.add());
+    // }
 
     auto& test = effects.add_effect<LinearPulse>("test");
     universe->missyee[1].green.add_effect(&test);
