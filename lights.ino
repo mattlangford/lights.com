@@ -41,15 +41,16 @@ struct Universe {
 };
 Universe* universe;
 
-void list(const String&) {
-    serializeJson(effects.get_json(), Serial);
+void list(const String& name) {
+    serializeJson(effects.get_json(name), Serial);
     Serial.println();
 }
 void trigger(const String& name) {
     EffectBase* effect = effects.effect(name);
     if (effect != nullptr) {
-        Serial.print("Triggering ");
-        Serial.println(name);
+        Serial.print("Triggering '");
+        Serial.print(name);
+        Serial.println('\'');
         effect->trigger(millis());
     }
 }
@@ -61,11 +62,15 @@ void clear(const String& name) {
         effect->clear(millis());
     }
 }
-void set(const String& json) {
+void set(const String& name_and_json) {
+    const size_t space = name_and_json.indexOf(' ');
+    String name = name_and_json.substring(0, space);
+    String json = name_and_json.substring(space + 1);
+
     DynamicJsonDocument doc(1024);
     const DeserializationError err = deserializeJson(doc, json);
     if (err.code() == DeserializationError::Ok) {
-        effects.set_json(doc.as<JsonObject>());
+        effects.set_json(name, doc.as<JsonObject>());
         Serial.println("Updated config!");
     } else {
         Serial.print("Unable to parse json input: ");
@@ -110,11 +115,33 @@ void setup() {
 
     universe = new Universe(*controller);
 
-    auto* pan = &effects.add_effect<CosBlend>("pan");
-    pan->set_config(CosBlendConfig{.freq={0.3}});
-    pan->set_values(170, 250); // sweep the room!
+    // This is ordered around the room 
+    auto& pulse = effects.add_effect<SweepingPulse>("pulse");
+    universe->missyee[0].blue.add_effect(&pulse.add());
+    universe->litake[0].blue.add_effect(&pulse.add());
+    universe->litake[1].blue.add_effect(&pulse.add());
+    universe->mover.blue.add_effect(&pulse.add());
+    universe->missyee[1].blue.add_effect(&pulse.add());
+    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+        universe->bar[0].red(l).add_effect(&pulse.add());
+    }
+    universe->missyee[2].blue.add_effect(&pulse.add());
+    universe->missyee[3].blue.add_effect(&pulse.add());
+    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+        universe->bar[1].red(l).add_effect(&pulse.add());
+    }
+    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+        universe->bar[2].red(l).add_effect(&pulse.add());
+    }
+
+    auto& test = effects.add_effect<LinearPulse>("test");
+    universe->missyee[1].green.add_effect(&test);
+
+    // auto* pan = &effects.add_effect<CosBlend>("pan");
+    // pan->set_config(CosBlendConfig{.freq={0.3}});
+    // pan->set_values(170, 250); // sweep the room!
     universe->mover.y.set_value(20);
-    universe->mover.x.add_effect(pan);
+    // universe->mover.x.add_effect(pan);
 }
 
 void loop() {

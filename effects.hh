@@ -5,6 +5,7 @@
 #include <ArduinoJson.h>
 
 #include <vector>
+#include <deque>
 #include <map>
 #include <memory>
 #include <algorithm>
@@ -69,11 +70,16 @@ private:
         float value = 0.0;
     };
 
+    // Not sure of the best way to prune entries here...
+    static constexpr size_t MAX_COUNT = 25;
+
 public:
     ~FaderEffect() override = default;
 
     void fade_to(float end, uint32_t now_ms, uint32_t end_ms) {
         if (fades_.empty()) {
+            // Fade from the current (default) value to the specified value
+            fades_.push_back(FadePoint{now_ms, level(now_ms)});
             fades_.push_back(FadePoint{end_ms, end});
             return;
         }
@@ -88,10 +94,9 @@ public:
             return lhs.time_ms < rhs.time_ms;
         });
 
-        // Erase anything before the start, expensive but these should be small
-        auto to_remove = fades_.begin();
-        for (; to_remove != fades_.end() && to_remove->time_ms <= now_ms; ++to_remove) {}
-        fades_.erase(fades_.begin(), to_remove);
+        while (fades_.size() > MAX_COUNT) {
+            fades_.pop_front();
+        }
     }
 
     void clear(uint32_t now_ms) override {
@@ -104,21 +109,25 @@ protected:
     float level(uint32_t now_ms) {
         if (fades_.empty()) return 0.0;
         if (now_ms < fades_.front().time_ms) return fades_.front().value;
+        if (now_ms >= fades_.back().time_ms) return fades_.back().value;
 
         for (size_t i = 0; i < fades_.size() - 1; ++i) {
             const FadePoint& next = fades_[i + 1];
             if (now_ms > next.time_ms) {
                 continue;
             }
+
             const FadePoint& prev = fades_[i];
             const float percent = (static_cast<float>(now_ms) - prev.time_ms) / (next.time_ms - prev.time_ms);
-            return prev.value + percent * (next.value - prev.value);
+            const float result = prev.value + percent * (next.value - prev.value);
+            return result;
         }
 
         return fades_.back().value;
     }
+
 private:
-    std::vector<FadePoint> fades_;
+    std::deque<FadePoint> fades_;
 };
 
 
@@ -325,19 +334,25 @@ public:
         return it->second.get();
     }
 
-    void set_json(const JsonObject& object) {
-        for (auto field : object) {
-            auto it = effects_.find(field.key().c_str());
-            if (it == effects_.end()) {
-                continue;
-            }
-            it->second->set_config_json(field.value());
+    void set_json(const String& name, const JsonObject& object) {
+        auto it = effects_.find(name);
+        if (it == effects_.end()) {
+            Serial.print("No effect named '");
+            Serial.print(name);
+            Serial.println("' found!");
+            return;
         }
+
+        it->second->set_config_json(object);
     }
 
-    DynamicJsonDocument get_json() {
+    DynamicJsonDocument get_json(const String& name) {
         DynamicJsonDocument doc(1024);
         for (const auto& effect : effects_) {
+            if (name != "" && effect.first != name) {
+                continue;
+            }
+
             JsonObject object = doc.createNestedObject(effect.first);
             object["type"] = effect.second->type();
 

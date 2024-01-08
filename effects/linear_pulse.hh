@@ -18,7 +18,6 @@ public:
 
     void trigger(uint32_t now_ms) override {
         uint32_t start = now_ms;
-
         uint32_t end = start + config_.rise_dt_ms;
         fade_to(1.0, start, end);
 
