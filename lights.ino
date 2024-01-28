@@ -29,14 +29,14 @@ struct Universe {
 
         litake[0].red.set_value(255);
         litake[1].red.set_value(255);
-        // missyee[0].red.set_value(255);
-        // missyee[1].red.set_value(255);
-        // missyee[2].red.set_value(255);
-        // missyee[3].red.set_value(255);
-        // mover.red.set_value(255);
-        // bar[0].set_color(255, 0, 0);
-        // bar[1].set_color(255, 0, 0);
-        // bar[2].set_color(255, 0, 0);
+        missyee[0].red.set_value(255);
+        missyee[1].red.set_value(255);
+        missyee[2].red.set_value(255);
+        missyee[3].red.set_value(255);
+        mover.red.set_value(255);
+        bar[0].set_color(255, 0, 0);
+        bar[1].set_color(255, 0, 0);
+        bar[2].set_color(255, 0, 0);
     }
 };
 Universe* universe;
@@ -134,20 +134,29 @@ void setup() {
         universe->bar[2].blue(l).add_effect(&pulse.add(10));
     }
 
-    // auto* pan = &effects.add_effect<CosBlend>("pan");
-    // pan->set_config(CosBlendConfig{.freq={0.3}});
-    // pan->set_values(170, 250); // sweep the room!
+    auto* pan = &effects.add_effect<CosBlend>("pan");
+    pan->set_config(CosBlendConfig{.freq={0.3}});
+    pan->set_values(170, 250); // sweep the room!
     universe->mover.y.set_value(20);
-    // universe->mover.x.add_effect(pan);
+    universe->mover.x.add_effect(pan);
+
+    auto& midi_map = effects.add_effect<MidiMap<LinearPulse>>("midi");
+    int note = 81; // A4
+    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+        universe->bar[1].blue(l).add_effect(&midi_map.add_effect_for_note(note--));
+    }
+    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+        universe->bar[2].blue(l).add_effect(&midi_map.add_effect_for_note(note--));
+    }
+    midi_map.set_config(LinearPulseConfig{
+        .rise_dt_ms = 10,
+        .hold_dt_ms = 100,
+        .fall_dt_ms = 1000,
+        .clear_dt_ms = 100,
+    });
 }
 
 void loop() {
-    auto* pulse = effects.effect("pulse");
-    uint32_t now = millis();
-    if (pulse && reinterpret_cast<SweepingPulse*>(pulse)->is_done(now)) {
-        pulse->trigger(now);
-    }
-
     midi.read();
     audio.read();
     interface.handle_serial();
