@@ -154,6 +154,28 @@ void setup() {
         .fall_dt_ms = 1000,
         .clear_dt_ms = 100,
     });
+
+    // Add all lights to the blank effect
+    auto* blank = &effects.add_effect<Blank>("blank");
+    for (auto& missyee : universe->missyee) {
+        missyee.brightness.add_effect(blank);
+    }
+    for (auto& litake : universe->litake) {
+        litake.red.add_effect(blank);
+        litake.green.add_effect(blank);
+        litake.blue.add_effect(blank);
+    }
+    universe->mover.red.add_effect(blank);
+    universe->mover.blue.add_effect(blank);
+    universe->mover.green.add_effect(blank);
+    for (auto& bar : universe->bar) {
+        for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+            bar.red(l).add_effect(blank);
+            bar.green(l).add_effect(blank);
+            bar.blue(l).add_effect(blank);
+            bar.white(l).add_effect(blank);
+        }
+    }
 }
 
 void loop() {

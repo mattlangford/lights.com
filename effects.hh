@@ -317,6 +317,7 @@ private:
 #include "effects/sweeping_pulse.hh"
 #include "effects/midi.hh"
 #include "effects/audio.hh"
+#include "effects/blank.hh"
 
 class EffectMap {
 public:

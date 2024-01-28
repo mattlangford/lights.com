@@ -2,23 +2,25 @@
 
 #include <algorithm>
 
-class Clear final : public FaderEffect {
+class Blank final : public FaderEffect {
+private:
+    static constexpr uint32_t FADE_TIME_MS = 1000;
 public:
-    Clear() {
-        set_value(0.0);
+    Blank() {
+        // Default to blocking all incoming signals.
         set_input_gain(0.0);
     }
-    ~Clear() override {}
+    ~Blank() override {}
 
 public:
     // Only use the level function to set the input gain.
     float level(uint32_t now_ms) override {
-        if (goal == NONE) {
-            return;
+        if (goal_ == NONE) {
+            return 0.0;
         }
 
         set_input_gain(0.0);
-        if (now_ms < start_time) {
+        if (now_ms < start_time_) {
             return 0.0;
         }
 
@@ -29,7 +31,7 @@ public:
         }
 
         const float duration = static_cast<float>(end_time_) - start_time_;
-        const float percent = std::clamp((static_cast<float>(now_ms) - start_time_) / duration, 0.0, 1.0);
+        const float percent = constrain((static_cast<float>(now_ms) - start_time_) / duration, 0.0, 1.0);
         if (goal_ == BLANK) {
             set_input_gain(1.0 - percent);
         } else {
@@ -40,14 +42,16 @@ public:
 
     void trigger(uint32_t now_ms) override {
         start_time_ = now_ms;
-        end_time_ = now_ms;
+        end_time_ = now_ms + FADE_TIME_MS;
+        goal_ = BLANK;
     }
     void clear(uint32_t now_ms) override {
         start_time_ = now_ms;
-        end_time_ = now_ms;
+        end_time_ = now_ms + FADE_TIME_MS;
+        goal_ = UNBLANK;
     }
 
-    String type() const override { return "Clear"; }
+    String type() const override { return "Blank"; }
 
 private:
     enum Goal { BLANK, UNBLANK, NONE };
