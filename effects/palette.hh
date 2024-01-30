@@ -20,7 +20,7 @@ struct PaletteConfig {
 
     std::vector<Color> palette;
 
-    uint32_t fade_time_ms = 0;
+    uint32_t fade_time_ms = 100;
 };
 
 class Palette : public EffectBase {
@@ -54,42 +54,92 @@ public:
 
     String type() const { return "Palette"; }
 
-    void set_config_json(const JsonObject& json) override {};
-    void get_config_json(JsonObject& json) const override {};
+    void set_config_json(const JsonObject& json) override {
+        config_.palette.resize(json["palette"].size());
+        for (size_t i = 0; i < config_.palette.size(); ++i) {
+            const auto& color = json["palette"][i];
+            config_.palette[i].r = color["r"];
+            config_.palette[i].g = color["g"];
+            config_.palette[i].b = color["b"];
+        }
+
+        const auto& type = json["type"];
+        if (type.isNull()) {
+            if (type == "RANDOM") {
+                config_.type = PaletteConfig::TransitionType::RANDOM;
+            } else if (type == "STEP") {
+                config_.type = PaletteConfig::TransitionType::STEP;
+            } else if (type == "UNIQUE_RANDOM") {
+                config_.type = PaletteConfig::TransitionType::UNIQUE_RANDOM;
+            }
+        }
+
+        maybe_set(json, "fade_time_ms", config_.fade_time_ms);
+    };
+
+    void get_config_json(JsonObject& json) const override {
+        JsonArray palette = json.createNestedArray("palette");
+        for (auto& color : config_.palette) {
+            JsonObject json_color = palette.createNestedObject();
+            json_color["r"] = color.r;
+            json_color["g"] = color.g;
+            json_color["b"] = color.b;
+        }
+        switch (config_.type) {
+        case PaletteConfig::TransitionType::RANDOM:
+            json["type"] = "RANDOM";
+            break;
+        case PaletteConfig::TransitionType::STEP:
+            json["type"] = "STEP";
+            break;
+        case PaletteConfig::TransitionType::UNIQUE_RANDOM:
+            json["type"] = "UNIQUE_RANDOM";
+            break;
+        }
+
+        json["fade_time_ms"] = config_.fade_time_ms;
+    };
 
     void trigger(uint32_t now_ms) {
-        // We might use this if we need to.
-        const size_t random_index = rand();
+        size_t to_index = 0;
+        switch (config_.type) {
+        case PaletteConfig::TransitionType::RANDOM:
+            to_index = rand();
+            break;
+        case PaletteConfig::TransitionType::STEP:
+            to_index = index_++;
+            break;
+        case PaletteConfig::TransitionType::UNIQUE_RANDOM:
+            break;
+        }
 
         for (auto& fixture : fixtures_) {
             for (size_t l = 0; l < fixture.size(); ++l) {
-                size_t to_index = 0;
-                switch (config_.type) {
-                case PaletteConfig::TransitionType::RANDOM:
-                    to_index = random_index;
-                    break;
-                case PaletteConfig::TransitionType::STEP:
-                    to_index = index_;
-                    break;
-                case PaletteConfig::TransitionType::UNIQUE_RANDOM:
+                if (config_.type == PaletteConfig::TransitionType::UNIQUE_RANDOM){
                     to_index = rand();
-                    break;
                 }
 
                 const PaletteConfig::Color to_color = config_.palette[to_index % config_.palette.size()];
                 const uint32_t start_time = now_ms + fixture.offset(l);
+                const uint32_t end_time = start_time - config_.fade_time_ms;
                 auto& effect = fixture.effect(l);
 
-                effect.red().fade_to(to_color.r, start_time, start_time + config_.fade_time_ms);
-                effect.green().fade_to(to_color.g, start_time, start_time + config_.fade_time_ms);
-                effect.blue().fade_to(to_color.g, start_time, start_time + config_.fade_time_ms);
+                effect.red().fade_to(to_color.r, start_time, end_time);
+                effect.green().fade_to(to_color.g, start_time, end_time);
+                effect.blue().fade_to(to_color.g, start_time, end_time);
             }
         }
-
-        // In case we're STEPing
-        index_++;
     }
-    void clear(uint32_t now_ms) {}
+    void clear(uint32_t now_ms) {
+        for (auto& fixture : fixtures_) {
+            for (size_t l = 0; l < fixture.size(); ++l) {
+                auto& effect = fixture.effect(l);
+                effect.red().fade_to(0.0, now_ms, now_ms + config_.fade_time_ms);
+                effect.green().fade_to(0.0, now_ms, now_ms + config_.fade_time_ms);
+                effect.blue().fade_to(0.0, now_ms, now_ms + config_.fade_time_ms);
+            }
+        }
+    }
 
     Fixture& add_fixture(uint32_t offset_ms=0) {
         fixtures_.push_back(offset_ms);
