@@ -73,6 +73,8 @@ private:
 public:
     ~FaderEffect() override = default;
 
+    String type() const override { return "FaderEffect"; }
+
     void fade_to(float end, uint32_t start_ms, uint32_t end_ms) {
         // If we're starting from scratch or interleveling, reset the future.
         if (fades_.empty() || start_ms < fades_.back().time_ms) {
@@ -146,7 +148,7 @@ private:
 
 
 ///
-/// @brief Composite Effect where each sug effect is statically typed, and configured in the same way.
+/// @brief Composite Effect where each effect is statically typed, and configured in the same way.
 ///
 template <typename Effect, size_t Count = 0>
 class CompositeEffect : public EffectBase {
@@ -318,6 +320,7 @@ private:
 #include "effects/midi.hh"
 #include "effects/audio.hh"
 #include "effects/blank.hh"
+#include "effects/palette.hh"
 
 class EffectMap {
 public:
