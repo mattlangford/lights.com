@@ -6,7 +6,7 @@ class SweepingPulse final : public NestedEffect<CompositeEffect<LinearPulse>> {
 public:
     ~SweepingPulse() override = default;
 
-    void set_parent_config_json(const JsonObject& json)  {}
+    SetConfigResult set_parent_config_json(const JsonObject& json) { return SetConfigResult::no_values_set(); }
 
     void get_parent_config_json(JsonObject& json) const {}
 

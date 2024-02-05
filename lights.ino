@@ -24,7 +24,7 @@ struct Universe {
         missyee{{10, controller}, {17, controller}, {24, controller}, {31, controller}},
         mover{40, controller},
         bar{{50, controller}, {162, controller}, {274, controller}} {
-        
+
         // controller.set_max_channel(512);
 
         litake[0].red.set_value(255);

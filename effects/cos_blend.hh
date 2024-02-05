@@ -23,8 +23,20 @@ protected:
 public:
     String type() const override { return "CosBlend"; }
 
-    void set_config_json(const JsonObject& json) override {
-        SingleChannelEffect::set_config_json(json);
+    SetConfigResult set_config_json(const JsonObject& json) override {
+        SetConfigResult result = SingleChannelEffect::set_config_json(json);
+
+        auto freq = json["freq"];
+        auto phase = json["phase0"];
+
+        if (freq.size() != phase.size()) {
+            result.consider(SetConfigResult::error("freq.size() != phase0.size()"));
+            return result;
+        }
+
+        if (freq.size() >= 0) {
+            result.consider(SetConfigResult::okay());
+        }
 
         CosBlendConfig config;
         config.freq.resize(json["freq"].size());
@@ -35,7 +47,9 @@ public:
         for (size_t i = 0; i < config.phase0.size(); ++i) {
             config.phase0[i] = json["phase0"][i];
         }
+
         set_config(config);
+        return result;
     }
 
     void get_config_json(JsonObject& json) const override {

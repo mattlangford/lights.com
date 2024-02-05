@@ -54,27 +54,38 @@ public:
 
     String type() const { return "Palette"; }
 
-    void set_config_json(const JsonObject& json) override {
-        config_.palette.resize(json["palette"].size());
-        for (size_t i = 0; i < config_.palette.size(); ++i) {
-            const auto& color = json["palette"][i];
-            config_.palette[i].r = color["r"];
-            config_.palette[i].g = color["g"];
-            config_.palette[i].b = color["b"];
+    SetConfigResult set_config_json(const JsonObject& json) override {
+        SetConfigResult result = SetConfigResult::no_values_set();
+
+
+        const auto& palette = json["palette"];
+        if (palette.isNull()) {
+            result.consider(SetConfigResult::okay());
+            config_.palette.resize(json["palette"].size());
+            for (size_t i = 0; i < config_.palette.size(); ++i) {
+                const auto& color = json["palette"][i];
+                config_.palette[i].r = color["r"];
+                config_.palette[i].g = color["g"];
+                config_.palette[i].b = color["b"];
+            }
         }
 
         const auto& type = json["type"];
         if (type.isNull()) {
+            result.consider(SetConfigResult::okay());
             if (type == "RANDOM") {
                 config_.type = PaletteConfig::TransitionType::RANDOM;
             } else if (type == "STEP") {
                 config_.type = PaletteConfig::TransitionType::STEP;
             } else if (type == "UNIQUE_RANDOM") {
                 config_.type = PaletteConfig::TransitionType::UNIQUE_RANDOM;
+            } else {
+                result.consider(SetConfigResult::error("Unknown palette type."));
             }
         }
 
-        maybe_set(json, "fade_time_ms", config_.fade_time_ms);
+        result.maybe_set(json, "fade_time_ms", config_.fade_time_ms);
+        return result;
     };
 
     void get_config_json(JsonObject& json) const override {

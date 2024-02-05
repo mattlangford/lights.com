@@ -50,9 +50,11 @@ public:
     }
 
 protected:
-    void set_parent_config_json(const JsonObject& json) override {
-        this->maybe_set(json, "threshold", config_.threshold);
-        this->maybe_set(json, "port", config_.port);
+    SetConfigResult set_parent_config_json(const JsonObject& json) override {
+        SetConfigResult result = SetConfigResult::no_values_set();
+        result.maybe_set(json, "threshold", config_.threshold);
+        result.maybe_set(json, "port", config_.port);
+        return result;
     }
 
     void get_parent_config_json(JsonObject& json) const override {
@@ -96,14 +98,15 @@ public:
 
     String type() const override { return "AudioFrequencyValues"; }
 
-    void set_config_json(const JsonObject& json) override {
-        SingleChannelEffect::set_config_json(json);
-        maybe_set(json, "min_bin", config_.min_bin);
-        maybe_set(json, "max_bin", config_.max_bin);
-        maybe_set(json, "fft_gain", config_.fft_gain);
+    SetConfigResult set_config_json(const JsonObject& json) override {
+        SetConfigResult result = SingleChannelEffect::set_config_json(json);
+        result.maybe_set(json, "min_bin", config_.min_bin);
+        result.maybe_set(json, "max_bin", config_.max_bin);
+        result.maybe_set(json, "fft_gain", config_.fft_gain);
+        return result;
     }
     void get_config_json(JsonObject& json) const override {
-        SingleChannelEffect::get_config_json(json);
+        get_config_json(json);
         json["min_bin"] = config_.min_bin;
         json["max_bin"] = config_.max_bin;
         json["fft_gain"] = config_.fft_gain;
@@ -154,7 +157,7 @@ public:
 
     String type() const { return "AudioMeter"; }
 
-    void set_config_json(const JsonObject& json) override {};
+    SetConfigResult set_config_json(const JsonObject& json) override { return SetConfigResult::no_values_set(); };
     void get_config_json(JsonObject& json) const override {};
 
     RgbEffect<LinearFade>& rgb(size_t i) { return effects_[i].effect(); }

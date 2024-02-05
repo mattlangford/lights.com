@@ -40,12 +40,13 @@ public:
 public:
     String type() const override { return "LinearPulse"; }
 
-    void set_config_json(const JsonObject& json) override {
-        SingleChannelEffect::set_config_json(json);
-        maybe_set(json, "rise_dt_ms", config_.rise_dt_ms);
-        maybe_set(json, "hold_dt_ms", config_.hold_dt_ms);
-        maybe_set(json, "fall_dt_ms", config_.fall_dt_ms);
-        maybe_set(json, "clear_dt_ms", config_.clear_dt_ms);
+    SetConfigResult set_config_json(const JsonObject& json) override {
+        SetConfigResult result = SingleChannelEffect::set_config_json(json);
+        result.maybe_set(json, "rise_dt_ms", config_.rise_dt_ms);
+        result.maybe_set(json, "hold_dt_ms", config_.hold_dt_ms);
+        result.maybe_set(json, "fall_dt_ms", config_.fall_dt_ms);
+        result.maybe_set(json, "clear_dt_ms", config_.clear_dt_ms);
+        return result;
     }
 
     void get_config_json(JsonObject& json) const override {
