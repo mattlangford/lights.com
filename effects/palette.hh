@@ -13,7 +13,7 @@ struct PaletteConfig {
     enum class TransitionType {
         RANDOM, // step all fixtures to a random color in the palette
         STEP, // step all fixtures to the next color in the palette
-        UNIQUE_RANDOM, // step each fixtures to a random color in the palette
+        UNIQUE_RANDOM, // step each fixture to a random color in the palette
     };
 
     TransitionType type = TransitionType::RANDOM;
@@ -57,7 +57,6 @@ public:
     SetConfigResult set_config_json(const JsonObject& json) override {
         SetConfigResult result = SetConfigResult::no_values_set();
 
-
         const auto& palette = json["palette"];
         if (palette.isNull()) {
             result.consider(SetConfigResult::okay());
@@ -85,6 +84,7 @@ public:
         }
 
         result.maybe_set(json, "fade_time_ms", config_.fade_time_ms);
+        trigger(now()); // Do a transition to the next color
         return result;
     };
 
@@ -141,6 +141,7 @@ public:
             }
         }
     }
+
     void clear(uint32_t now_ms) {
         for (auto& fixture : fixtures_) {
             for (size_t l = 0; l < fixture.size(); ++l) {

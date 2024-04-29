@@ -121,15 +121,22 @@ public:
     }
 
     void set_note(byte note) { note_ = note; }
+    void set_any_node(bool enable=true) { any_ = enable; }
 
 protected:
     String parent_type() const override { return "MidiTrigger"; }
-    void set_parent_config_json(const JsonObject& json) override { this->maybe_set(json, "note", note_); }
-    void get_parent_config_json(JsonObject& json) const override { json["note"] = note_; };
+    void set_parent_config_json(const JsonObject& json) override {
+        this->maybe_set(json, "note", note_);
+        this->maybe_set(json, "any", any_);
+    }
+    void get_parent_config_json(JsonObject& json) const override {
+        json["note"] = note_;
+        json["any"] = any_;
+    };
 
 private:
     void on_note(byte channel, byte note, byte velocity, bool on) {
-        if (note != note_) {
+        if (!any_ && note != note_) {
             return;
         }
 
@@ -141,6 +148,7 @@ private:
     }
 
     uint8_t note_ = 0;
+    bool any_ = false;
 };
 
 /// @brief Similar to MidiTrigger, but aggregates many instances of Effect 
