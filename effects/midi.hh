@@ -168,12 +168,20 @@ public:
         return this->add();
     }
 
+    void set_channel(byte channel) {
+        channel_ = channel;
+    }
+
 private:
     // So that callers have to go through our public accessors
     using CompositeEffect<Effect>::add;
     using CompositeEffect<Effect>::effect;
 
     void on_note(byte channel, byte note, byte velocity, bool on) {
+        if (channel_ != -1 && channel != channel_) {
+            return;
+        }
+
         Effect* effect = effect_for_note(note);
         if (effect == nullptr) {
             return;
@@ -195,6 +203,9 @@ private:
 
         return this->effect(it->second);
     }
+
+    // -1 implies unuset.
+    byte channel_ = -1;
 
     // Maps the note number to underlying effect number.
     std::unordered_map<uint8_t, size_t> note_to_effect_;

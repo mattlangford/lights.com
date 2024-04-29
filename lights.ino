@@ -27,8 +27,8 @@ struct Universe {
 
         // controller.set_max_channel(512);
 
-    uint8_t red = 255;
-    uint8_t green = 30;
+        uint8_t red = 255;
+        uint8_t green = 30;
 
         litake[0].red.set_value(red);
         litake[1].red.set_value(red);
@@ -126,7 +126,9 @@ void setup() {
 
     universe = new Universe(*controller);
 
-    // This is ordered around the room 
+    //
+    // Basic Pulse. This is ordered around the room 
+    //
     auto& pulse = effects.add_effect<SweepingPulse>("pulse");
     universe->missyee[0].blue.add_effect(&pulse.add(300));
     universe->litake[0].blue.add_effect(&pulse.add(300));
@@ -145,12 +147,18 @@ void setup() {
         universe->bar[2].blue(l).add_effect(&pulse.add(10));
     }
 
+    //
+    // Panning the mover light.
+    //
     auto* pan = &effects.add_effect<CosBlend>("pan");
     pan->set_config(CosBlendConfig{.freq={0.3}});
     pan->set_values(170, 250); // sweep the room!
     universe->mover.y.set_value(50);
     universe->mover.x.add_effect(pan);
 
+    //
+    // Piano triggered bar lights
+    //
     auto& midi_map = effects.add_effect<MidiMap<LinearPulse>>("midi");
     int note = 81; // A4
     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
@@ -166,27 +174,29 @@ void setup() {
         .clear_dt_ms = 100,
     });
 
-    // // Add all lights to the blank effect
-    // auto* blank = &effects.add_effect<Blank>("blank");
-    // for (auto& missyee : universe->missyee) {
-    //     missyee.brightness.add_effect(blank);
-    // }
-    // for (auto& litake : universe->litake) {
-    //     litake.red.add_effect(blank);
-    //     litake.green.add_effect(blank);
-    //     litake.blue.add_effect(blank);
-    // }
-    // universe->mover.red.add_effect(blank);
-    // universe->mover.blue.add_effect(blank);
-    // universe->mover.green.add_effect(blank);
-    // for (auto& bar : universe->bar) {
-    //     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-    //         bar.red(l).add_effect(blank);
-    //         bar.green(l).add_effect(blank);
-    //         bar.blue(l).add_effect(blank);
-    //         bar.white(l).add_effect(blank);
-    //     }
-    // }
+    //
+    // Fade in on startup
+    //
+    auto* blank = &effects.add_effect<Blank>("blank");
+    for (auto& missyee : universe->missyee) {
+        missyee.brightness.add_effect(blank);
+    }
+    for (auto& litake : universe->litake) {
+        litake.red.add_effect(blank);
+        litake.green.add_effect(blank);
+        litake.blue.add_effect(blank);
+    }
+    universe->mover.red.add_effect(blank);
+    universe->mover.blue.add_effect(blank);
+    universe->mover.green.add_effect(blank);
+    for (auto& bar : universe->bar) {
+        for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+            bar.red(l).add_effect(blank);
+            bar.green(l).add_effect(blank);
+            bar.blue(l).add_effect(blank);
+            bar.white(l).add_effect(blank);
+        }
+    }
 }
 
 void loop() {
