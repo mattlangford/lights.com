@@ -14,6 +14,7 @@ struct PaletteConfig {
         RANDOM, // step all fixtures to a random color in the palette
         STEP, // step all fixtures to the next color in the palette
         UNIQUE_RANDOM, // step each fixture to a random color in the palette
+        STEP_SWEEP, // sweep into the next color
     };
 
     TransitionType type = TransitionType::RANDOM;
@@ -75,12 +76,14 @@ public:
         }
 
         const auto& type = json["type"];
-        if (type.isNull()) {
+        if (!type.isNull()) {
             result.consider(SetConfigResult::okay());
             if (type == "RANDOM") {
                 config_.type = PaletteConfig::TransitionType::RANDOM;
             } else if (type == "STEP") {
                 config_.type = PaletteConfig::TransitionType::STEP;
+            } else if (type == "STEP_SWEEP") {
+                config_.type = PaletteConfig::TransitionType::STEP_SWEEP;
             } else if (type == "UNIQUE_RANDOM") {
                 config_.type = PaletteConfig::TransitionType::UNIQUE_RANDOM;
             } else {
@@ -108,6 +111,9 @@ public:
         case PaletteConfig::TransitionType::STEP:
             json["type"] = "STEP";
             break;
+        case PaletteConfig::TransitionType::STEP_SWEEP:
+            json["type"] = "STEP_SWEEP";
+            break;
         case PaletteConfig::TransitionType::UNIQUE_RANDOM:
             json["type"] = "UNIQUE_RANDOM";
             break;
@@ -123,6 +129,7 @@ public:
             to_index = rand();
             break;
         case PaletteConfig::TransitionType::STEP:
+        case PaletteConfig::TransitionType::STEP_SWEEP:
             to_index = index_++;
             break;
         case PaletteConfig::TransitionType::UNIQUE_RANDOM:
@@ -140,7 +147,10 @@ public:
                 }
 
                 const PaletteConfig::Color to_color = config_.palette[to_index % config_.palette.size()];
-                const uint32_t start_time = now_ms + fixture.offset(l);
+                uint32_t start_time = now_ms;
+                if (config_.type == PaletteConfig::TransitionType::STEP_SWEEP) {
+                    start_time += fixture.offset(l);
+                }
                 const uint32_t end_time = start_time + config_.fade_time_ms;
                 auto& effect = fixture.effect(l);
 

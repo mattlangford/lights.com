@@ -174,29 +174,43 @@ void setup() {
         .clear_dt_ms = 100,
     });
 
-    Palette& palette = effects.add_effect<PeriodicTrigger<Palette>>("palette", 1000).effect();
+    auto& shimmering = effects.add_effect<CompositeEffect<CosBlend>>("shimmer");
+
+    Palette& palette = effects.add_effect<PeriodicTrigger<Palette>>("palette", 3000).effect();
     auto& fixture = palette.add_fixture();
     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        auto& effect = fixture.add_effect(10);
+        auto& effect = fixture.add_effect(l * 50);
         universe->bar[2].red(l).add_effect(&effect.red());
         universe->bar[2].green(l).add_effect(&effect.green());
         universe->bar[2].blue(l).add_effect(&effect.blue());
+
+        // Add a shimmer to this light
+        auto& shimmer = shimmering.add();
+        shimmer.set_config({
+            .freq={static_cast<float>(random(0, 100) / 20.), static_cast<float>(random(0, 100) / 20.)},
+            .phase0={1.3f * static_cast<float>(l), static_cast<float>(l)}});
+        shimmer.set_min(0);
+        shimmer.set_max(50);
+        universe->bar[2].red(l).add_effect(&shimmer);
+        universe->bar[2].green(l).add_effect(&shimmer);
+        universe->bar[2].blue(l).add_effect(&shimmer);
     }
 
+
     PaletteConfig config;
-    config.type = PaletteConfig::TransitionType::UNIQUE_RANDOM;
+    config.type = PaletteConfig::TransitionType::STEP_SWEEP;
     const auto rgb = [](uint8_t r, uint8_t g, uint8_t b){
         return PaletteConfig::Color{.r=r / 255.0f, .g=g / 255.0f, .b=b / 255.0f};
     };
-    auto c0 = rgb(100, 13, 107);
-    auto c1 = rgb(181, 27, 117);
-    auto c2 = rgb(230, 92, 25);
-    auto c3 = rgb(248, 208, 130);
+    config.palette = {
+        rgb(71, 30, 168),
+        rgb(206, 0, 107),
+        rgb(168, 0, 157),
+        rgb(214, 0, 58),
+        rgb(110, 50, 173),
+        rgb(200, 0, 130)
+    };
 
-    config.palette.push_back(c0);
-    config.palette.push_back(c1);
-    config.palette.push_back(c2);
-    config.palette.push_back(c3);
     config.fade_time_ms = 250;
     palette.set_config(config);
 
