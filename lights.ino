@@ -184,11 +184,19 @@ void setup() {
     }
 
     PaletteConfig config;
-    config.type = PaletteConfig::TransitionType::STEP;
-    config.palette.push_back(PaletteConfig::Color{.r=1.0, .g=1.0, .b=1.0});
-    config.palette.push_back(PaletteConfig::Color{.r=0.5, .g=1.0, .b=1.0});
-    config.palette.push_back(PaletteConfig::Color{.r=0.0, .g=0.5, .b=1.0});
-    config.palette.push_back(PaletteConfig::Color{.r=0.0, .g=0.0, .b=1.0});
+    config.type = PaletteConfig::TransitionType::UNIQUE_RANDOM;
+    const auto rgb = [](uint8_t r, uint8_t g, uint8_t b){
+        return PaletteConfig::Color{.r=r / 255.0f, .g=g / 255.0f, .b=b / 255.0f};
+    };
+    auto c0 = rgb(100, 13, 107);
+    auto c1 = rgb(181, 27, 117);
+    auto c2 = rgb(230, 92, 25);
+    auto c3 = rgb(248, 208, 130);
+
+    config.palette.push_back(c0);
+    config.palette.push_back(c1);
+    config.palette.push_back(c2);
+    config.palette.push_back(c3);
     config.fade_time_ms = 250;
     palette.set_config(config);
 
