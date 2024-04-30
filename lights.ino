@@ -174,7 +174,7 @@ void setup() {
         .clear_dt_ms = 100,
     });
 
-    Palette& palette = effects.add_effect<PeriodicTrigger<Palette>>("palette", 250).effect();
+    Palette& palette = effects.add_effect<PeriodicTrigger<Palette>>("palette", 1000).effect();
     auto& fixture = palette.add_fixture();
     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
         auto& effect = fixture.add_effect(10);

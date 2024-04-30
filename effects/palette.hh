@@ -146,7 +146,7 @@ public:
 
                 effect.red().fade_to(to_color.r, start_time, end_time);
                 effect.green().fade_to(to_color.g, start_time, end_time);
-                effect.blue().fade_to(to_color.g, start_time, end_time);
+                effect.blue().fade_to(to_color.b, start_time, end_time);
             }
         }
     }
