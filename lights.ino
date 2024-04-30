@@ -44,7 +44,7 @@ struct Universe {
         mover.green.set_value(green);
         bar[0].set_color(red, green, 0);
         bar[1].set_color(red, green, 0);
-        bar[2].set_color(red, green, 0);
+        //bar[2].set_color(red, green, 0);
 
         litake[0].green.set_value(green);
         litake[1].green.set_value(green);
@@ -130,19 +130,19 @@ void setup() {
     // Basic Pulse. This is ordered around the room 
     //
     auto& pulse = effects.add_effect<SweepingPulse>("pulse");
-    universe->missyee[0].blue.add_effect(&pulse.add(300));
-    universe->litake[0].blue.add_effect(&pulse.add(300));
-    universe->litake[1].blue.add_effect(&pulse.add(300));
-    universe->mover.blue.add_effect(&pulse.add(300));
-    universe->missyee[1].blue.add_effect(&pulse.add(300));
-    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[0].blue(l).add_effect(&pulse.add(l == 0 ? 1000 : 10));
-    }
-    universe->missyee[2].blue.add_effect(&pulse.add(10));
-    universe->missyee[3].blue.add_effect(&pulse.add(300));
-    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[1].blue(l).add_effect(&pulse.add(10));
-    }
+    //universe->missyee[0].blue.add_effect(&pulse.add(300));
+    //universe->litake[0].blue.add_effect(&pulse.add(300));
+    //universe->litake[1].blue.add_effect(&pulse.add(300));
+    //universe->mover.blue.add_effect(&pulse.add(300));
+    //universe->missyee[1].blue.add_effect(&pulse.add(300));
+    //for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+    //    universe->bar[0].blue(l).add_effect(&pulse.add(l == 0 ? 1000 : 10));
+    //}
+    //universe->missyee[2].blue.add_effect(&pulse.add(10));
+    //universe->missyee[3].blue.add_effect(&pulse.add(300));
+    //for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+    //    universe->bar[1].blue(l).add_effect(&pulse.add(10));
+    //}
     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
         universe->bar[2].blue(l).add_effect(&pulse.add(10));
     }
@@ -174,6 +174,24 @@ void setup() {
         .clear_dt_ms = 100,
     });
 
+    Palette& palette = effects.add_effect<PeriodicTrigger<Palette>>("palette", 250).effect();
+    auto& fixture = palette.add_fixture();
+    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+        auto& effect = fixture.add_effect(10);
+        universe->bar[2].red(l).add_effect(&effect.red());
+        universe->bar[2].green(l).add_effect(&effect.green());
+        universe->bar[2].blue(l).add_effect(&effect.blue());
+    }
+
+    PaletteConfig config;
+    config.type = PaletteConfig::TransitionType::STEP;
+    config.palette.push_back(PaletteConfig::Color{.r=1.0, .g=1.0, .b=1.0});
+    config.palette.push_back(PaletteConfig::Color{.r=0.5, .g=1.0, .b=1.0});
+    config.palette.push_back(PaletteConfig::Color{.r=0.0, .g=0.5, .b=1.0});
+    config.palette.push_back(PaletteConfig::Color{.r=0.0, .g=0.0, .b=1.0});
+    config.fade_time_ms = 250;
+    palette.set_config(config);
+
     //
     // Fade in on startup
     //
@@ -197,9 +215,11 @@ void setup() {
             bar.white(l).add_effect(blank);
         }
     }
+
 }
 
 void loop() {
+    periodic.tick();
     midi.read();
     audio.read();
     interface.handle_serial();

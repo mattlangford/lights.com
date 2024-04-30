@@ -312,6 +312,7 @@ private:
 #include "effects/audio.hh"
 #include "effects/blank.hh"
 #include "effects/palette.hh"
+#include "effects/periodic_trigger.hh"
 
 class EffectMap {
 public:
@@ -360,7 +361,7 @@ public:
     }
 
     DynamicJsonDocument get_json(const String& name) {
-        DynamicJsonDocument doc(1024);
+        DynamicJsonDocument doc(2>>20);
         for (const auto& effect : effects_) {
             if (name != "" && effect.first != name) {
                 continue;

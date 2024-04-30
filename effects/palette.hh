@@ -50,9 +50,14 @@ public:
 
 public:
     Palette() { }
+    Palette(PaletteConfig config) : config_(std::move(config)) { }
     ~Palette() override = default;
 
     String type() const { return "Palette"; }
+
+    void set_config(PaletteConfig config) {
+        config_ = std::move(config);
+    }
 
     SetConfigResult set_config_json(const JsonObject& json) override {
         SetConfigResult result = SetConfigResult::no_values_set();
@@ -124,6 +129,10 @@ public:
             break;
         }
 
+        if (config_.palette.empty()) {
+            return;
+        }
+
         for (auto& fixture : fixtures_) {
             for (size_t l = 0; l < fixture.size(); ++l) {
                 if (config_.type == PaletteConfig::TransitionType::UNIQUE_RANDOM){
@@ -132,7 +141,7 @@ public:
 
                 const PaletteConfig::Color to_color = config_.palette[to_index % config_.palette.size()];
                 const uint32_t start_time = now_ms + fixture.offset(l);
-                const uint32_t end_time = start_time - config_.fade_time_ms;
+                const uint32_t end_time = start_time + config_.fade_time_ms;
                 auto& effect = fixture.effect(l);
 
                 effect.red().fade_to(to_color.r, start_time, end_time);

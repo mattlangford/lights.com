@@ -4,7 +4,7 @@
 
 class Blank final : public FaderEffect {
 private:
-    static constexpr uint32_t FADE_TIME_MS = 1000;
+    static constexpr uint32_t FADE_TIME_MS = 500;
 public:
     Blank() {
         // Default to blocking all incoming signals.
