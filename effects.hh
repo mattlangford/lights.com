@@ -308,11 +308,12 @@ private:
 #include "effects/cos_blend.hh"
 #include "effects/linear_pulse.hh"
 #include "effects/sweeping_pulse.hh"
-#include "effects/midi.hh"
-#include "effects/audio.hh"
 #include "effects/blank.hh"
 #include "effects/palette.hh"
 #include "effects/periodic_trigger.hh"
+#include "effects/midi.hh"
+
+#include "effects/audio.hh"
 
 class EffectMap {
 public:

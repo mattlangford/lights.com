@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 class Interface {
 public:
     void handle_serial() {

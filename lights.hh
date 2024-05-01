@@ -1,7 +1,6 @@
 #pragma once
 
 #include "dmx.hh"
-#include "effects.hh"
 
 class MissyeeLight {
 public:
