@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <map>
+#include <string>
 
 struct PaletteConfig {
     struct Color {
@@ -19,7 +21,8 @@ struct PaletteConfig {
 
     TransitionType type = TransitionType::RANDOM;
 
-    std::vector<Color> palette;
+    std::map<std::string, std::vector<Color>> palettes;
+    std::string palette;
 
     uint32_t fade_time_ms = 100;
 };
@@ -51,27 +54,31 @@ public:
 
 public:
     Palette() { }
-    Palette(PaletteConfig config) : config_(std::move(config)) { }
+    Palette(PaletteConfig config) { set_config(std::move(config)); }
     ~Palette() override = default;
 
     String type() const { return "Palette"; }
 
     void set_config(PaletteConfig config) {
         config_ = std::move(config);
+
+        // default to the first
+        if (config_.palette == "" && !config_.palettes.empty()) {
+            config_.palette = config_.palettes.begin()->first;
+        }
     }
 
     SetConfigResult set_config_json(const JsonObject& json) override {
         SetConfigResult result = SetConfigResult::no_values_set();
 
         const auto& palette = json["palette"];
-        if (palette.isNull()) {
-            result.consider(SetConfigResult::okay());
-            config_.palette.resize(json["palette"].size());
-            for (size_t i = 0; i < config_.palette.size(); ++i) {
-                const auto& color = json["palette"][i];
-                config_.palette[i].r = color["r"];
-                config_.palette[i].g = color["g"];
-                config_.palette[i].b = color["b"];
+        if (!palette.isNull()) {
+            std::string palette = json["palette"].as<std::string>();
+            if (config_.palettes.find(palette) == config_.palettes.end()) {
+                result.consider(SetConfigResult::error("Unknown palette type."));
+            } else {
+                result.consider(SetConfigResult::okay());
+                config_.palette = palette;
             }
         }
 
@@ -97,13 +104,8 @@ public:
     };
 
     void get_config_json(JsonObject& json) const override {
-        JsonArray palette = json.createNestedArray("palette");
-        for (auto& color : config_.palette) {
-            JsonObject json_color = palette.createNestedObject();
-            json_color["r"] = color.r;
-            json_color["g"] = color.g;
-            json_color["b"] = color.b;
-        }
+        json["palette"] = config_.palette;
+
         switch (config_.type) {
         case PaletteConfig::TransitionType::RANDOM:
             json["type"] = "RANDOM";
@@ -136,9 +138,11 @@ public:
             break;
         }
 
-        if (config_.palette.empty()) {
+        auto it = config_.palettes.find(config_.palette);
+        if (it == config_.palettes.end()) {
             return;
         }
+        const auto& palette = it->second;
 
         for (auto& fixture : fixtures_) {
             for (size_t l = 0; l < fixture.size(); ++l) {
@@ -146,7 +150,7 @@ public:
                     to_index = rand();
                 }
 
-                const PaletteConfig::Color to_color = config_.palette[to_index % config_.palette.size()];
+                const PaletteConfig::Color to_color = palette[to_index % palette.size()];
                 uint32_t start_time = now_ms;
                 if (config_.type == PaletteConfig::TransitionType::STEP_SWEEP) {
                     start_time += fixture.offset(l);

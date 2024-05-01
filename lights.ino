@@ -202,14 +202,7 @@ void setup() {
     const auto rgb = [](uint8_t r, uint8_t g, uint8_t b){
         return PaletteConfig::Color{.r=r / 255.0f, .g=g / 255.0f, .b=b / 255.0f};
     };
-    config.palette = {
-        rgb(71, 30, 168),
-        rgb(206, 0, 107),
-        rgb(168, 0, 157),
-        rgb(214, 0, 58),
-        rgb(110, 50, 173),
-        rgb(200, 0, 130)
-    };
+    config.palettes["reds"] = {rgb(71, 30, 168), rgb(206, 0, 107), rgb(168, 0, 157), rgb(214, 0, 58), rgb(110, 50, 173), rgb(200, 0, 130) };
 
     config.fade_time_ms = 250;
     palette.set_config(config);
