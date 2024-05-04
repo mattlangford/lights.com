@@ -121,7 +121,7 @@ void setup() {
 
     controller = new DMXController(41, 40);
 
-    audio.setup();
+    // audio.setup();
     midi.setup();
 
     universe = new Universe(*controller);
@@ -160,15 +160,23 @@ void setup() {
     // Piano triggered bar lights
     //
     auto& midi_map = effects.add_effect<MidiMap<LinearPulse>>("midi");
+    auto& bass = midi_map.add_effect_for_note(MidiManager::MidiNote{.base='C', .octive=2}.note());
+    auto& snare = midi_map.add_effect_for_note(MidiManager::MidiNote{.base='C', .octive=2, .sharp=true}.note());
+    auto& hat = midi_map.add_effect_for_note(MidiManager::MidiNote{.base='D', .octive=2, .sharp=true}.note());
     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        MidiManager::MidiNote bass_drum{.base='C', .octive=2};
-        universe->bar[2].blue(l).add_effect(&midi_map.add_effect_for_note(bass_drum.note()));
+        universe->bar[2].blue(l).add_effect(&bass);
+
+        universe->bar[2].red(l).add_effect(&snare);
+
+        if (l % 8 == 0) {
+            universe->bar[2].white(l).add_effect(&hat);
+        }
     }
-    // midi_map.set_channel(10); // drum channel
+    midi_map.set_channel(10); // drum channel
     midi_map.set_config(LinearPulseConfig{
         .rise_dt_ms = 10,
         .hold_dt_ms = 100,
-        .fall_dt_ms = 1000,
+        .fall_dt_ms = 3000,
         .clear_dt_ms = 100,
     });
 
@@ -211,32 +219,32 @@ void setup() {
     //
     // Fade in on startup
     //
-    auto* blank = &effects.add_effect<Blank>("blank");
-    for (auto& missyee : universe->missyee) {
-        missyee.brightness.add_effect(blank);
-    }
-    for (auto& litake : universe->litake) {
-        litake.red.add_effect(blank);
-        litake.green.add_effect(blank);
-        litake.blue.add_effect(blank);
-    }
-    universe->mover.red.add_effect(blank);
-    universe->mover.blue.add_effect(blank);
-    universe->mover.green.add_effect(blank);
-    for (auto& bar : universe->bar) {
-        for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-            bar.red(l).add_effect(blank);
-            bar.green(l).add_effect(blank);
-            bar.blue(l).add_effect(blank);
-            bar.white(l).add_effect(blank);
-        }
-    }
+    // auto* blank = &effects.add_effect<Blank>("blank");
+    // for (auto& missyee : universe->missyee) {
+    //     missyee.brightness.add_effect(blank);
+    // }
+    // for (auto& litake : universe->litake) {
+    //     litake.red.add_effect(blank);
+    //     litake.green.add_effect(blank);
+    //     litake.blue.add_effect(blank);
+    // }
+    // universe->mover.red.add_effect(blank);
+    // universe->mover.blue.add_effect(blank);
+    // universe->mover.green.add_effect(blank);
+    // for (auto& bar : universe->bar) {
+    //     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+    //         bar.red(l).add_effect(blank);
+    //         bar.green(l).add_effect(blank);
+    //         bar.blue(l).add_effect(blank);
+    //         bar.white(l).add_effect(blank);
+    //     }
+    // }
 }
 
 void loop() {
     periodic.tick();
     midi.read();
-    audio.read();
+    // audio.read();
     interface.handle_serial();
     controller->write_frame();
 }

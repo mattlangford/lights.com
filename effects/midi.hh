@@ -66,7 +66,7 @@ struct MidiNote {
                 case 'B': case 'b': offset = 11; break;
                 default: break;
             }
-            return C0_BASE + OCTIVE_SIZE * octive + offset + sharp ? 1 : 0;
+            return C0_BASE + OCTIVE_SIZE * octive + offset + (sharp ? 1 : 0);
         }
 
         static MidiNote from_note(byte note) {
