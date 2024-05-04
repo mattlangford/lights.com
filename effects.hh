@@ -230,11 +230,11 @@ public:
     }
 
     void get_config_json(JsonObject& json) const override {
-        JsonObject r = json.createNestedObject("red");
+        JsonObject r = json["red"].to<JsonObject>();
         red().get_config_json(r);
-        JsonObject g = json.createNestedObject("green");
+        JsonObject g = json["green"].to<JsonObject>();
         green().get_config_json(g);
-        JsonObject b = json.createNestedObject("blue");
+        JsonObject b = json["blue"].to<JsonObject>();
         blue().get_config_json(b);
     };
 };
@@ -287,7 +287,7 @@ public:
 
     void get_config_json(JsonObject& json) const override {
         get_parent_config_json(json);
-        JsonObject nested = json.createNestedObject("nested");
+        JsonObject nested = json["nested"].to<JsonObject>();
         effect().get_config_json(nested);
     };
 
@@ -361,24 +361,24 @@ public:
         }
     }
 
-    DynamicJsonDocument get_json(const String& name) {
-        DynamicJsonDocument doc(2>>20);
+    JsonDocument get_json(const String& name) {
+        JsonDocument doc;
         for (const auto& effect : effects_) {
             if (name != "" && effect.first != name) {
                 continue;
             }
 
-            JsonObject object = doc.createNestedObject(effect.first);
+            JsonObject object = doc["config"].to<JsonObject>();
             object["type"] = effect.second->type();
 
-            JsonObject config = object.createNestedObject("config");
+            JsonObject config = object["config"].to<JsonObject>();
 
             effect.second->get_config_json(config);
         }
 
         // Overflows are silent, so make them loud here!
         if (doc.overflowed()) {
-            DynamicJsonDocument err(1024);
+            JsonDocument err;
             err["error"] = "Config for " + std::to_string(effects_.size()) + " effects overflowed the json buffer.";
             return err;
         }

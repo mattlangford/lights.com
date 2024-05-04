@@ -78,7 +78,7 @@ void set(const String& name_and_json) {
     String name = name_and_json.substring(0, space);
     String json = name_and_json.substring(space + 1);
 
-    DynamicJsonDocument doc(1024);
+    JsonDocument doc;
     const DeserializationError err = deserializeJson(doc, json);
     if (err.code() == DeserializationError::Ok) {
         effects.set_json(name, doc.as<JsonObject>());
@@ -160,13 +160,11 @@ void setup() {
     // Piano triggered bar lights
     //
     auto& midi_map = effects.add_effect<MidiMap<LinearPulse>>("midi");
-    int note = 81; // A4
     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[1].blue(l).add_effect(&midi_map.add_effect_for_note(note--));
+        MidiManager::MidiNote bass_drum{.base='C', .octive=2};
+        universe->bar[2].blue(l).add_effect(&midi_map.add_effect_for_note(bass_drum.note()));
     }
-    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[2].blue(l).add_effect(&midi_map.add_effect_for_note(note--));
-    }
+    // midi_map.set_channel(10); // drum channel
     midi_map.set_config(LinearPulseConfig{
         .rise_dt_ms = 10,
         .hold_dt_ms = 100,
@@ -203,6 +201,9 @@ void setup() {
         return PaletteConfig::Color{.r=r / 255.0f, .g=g / 255.0f, .b=b / 255.0f};
     };
     config.palettes["reds"] = {rgb(71, 30, 168), rgb(206, 0, 107), rgb(168, 0, 157), rgb(214, 0, 58), rgb(110, 50, 173), rgb(200, 0, 130)};
+    config.palettes["green"] = {rgb(17, 200, 50), rgb(135, 169, 34), rgb(252, 220, 42), rgb(150, 246, 187)};
+    config.palettes["yellow"] = {rgb(255, 150, 10)};
+    config.palette = "reds";
 
     config.fade_time_ms = 250;
     palette.set_config(config);

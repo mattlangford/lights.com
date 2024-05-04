@@ -54,12 +54,12 @@ public:
 
     void get_config_json(JsonObject& json) const override {
         SingleChannelEffect::get_config_json(json);
-        JsonArray freq_array = json.createNestedArray("freq");
+        JsonArray freq_array = json["freq"].to<JsonArray>();
         for (auto& freq : config_.freq) {
             freq_array.add(freq);
         }
 
-        JsonArray phase_array = json.createNestedArray("phase0");
+        JsonArray phase_array = json["phase0"].to<JsonArray>();
         for (auto& phase : config_.phase0) {
             phase_array.add(phase);
         }

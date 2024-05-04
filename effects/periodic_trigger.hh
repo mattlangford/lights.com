@@ -61,7 +61,7 @@ public:
 
 protected:
     SetConfigResult set_parent_config_json(const JsonObject& json) {
-        SetConfigResult result;
+        SetConfigResult result = SetConfigResult::no_values_set();
         uint32_t rate = 0;
         if (result.maybe_set(json, "rate_ms", rate)) {
             set_rate(rate);
@@ -72,4 +72,5 @@ protected:
 
     String parent_type() const override { return "PeriodicTrigger"; }
 
-    void trigger_ready(uint32_t now) override { this->trigger(now); } };
+    void trigger_ready(uint32_t now) override { this->trigger(now); }
+};

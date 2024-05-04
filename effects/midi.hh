@@ -47,7 +47,7 @@ public:
     }
 
 public:
-    struct MidiNote {
+struct MidiNote {
         char base = 'A';
         byte octive = 0;
         bool sharp = false;
