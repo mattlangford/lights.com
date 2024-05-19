@@ -127,27 +127,6 @@ void setup() {
     universe = new Universe(*controller);
 
     //
-    // Basic Pulse. This is ordered around the room 
-    //
-    auto& pulse = effects.add_effect<SweepingPulse>("pulse");
-    //universe->missyee[0].blue.add_effect(&pulse.add(300));
-    //universe->litake[0].blue.add_effect(&pulse.add(300));
-    //universe->litake[1].blue.add_effect(&pulse.add(300));
-    //universe->mover.blue.add_effect(&pulse.add(300));
-    //universe->missyee[1].blue.add_effect(&pulse.add(300));
-    //for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-    //    universe->bar[0].blue(l).add_effect(&pulse.add(l == 0 ? 1000 : 10));
-    //}
-    //universe->missyee[2].blue.add_effect(&pulse.add(10));
-    //universe->missyee[3].blue.add_effect(&pulse.add(300));
-    //for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-    //    universe->bar[1].blue(l).add_effect(&pulse.add(10));
-    //}
-    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[2].blue(l).add_effect(&pulse.add(10));
-    }
-
-    //
     // Panning the mover light.
     //
     auto* pan = &effects.add_effect<CosBlend>("pan");
@@ -156,64 +135,38 @@ void setup() {
     universe->mover.y.set_value(50);
     universe->mover.x.add_effect(pan);
 
-    //
-    // Piano triggered bar lights
-    //
-    auto& midi_map = effects.add_effect<MidiMap<LinearPulse>>("midi");
-    auto& bass = midi_map.add_effect_for_note(MidiManager::MidiNote{.base='C', .octive=2}.note());
-    auto& snare = midi_map.add_effect_for_note(MidiManager::MidiNote{.base='C', .octive=2, .sharp=true}.note());
-    auto& hat = midi_map.add_effect_for_note(MidiManager::MidiNote{.base='D', .octive=2, .sharp=true}.note());
+    Palette& palette = effects.add_effect<PeriodicTrigger<Palette>>("palette", 1000).effect();
     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        universe->bar[2].blue(l).add_effect(&bass);
-
-        universe->bar[2].red(l).add_effect(&snare);
-
-        if (l % 8 == 0) {
-            universe->bar[2].white(l).add_effect(&hat);
-        }
-    }
-    midi_map.set_channel(10); // drum channel
-    midi_map.set_config(LinearPulseConfig{
-        .rise_dt_ms = 10,
-        .hold_dt_ms = 100,
-        .fall_dt_ms = 3000,
-        .clear_dt_ms = 100,
-    });
-
-    auto& shimmering = effects.add_effect<CompositeEffect<CosBlend>>("shimmer");
-
-    Palette& palette = effects.add_effect<PeriodicTrigger<Palette>>("palette", 3000).effect();
-    auto& fixture = palette.add_fixture();
-    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        auto& effect = fixture.add_effect(l * 50);
+        auto& effect = palette.add_effect(l * 50);
         universe->bar[2].red(l).add_effect(&effect.red());
         universe->bar[2].green(l).add_effect(&effect.green());
         universe->bar[2].blue(l).add_effect(&effect.blue());
-
-        // Add a shimmer to this light
-        auto& shimmer = shimmering.add();
-        shimmer.set_config({
-            .freq={static_cast<float>(random(0, 100) / 20.), static_cast<float>(random(0, 100) / 20.)},
-            .phase0={1.3f * static_cast<float>(l), static_cast<float>(l)}});
-        shimmer.set_min(0);
-        shimmer.set_max(50);
-        universe->bar[2].red(l).add_effect(&shimmer);
-        universe->bar[2].green(l).add_effect(&shimmer);
-        universe->bar[2].blue(l).add_effect(&shimmer);
     }
 
 
     PaletteConfig config;
-    config.type = PaletteConfig::TransitionType::STEP_SWEEP;
+    config.type = PaletteConfig::TransitionType::STEP;
     const auto rgb = [](uint8_t r, uint8_t g, uint8_t b){
         return PaletteConfig::Color{.r=r / 255.0f, .g=g / 255.0f, .b=b / 255.0f};
     };
-    config.palettes["reds"] = {rgb(71, 30, 168), rgb(206, 0, 107), rgb(168, 0, 157), rgb(214, 0, 58), rgb(110, 50, 173), rgb(200, 0, 130)};
-    config.palettes["green"] = {rgb(17, 200, 50), rgb(135, 169, 34), rgb(252, 220, 42), rgb(150, 246, 187)};
+    config.palettes["reds"] = {
+        rgb(71, 30, 168),
+        rgb(206, 0, 107),
+        rgb(168, 0, 157),
+        rgb(214, 0, 58),
+        rgb(110, 50, 173),
+        rgb(200, 0, 130)
+    };
+    config.palettes["green"] = {
+        rgb(17, 200, 50),
+        rgb(135, 169, 34),
+        rgb(252, 220, 42),
+        rgb(150, 246, 187)
+    };
     config.palettes["yellow"] = {rgb(255, 150, 10)};
     config.palette = "reds";
 
-    config.fade_time_ms = 250;
+    config.fade_time_ms = 50;
     palette.set_config(config);
 
     //

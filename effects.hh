@@ -279,7 +279,7 @@ public:
     String type() const override { return parent_type() + "(" + effect_.type() + ")"; }
 
     SetConfigResult set_config_json(const JsonObject& json) override {
-        SetConfigResult result = SetConfigResult::okay();
+        SetConfigResult result = SetConfigResult::no_values_set();
         result.consider(set_parent_config_json(json), "parent");
         result.consider(effect().set_config_json(json["nested"]), "nested");
         return result;
@@ -368,11 +368,10 @@ public:
                 continue;
             }
 
-            JsonObject object = doc["config"].to<JsonObject>();
+            JsonObject object = doc[effect.first].to<JsonObject>();
             object["type"] = effect.second->type();
 
             JsonObject config = object["config"].to<JsonObject>();
-
             effect.second->get_config_json(config);
         }
 
