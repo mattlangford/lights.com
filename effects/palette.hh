@@ -115,6 +115,7 @@ public:
         }
         const auto& palette = it->second;
 
+        const PaletteConfig::Color to_color = palette[to_index % palette.size()];
         for (size_t l = 0; l < effects_.size(); ++l) {
             if (config_.type == PaletteConfig::TransitionType::RANDOM){
                 to_index = rand();
@@ -134,7 +135,11 @@ public:
         }
     }
 
-    void clear(uint32_t now_ms) { }
+    void clear(uint32_t now_ms) {
+        for (auto& effect : effects_) {
+            effect->clear(now_ms);
+        }
+    }
 
     Effect& add_effect(uint32_t offset_ms=0) {
         offsets_.push_back(offset_ms);
@@ -148,4 +153,32 @@ private:
 
     std::vector<std::unique_ptr<Effect>> effects_;
     std::vector<uint32_t> offsets_;
+};
+
+class Solid final : public RgbEffect<FaderEffect> {
+public:
+    SetConfigResult set_config_json(const JsonObject& json) override {
+        SetConfigResult result = SetConfigResult::no_values_set();
+
+        float r, g, b;
+        if (result.maybe_set(json, "r", r)) {
+            red().set_min(r);
+            red().set_max(r);
+        }
+        if (result.maybe_set(json, "g", g)) {
+            green().set_min(g);
+            green().set_max(g);
+        }
+        if (result.maybe_set(json, "b", b)) {
+            blue().set_min(b);
+            blue().set_max(b);
+        }
+        return result;
+    };
+
+    void get_config_json(JsonObject& json) const override {
+        json["r"] = red().min_value();
+        json["g"] = green().min_value();
+        json["b"] = blue().min_value();
+    };
 };

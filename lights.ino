@@ -20,34 +20,29 @@ struct Universe {
     WashBarLight112 bar[3];
 
     Universe(DMXController& controller):
-        litake{{1, controller}, {5, controller}},
-        missyee{{10, controller}, {17, controller}, {24, controller}, {31, controller}},
+        litake{{5, controller}, {1, controller}},
+        missyee{{10, controller}, {17, controller}, {31, controller}, {24, controller}},
         mover{40, controller},
-        bar{{50, controller}, {162, controller}, {274, controller}} {
+        bar{{162, controller}, {274, controller}, {50, controller}} {
 
-        // controller.set_max_channel(512);
+        controller.set_max_channel(512);
 
-        uint8_t red = 255;
-        uint8_t green = 30;
+        // uint8_t red = 255;
+        // uint8_t green = 30;
 
-        litake[0].red.set_value(red);
-        litake[1].red.set_value(red);
-        missyee[0].red.set_value(red);
-        missyee[1].red.set_value(red);
-        missyee[2].red.set_value(red);
-        missyee[3].red.set_value(red);
-        missyee[0].green.set_value(green);
-        missyee[1].green.set_value(green);
-        missyee[2].green.set_value(green);
-        missyee[3].green.set_value(green);
-        mover.red.set_value(red);
-        mover.green.set_value(green);
-        bar[0].set_color(red, green, 0);
-        bar[1].set_color(red, green, 0);
-        //bar[2].set_color(red, green, 0);
-
-        litake[0].green.set_value(green);
-        litake[1].green.set_value(green);
+        // litake[0].red.set_value(red);
+        // litake[1].blue.set_value(red);
+        // missyee[0].red.set_value(red);
+        // missyee[1].blue.set_value(red);
+        // missyee[2].green.set_value(red);
+        // missyee[3].red.set_value(red);
+        // missyee[3].green.set_value(red);
+        // missyee[3].blue.set_value(red);
+        // mover.red.set_value(red);
+        // mover.green.set_value(green);
+        // bar[0].set_color(red, 0, 0);
+        // bar[1].set_color(0, green, 0);
+        // bar[2].set_color(red, green, 0);
     }
 };
 Universe* universe;
@@ -130,41 +125,188 @@ void setup() {
     // Panning the mover light.
     //
     auto* pan = &effects.add_effect<CosBlend>("pan");
-    pan->set_config(CosBlendConfig{.freq={0.3}});
-    pan->set_values(170, 250); // sweep the room!
-    universe->mover.y.set_value(50);
+    pan->set_config(CosBlendConfig{.freq={0.1}});
+    pan->set_values(200, 230); // sweep the room!
+    universe->mover.y.set_value(10);
     universe->mover.x.add_effect(pan);
+    pan->trigger(0);
 
-    Palette& palette = effects.add_effect<PeriodicTrigger<Palette>>("palette", 1000).effect();
-    for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-        auto& effect = palette.add_effect(l * 50);
-        universe->bar[2].red(l).add_effect(&effect.red());
-        universe->bar[2].green(l).add_effect(&effect.green());
-        universe->bar[2].blue(l).add_effect(&effect.blue());
+    auto& shimmer = effects.add_effect<CompositeEffect<CosBlend>>("shimmer");
+    Palette& palette = effects.add_effect<Palette>("palette");
+    auto& solid = effects.add_effect<Solid>("rgb");
+
+    uint32_t offset = 0;
+
+    {
+        offset += 100;
+        auto& effect = palette.add_effect(offset);
+        auto& light = universe->litake[0];
+        light.red.add_effect(&effect.red());
+        light.green.add_effect(&effect.green());
+        light.blue.add_effect(&effect.blue());
+        light.red.add_effect(&solid.red());
+        light.green.add_effect(&solid.green());
+        light.blue.add_effect(&solid.blue());
     }
 
+    {
+        offset += 100;
+        auto& effect = palette.add_effect(offset);
+        auto& light = universe->litake[1];
+        light.red.add_effect(&effect.red());
+        light.green.add_effect(&effect.green());
+        light.blue.add_effect(&effect.blue());
+        light.red.add_effect(&solid.red());
+        light.green.add_effect(&solid.green());
+        light.blue.add_effect(&solid.blue());
+    }
+    {
+        offset += 100;
+        auto& effect = palette.add_effect(offset);
+        auto& light = universe->missyee[0];
+        light.red.add_effect(&effect.red());
+        light.green.add_effect(&effect.green());
+        light.blue.add_effect(&effect.blue());
+        light.red.add_effect(&solid.red());
+        light.green.add_effect(&solid.green());
+        light.blue.add_effect(&solid.blue());
+    }
+
+    {
+        offset += 300;
+        auto& effect = palette.add_effect(offset);
+        auto& light = universe->missyee[1];
+        light.red.add_effect(&effect.red());
+        light.green.add_effect(&effect.green());
+        light.blue.add_effect(&effect.blue());
+        light.red.add_effect(&solid.red());
+        light.green.add_effect(&solid.green());
+        light.blue.add_effect(&solid.blue());
+    }
+
+    {
+        offset += 100;
+        auto& effect = palette.add_effect(offset);
+        auto& light = universe->mover;
+        light.red.add_effect(&effect.red());
+        light.green.add_effect(&effect.green());
+        light.blue.add_effect(&effect.blue());
+        light.red.add_effect(&solid.red());
+        light.green.add_effect(&solid.green());
+        light.blue.add_effect(&solid.blue());
+    }
+
+    offset += 20;
+
+    constexpr size_t NUM_DIVISIONS = 7;
+    for (size_t i = 0; i < NUM_DIVISIONS; ++i) {
+        size_t start = WashBarLight112::NUM_LIGHTS / NUM_DIVISIONS * i;
+        size_t end = WashBarLight112::NUM_LIGHTS / NUM_DIVISIONS * (i + 1);
+        offset += 50;
+        auto& effect = palette.add_effect(offset);
+        auto& light = universe->bar[0];
+        for (size_t j = start; j < end; ++j) {
+            light.red(j).add_effect(&effect.red());
+            light.green(j).add_effect(&effect.green());
+            light.blue(j).add_effect(&effect.blue());
+            light.red(j).add_effect(&solid.red());
+            light.green(j).add_effect(&solid.green());
+            light.blue(j).add_effect(&solid.blue());
+        }
+    }
+    for (size_t i = 0; i < NUM_DIVISIONS; ++i) {
+        size_t start = WashBarLight112::NUM_LIGHTS / NUM_DIVISIONS * i;
+        size_t end = WashBarLight112::NUM_LIGHTS / NUM_DIVISIONS * (i + 1);
+        offset += 50;
+        auto& effect = palette.add_effect(offset);
+        auto& light = universe->bar[1];
+        for (size_t j = start; j < end; ++j) {
+            light.red(j).add_effect(&effect.red());
+            light.green(j).add_effect(&effect.green());
+            light.blue(j).add_effect(&effect.blue());
+            light.red(j).add_effect(&solid.red());
+            light.green(j).add_effect(&solid.green());
+            light.blue(j).add_effect(&solid.blue());
+        }
+    }
+    for (size_t i = 0; i < NUM_DIVISIONS; ++i) {
+        size_t start = WashBarLight112::NUM_LIGHTS / NUM_DIVISIONS * i;
+        size_t end = WashBarLight112::NUM_LIGHTS / NUM_DIVISIONS * (i + 1);
+        offset += 50;
+        auto& effect = palette.add_effect(offset);
+        auto& light = universe->bar[2];
+        for (size_t j = start; j < end; ++j) {
+            light.red(j).add_effect(&effect.red());
+            light.green(j).add_effect(&effect.green());
+            light.blue(j).add_effect(&effect.blue());
+            light.red(j).add_effect(&solid.red());
+            light.green(j).add_effect(&solid.green());
+            light.blue(j).add_effect(&solid.blue());
+        }
+    }
+
+    {
+        offset += 100;
+        auto& effect = palette.add_effect(offset);
+        auto& light = universe->missyee[2];
+        light.red.add_effect(&effect.red());
+        light.green.add_effect(&effect.green());
+        light.blue.add_effect(&effect.blue());
+        light.red.add_effect(&solid.red());
+        light.green.add_effect(&solid.green());
+        light.blue.add_effect(&solid.blue());
+    }
+
+    {
+        offset += 100;
+        auto& effect = palette.add_effect(offset);
+        auto& light = universe->missyee[3];
+        light.red.add_effect(&effect.red());
+        light.green.add_effect(&effect.green());
+        light.blue.add_effect(&effect.blue());
+        light.red.add_effect(&solid.red());
+        light.green.add_effect(&solid.green());
+        light.blue.add_effect(&solid.blue());
+    }
+
+    solid.trigger(millis());
 
     PaletteConfig config;
-    config.type = PaletteConfig::TransitionType::STEP;
+    config.type = PaletteConfig::TransitionType::STEP_SWEEP;
     const auto rgb = [](uint8_t r, uint8_t g, uint8_t b){
         return PaletteConfig::Color{.r=r / 255.0f, .g=g / 255.0f, .b=b / 255.0f};
     };
-    config.palettes["reds"] = {
-        rgb(71, 30, 168),
-        rgb(206, 0, 107),
-        rgb(168, 0, 157),
-        rgb(214, 0, 58),
-        rgb(110, 50, 173),
-        rgb(200, 0, 130)
+    config.palettes["red"] = {
+        rgb(255, 0, 0),
+        rgb(0, 0, 0),
     };
-    config.palettes["green"] = {
-        rgb(17, 200, 50),
-        rgb(135, 169, 34),
-        rgb(252, 220, 42),
-        rgb(150, 246, 187)
+    config.palettes["hues"] = {
+        rgb(255, 0, 0),
+        rgb(0, 255, 0),
+        rgb(0, 0, 255),
     };
-    config.palettes["yellow"] = {rgb(255, 150, 10)};
-    config.palette = "reds";
+    config.palettes["fire"] = {
+        rgb(255, 0, 0),
+        rgb(255, 25, 0),
+        rgb(200, 50, 0),
+        rgb(255, 100, 0),
+    };
+    config.palettes["neon"] = {
+        rgb(255, 10, 10),
+        rgb(0, 100, 255),
+        rgb(76, 205, 153),
+        rgb(255, 16, 240),
+        rgb(0, 12, 200),
+    };
+    config.palettes["blues"] = {
+        rgb(0, 0, 255),
+        rgb(0, 100, 255),
+        rgb(30, 25, 180),
+        rgb(75, 0, 200),
+        rgb(0, 75, 200),
+    };
+
+    config.palette = "red";
 
     config.fade_time_ms = 50;
     palette.set_config(config);
@@ -172,26 +314,27 @@ void setup() {
     //
     // Fade in on startup
     //
-    // auto* blank = &effects.add_effect<Blank>("blank");
-    // for (auto& missyee : universe->missyee) {
-    //     missyee.brightness.add_effect(blank);
-    // }
-    // for (auto& litake : universe->litake) {
-    //     litake.red.add_effect(blank);
-    //     litake.green.add_effect(blank);
-    //     litake.blue.add_effect(blank);
-    // }
-    // universe->mover.red.add_effect(blank);
-    // universe->mover.blue.add_effect(blank);
-    // universe->mover.green.add_effect(blank);
-    // for (auto& bar : universe->bar) {
-    //     for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-    //         bar.red(l).add_effect(blank);
-    //         bar.green(l).add_effect(blank);
-    //         bar.blue(l).add_effect(blank);
-    //         bar.white(l).add_effect(blank);
-    //     }
-    // }
+    auto* blank = &effects.add_effect<Blank>("blank");
+    for (auto& missyee : universe->missyee) {
+        missyee.brightness.add_effect(blank);
+    }
+    for (auto& litake : universe->litake) {
+        litake.red.add_effect(blank);
+        litake.green.add_effect(blank);
+        litake.blue.add_effect(blank);
+    }
+    universe->mover.red.add_effect(blank);
+    universe->mover.blue.add_effect(blank);
+    universe->mover.green.add_effect(blank);
+    for (auto& bar : universe->bar) {
+        for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
+            bar.red(l).add_effect(blank);
+            bar.green(l).add_effect(blank);
+            bar.blue(l).add_effect(blank);
+            bar.white(l).add_effect(blank);
+        }
+    }
+    blank->clear(0);
 }
 
 void loop() {

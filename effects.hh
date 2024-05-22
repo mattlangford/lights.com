@@ -82,7 +82,7 @@ public:
     }
 
     void clear(uint32_t now_ms) override {
-        FadePoint now{now_ms, level(now_ms)};
+        FadePoint now{now_ms, 0};
         fades_.clear();
         fades_.emplace_back(std::move(now));
     }
@@ -205,7 +205,7 @@ private:
 /// @brief Composite Effect where each channel is split out
 ///
 template <typename Effect>
-class RgbEffect final : public CompositeEffect<Effect, 3> {
+class RgbEffect : public CompositeEffect<Effect, 3> {
 public:
     RgbEffect() = default;
     ~RgbEffect() override = default;
@@ -281,14 +281,13 @@ public:
     SetConfigResult set_config_json(const JsonObject& json) override {
         SetConfigResult result = SetConfigResult::no_values_set();
         result.consider(set_parent_config_json(json), "parent");
-        result.consider(effect().set_config_json(json["nested"]), "nested");
+        result.consider(effect().set_config_json(json), "nested");
         return result;
     }
 
     void get_config_json(JsonObject& json) const override {
         get_parent_config_json(json);
-        JsonObject nested = json["nested"].to<JsonObject>();
-        effect().get_config_json(nested);
+        effect().get_config_json(json);
     };
 
     void trigger(uint32_t now_ms) override { effect().trigger(now_ms); }

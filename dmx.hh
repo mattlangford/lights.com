@@ -15,12 +15,11 @@ public:
     void set_max(uint8_t max) { max_ = max; }
     void set_input_gain(float gain) { input_gain_ = gain; }
 
-protected:
-    uint8_t clip(float in) const { return in < 0 ? 0 : in > 255 ? 255 : static_cast<uint8_t>(in); }
-
     uint8_t min_value() const { return min_; }
     uint8_t max_value() const { return max_; }
     float input_gain() const { return input_gain_; }
+protected:
+    uint8_t clip(float in) const { return in < 0 ? 0 : in > 255 ? 255 : static_cast<uint8_t>(in); }
 
     // Return the current level, between 0.0 and 1.0
     virtual float level(uint32_t now_ms) { return 0.0; }

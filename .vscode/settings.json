@@ -6,6 +6,7 @@
     "files.associations": {
         "vector": "cpp",
         "system_error": "cpp",
-        "tuple": "cpp"
+        "tuple": "cpp",
+        "cstddef": "cpp"
     }
 }

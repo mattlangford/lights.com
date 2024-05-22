@@ -188,7 +188,7 @@ private:
         }
 
         if (on) {
-            effect->trigger(this->now());
+        effect->trigger(this->now());
         } else {
             effect->clear(this->now());
         }

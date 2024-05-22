@@ -11,6 +11,7 @@ public:
 
 protected:
     float level(uint32_t now_ms) override {
+        if (!enabled_) return 0.0;
         const float now_s = float(now_ms) / 1000.0;
 
         float value = 0.0;
@@ -74,11 +75,15 @@ public:
         }
     }
 
+    void trigger(uint32_t) override { enabled_ = true; }
+    void clear(uint32_t) override { enabled_ = false; }
+
 private:
     static float generate(float phase, float min, float max) {
         return (0.5 * (cosf(phase) + 1.0)) * (max - min) + min;
     }
 
+    bool enabled_ = false;
     CosBlendConfig config_;
     uint32_t last_time_ms_ = 0;
 };
