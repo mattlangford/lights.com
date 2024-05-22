@@ -115,7 +115,6 @@ public:
         }
         const auto& palette = it->second;
 
-        const PaletteConfig::Color to_color = palette[to_index % palette.size()];
         for (size_t l = 0; l < effects_.size(); ++l) {
             if (config_.type == PaletteConfig::TransitionType::RANDOM){
                 to_index = rand();

@@ -137,64 +137,24 @@ void setup() {
 
     uint32_t offset = 0;
 
-    {
-        offset += 100;
-        auto& effect = palette.add_effect(offset);
-        auto& light = universe->litake[0];
-        light.red.add_effect(&effect.red());
-        light.green.add_effect(&effect.green());
-        light.blue.add_effect(&effect.blue());
-        light.red.add_effect(&solid.red());
-        light.green.add_effect(&solid.green());
-        light.blue.add_effect(&solid.blue());
-    }
+    universe->litake[0].add_rgb_effect(palette.add_effect(offset));
+    universe->litake[0].add_rgb_effect(solid);
 
-    {
-        offset += 100;
-        auto& effect = palette.add_effect(offset);
-        auto& light = universe->litake[1];
-        light.red.add_effect(&effect.red());
-        light.green.add_effect(&effect.green());
-        light.blue.add_effect(&effect.blue());
-        light.red.add_effect(&solid.red());
-        light.green.add_effect(&solid.green());
-        light.blue.add_effect(&solid.blue());
-    }
-    {
-        offset += 100;
-        auto& effect = palette.add_effect(offset);
-        auto& light = universe->missyee[0];
-        light.red.add_effect(&effect.red());
-        light.green.add_effect(&effect.green());
-        light.blue.add_effect(&effect.blue());
-        light.red.add_effect(&solid.red());
-        light.green.add_effect(&solid.green());
-        light.blue.add_effect(&solid.blue());
-    }
+    offset += 100;
+    universe->litake[1].add_rgb_effect(palette.add_effect(offset));
+    universe->litake[1].add_rgb_effect(solid);
 
-    {
-        offset += 300;
-        auto& effect = palette.add_effect(offset);
-        auto& light = universe->missyee[1];
-        light.red.add_effect(&effect.red());
-        light.green.add_effect(&effect.green());
-        light.blue.add_effect(&effect.blue());
-        light.red.add_effect(&solid.red());
-        light.green.add_effect(&solid.green());
-        light.blue.add_effect(&solid.blue());
-    }
+    offset += 100;
+    universe->missyee[0].add_rgb_effect(palette.add_effect(offset));
+    universe->missyee[0].add_rgb_effect(solid);
 
-    {
-        offset += 100;
-        auto& effect = palette.add_effect(offset);
-        auto& light = universe->mover;
-        light.red.add_effect(&effect.red());
-        light.green.add_effect(&effect.green());
-        light.blue.add_effect(&effect.blue());
-        light.red.add_effect(&solid.red());
-        light.green.add_effect(&solid.green());
-        light.blue.add_effect(&solid.blue());
-    }
+    offset += 300;
+    universe->missyee[1].add_rgb_effect(palette.add_effect(offset));
+    universe->missyee[1].add_rgb_effect(solid);
+
+    offset += 100;
+    universe->mover.add_rgb_effect(palette.add_effect(offset));
+    universe->mover.add_rgb_effect(solid);
 
     offset += 20;
 
@@ -206,6 +166,7 @@ void setup() {
         auto& effect = palette.add_effect(offset);
         auto& light = universe->bar[0];
         for (size_t j = start; j < end; ++j) {
+            light.white(j).add_effect(&shimmer);
             light.red(j).add_effect(&effect.red());
             light.green(j).add_effect(&effect.green());
             light.blue(j).add_effect(&effect.blue());
@@ -221,6 +182,7 @@ void setup() {
         auto& effect = palette.add_effect(offset);
         auto& light = universe->bar[1];
         for (size_t j = start; j < end; ++j) {
+            light.white(j).add_effect(&shimmer);
             light.red(j).add_effect(&effect.red());
             light.green(j).add_effect(&effect.green());
             light.blue(j).add_effect(&effect.blue());
@@ -236,6 +198,7 @@ void setup() {
         auto& effect = palette.add_effect(offset);
         auto& light = universe->bar[2];
         for (size_t j = start; j < end; ++j) {
+            light.white(j).add_effect(&shimmer);
             light.red(j).add_effect(&effect.red());
             light.green(j).add_effect(&effect.green());
             light.blue(j).add_effect(&effect.blue());
@@ -245,29 +208,13 @@ void setup() {
         }
     }
 
-    {
-        offset += 100;
-        auto& effect = palette.add_effect(offset);
-        auto& light = universe->missyee[2];
-        light.red.add_effect(&effect.red());
-        light.green.add_effect(&effect.green());
-        light.blue.add_effect(&effect.blue());
-        light.red.add_effect(&solid.red());
-        light.green.add_effect(&solid.green());
-        light.blue.add_effect(&solid.blue());
-    }
+    offset += 100;
+    universe->missyee[2].add_rgb_effect(palette.add_effect(offset));
+    universe->missyee[2].add_rgb_effect(solid);
 
-    {
-        offset += 100;
-        auto& effect = palette.add_effect(offset);
-        auto& light = universe->missyee[3];
-        light.red.add_effect(&effect.red());
-        light.green.add_effect(&effect.green());
-        light.blue.add_effect(&effect.blue());
-        light.red.add_effect(&solid.red());
-        light.green.add_effect(&solid.green());
-        light.blue.add_effect(&solid.blue());
-    }
+    offset += 100;
+    universe->missyee[3].add_rgb_effect(palette.add_effect(offset));
+    universe->missyee[3].add_rgb_effect(solid);
 
     solid.trigger(millis());
 
@@ -314,27 +261,23 @@ void setup() {
     //
     // Fade in on startup
     //
-    auto* blank = &effects.add_effect<Blank>("blank");
+    auto& blank = effects.add_effect<Blank>("blank");
     for (auto& missyee : universe->missyee) {
-        missyee.brightness.add_effect(blank);
+        missyee.brightness.add_effect(&blank);
     }
     for (auto& litake : universe->litake) {
-        litake.red.add_effect(blank);
-        litake.green.add_effect(blank);
-        litake.blue.add_effect(blank);
+        litake.add_effect(blank);
     }
-    universe->mover.red.add_effect(blank);
-    universe->mover.blue.add_effect(blank);
-    universe->mover.green.add_effect(blank);
+    universe->mover.add_effect(blank);
     for (auto& bar : universe->bar) {
         for (size_t l = 0; l < WashBarLight112::NUM_LIGHTS; ++l) {
-            bar.red(l).add_effect(blank);
-            bar.green(l).add_effect(blank);
-            bar.blue(l).add_effect(blank);
-            bar.white(l).add_effect(blank);
+            bar.red(l).add_effect(&blank);
+            bar.green(l).add_effect(&blank);
+            bar.blue(l).add_effect(&blank);
+            bar.white(l).add_effect(&blank);
         }
     }
-    blank->clear(0);
+    blank.clear(0);
 }
 
 void loop() {

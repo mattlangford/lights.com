@@ -1,49 +1,110 @@
 #pragma once
 
 #include "dmx.hh"
+#include "effects.hh"
 
-class MissyeeLight {
+class RgbFixture {
+public:
+    RgbFixture(Channel& red, Channel& green, Channel& blue) :
+        red_(red), green_(green), blue_(blue) {
+    }
+
+    virtual ~RgbFixture() = default;
+
+    template <typename Effect>
+    void add_effect(Effect& effect) {
+        red_.add_effect(&effect);
+        green_.add_effect(&effect);
+        blue_.add_effect(&effect);
+    }
+    template <typename Effect>
+    void add_rgb_effect(RgbEffect<Effect>& effect) {
+        red_.add_effect(&effect.red());
+        green_.add_effect(&effect.green());
+        blue_.add_effect(&effect.blue());
+    }
+
+    // Copied from ChatGPT
+    void set_hsv(float h, float s, float v) {
+        // Convert HSV values to the range [0, 1]
+        float h_normalized = h / 255.0;
+        float s_normalized = s / 255.0;
+
+        int i = static_cast<int>(h_normalized * 6);
+        float f = (h_normalized * 6) - i;
+
+        // Each of these will be between 0 and 255
+        float p = static_cast<uint8_t>(v * (1 - s_normalized));
+        float q = static_cast<uint8_t>(v * (1 - f * s_normalized));
+        float t = static_cast<uint8_t>(v * (1 - (1 - f) * s_normalized));
+
+        uint8_t r = 0;
+        uint8_t g = 0;
+        uint8_t b = 0;
+
+        switch (i % 6) {
+            case 0: r = v; g = t; b = p; break;
+            case 1: r = q; g = v; b = p; break;
+            case 2: r = p; g = v; b = t; break;
+            case 3: r = p; g = q; b = v; break;
+            case 4: r = t; g = p; b = v; break;
+            case 5: r = v; g = p; b = q; break;
+            default: r = 0; g = 0; b = 0;
+        }
+
+        set_rgb(r, g, b);
+    }
+
+    void set_rgb(uint8_t r, uint8_t g, uint8_t b) {
+        red_.set_value(r);
+        green_.set_value(g);
+        blue_.set_value(b);
+    }
+
+private:
+    Channel& red_;
+    Channel& green_;
+    Channel& blue_;
+};
+
+class MissyeeLight : public RgbFixture {
 public:
     MissyeeLight(uint16_t address, DMXController& controller) :
-        brightness(controller.channel(address)),
-        red(controller.channel(address + 1)),
-        green(controller.channel(address + 2)),
-        blue(controller.channel(address + 3)) {
+        RgbFixture(
+            controller.channel(address + 1),
+            controller.channel(address + 2),
+            controller.channel(address + 3)),
+        brightness(controller.channel(address)) {
 
         brightness.set_value(255);
         controller.set_max_channel(address + 7);
     }
 
     Channel& brightness;
-    Channel& red;
-    Channel& green;
-    Channel& blue;
 };
 
-class LitakeLight {
+class LitakeLight : public RgbFixture {
 public:
     LitakeLight(uint16_t address, DMXController& controller) :
-        red(controller.channel(address + 1)),
-        green(controller.channel(address + 2)),
-        blue(controller.channel(address + 3)) {
+        RgbFixture(
+            controller.channel(address + 1),
+            controller.channel(address + 2),
+            controller.channel(address + 3)) {
 
         // Max brightness.
         controller.channel(address).set_value(127);
     }
-
-    Channel& red;
-    Channel& green;
-    Channel& blue;
 };
 
-class BetopperMover9Light {
+class BetopperMover9Light : public RgbFixture {
 public:
     BetopperMover9Light(uint16_t address, DMXController& controller) :
+        RgbFixture(
+            controller.channel(address + 3),
+            controller.channel(address + 4),
+            controller.channel(address + 5)),
         x(controller.channel(address + 0)),
         y(controller.channel(address + 1)),
-        red(controller.channel(address + 3)),
-        green(controller.channel(address + 4)),
-        blue(controller.channel(address + 5)),
         white(controller.channel(address + 6)),
         speed(controller.channel(address + 7)) {
 
@@ -55,9 +116,6 @@ public:
     Channel& x;
     Channel& y;
 
-    Channel& red;
-    Channel& green;
-    Channel& blue;
     Channel& white;
 
     Channel& speed;

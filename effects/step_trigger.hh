@@ -6,16 +6,16 @@ public:
     ~StepTrigger() override = default;
 
 public:
-    String type() const override { return "StepTrigger(" + subtype() + ")"; }
+    String type() const override { return "StepTrigger(" + this->subtype() + ")"; }
 
     void trigger(uint32_t now_ms) override { 
-        effect(index_)->clear(now_ms);
-        index_ = (index_ + 1) % size();
-        effect(index_)->trigger(now_ms);
+        this->effect(index_)->clear(now_ms);
+        index_ = (index_ + 1) % this->size();
+        this->effect(index_)->trigger(now_ms);
     }
 
     void clear(uint32_t now_ms) override {
-        effect(index_)->clear(now_ms);
+        this->effect(index_)->clear(now_ms);
     }
 
 private:
