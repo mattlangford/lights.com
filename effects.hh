@@ -310,6 +310,7 @@ private:
 #include "effects/blank.hh"
 #include "effects/palette.hh"
 #include "effects/periodic_trigger.hh"
+#include "effects/step_trigger.hh"
 #include "effects/midi.hh"
 
 // #include "effects/audio.hh"

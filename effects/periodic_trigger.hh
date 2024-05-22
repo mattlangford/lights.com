@@ -57,7 +57,7 @@ class PeriodicTrigger final : public NestedEffect<Effect>, public PeriodicBase {
 public:
     PeriodicTrigger(uint32_t rate=1000) : PeriodicBase(rate) { }
 
-    ~PeriodicTrigger() = default;
+    ~PeriodicTrigger() override = default;
 
 protected:
     SetConfigResult set_parent_config_json(const JsonObject& json) {
