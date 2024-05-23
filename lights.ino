@@ -125,38 +125,68 @@ void setup() {
     // Panning the mover light.
     //
     auto* pan = &effects.add_effect<CosBlend>("pan");
-    pan->set_config(CosBlendConfig{.freq={0.1}});
-    pan->set_values(200, 230); // sweep the room!
+    pan->set_config(CosBlendConfig{.freq={1.0}});
+    pan->set_values(210, 240); // sweep the room!
     universe->mover.y.set_value(10);
     universe->mover.x.add_effect(pan);
     pan->trigger(0);
 
-    auto& shimmer = effects.add_effect<CompositeEffect<CosBlend>>("shimmer");
-    Palette& palette = effects.add_effect<Palette>("palette");
+    auto& palette = effects.add_effect<MidiTrigger<Palette>>("palette", 'C', 2).effect();
     auto& solid = effects.add_effect<Solid>("rgb");
+
+    auto& blend = effects.add_effect<CosBlend>("blend");
+    blend.set_config(CosBlendConfig{.freq={10.0}, .phase0={0}});
+    blend.set_multiply(true);
+    blend.set_passthrough(true);
+    blend.trigger(0);
+    blend.set_values(250, 255);
 
     uint32_t offset = 0;
 
     universe->litake[0].add_rgb_effect(palette.add_effect(offset));
     universe->litake[0].add_rgb_effect(solid);
+    universe->litake[0].add_effect(blend);
 
     offset += 100;
     universe->litake[1].add_rgb_effect(palette.add_effect(offset));
     universe->litake[1].add_rgb_effect(solid);
+    universe->litake[1].add_effect(blend);
 
     offset += 100;
+    auto& hat_trigger = effects.add_effect<MidiTrigger<LinearPulse>>("hat_midi", 'D', 2).effect();
+    hat_trigger.set_config(LinearPulseConfig{
+        .rise_dt_ms=10,
+        .hold_dt_ms=100,
+        .fall_dt_ms=100
+    });
     universe->missyee[0].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[0].add_rgb_effect(solid);
+    universe->missyee[0].brightness.set_value(0);
+    universe->missyee[0].brightness.add_effect(&hat_trigger);
+    universe->missyee[0].add_effect(blend);
 
     offset += 300;
     universe->missyee[1].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[1].add_rgb_effect(solid);
+    universe->missyee[1].add_effect(blend);
 
     offset += 100;
     universe->mover.add_rgb_effect(palette.add_effect(offset));
     universe->mover.add_rgb_effect(solid);
 
     offset += 20;
+
+    auto& kick_step = effects.add_effect<MidiTrigger<StepTrigger<LinearPulse>>>("kick_step", 'C', 2).effect();
+    auto& kick_1 = kick_step.add();
+    auto& kick_2 = kick_step.add();
+    auto& kick_3 = kick_step.add();
+    auto& kick_4 = kick_step.add();
+    auto& kick_5 = kick_step.add();
+    kick_step.set_config(LinearPulseConfig{
+        .rise_dt_ms=10,
+        .hold_dt_ms=100,
+        .fall_dt_ms=1000
+    });
 
     constexpr size_t NUM_DIVISIONS = 7;
     for (size_t i = 0; i < NUM_DIVISIONS; ++i) {
@@ -166,13 +196,19 @@ void setup() {
         auto& effect = palette.add_effect(offset);
         auto& light = universe->bar[0];
         for (size_t j = start; j < end; ++j) {
-            light.white(j).add_effect(&shimmer);
+            if (i == 2) {
+                light.white(j).add_effect(&kick_4);
+            }
+
             light.red(j).add_effect(&effect.red());
             light.green(j).add_effect(&effect.green());
             light.blue(j).add_effect(&effect.blue());
             light.red(j).add_effect(&solid.red());
             light.green(j).add_effect(&solid.green());
             light.blue(j).add_effect(&solid.blue());
+            // light.red(j).add_effect(&blend);
+            // light.green(j).add_effect(&blend);
+            // light.blue(j).add_effect(&blend);
         }
     }
     for (size_t i = 0; i < NUM_DIVISIONS; ++i) {
@@ -182,13 +218,22 @@ void setup() {
         auto& effect = palette.add_effect(offset);
         auto& light = universe->bar[1];
         for (size_t j = start; j < end; ++j) {
-            light.white(j).add_effect(&shimmer);
+            if (i == 4) {
+                light.white(j).add_effect(&kick_1);
+            } else if (i == 2) {
+                light.red(j).add_effect(&kick_3);
+                light.green(j).add_effect(&kick_3);
+                light.blue(j).add_effect(&kick_3);
+            }
             light.red(j).add_effect(&effect.red());
             light.green(j).add_effect(&effect.green());
             light.blue(j).add_effect(&effect.blue());
             light.red(j).add_effect(&solid.red());
             light.green(j).add_effect(&solid.green());
             light.blue(j).add_effect(&solid.blue());
+            // light.red(j).add_effect(&blend);
+            // light.green(j).add_effect(&blend);
+            // light.blue(j).add_effect(&blend);
         }
     }
     for (size_t i = 0; i < NUM_DIVISIONS; ++i) {
@@ -198,28 +243,39 @@ void setup() {
         auto& effect = palette.add_effect(offset);
         auto& light = universe->bar[2];
         for (size_t j = start; j < end; ++j) {
-            light.white(j).add_effect(&shimmer);
+            if (i == 1) {
+                light.white(j).add_effect(&kick_5);
+            } else if (i == 3) {
+                light.white(j).add_effect(&kick_2);
+            }
             light.red(j).add_effect(&effect.red());
             light.green(j).add_effect(&effect.green());
             light.blue(j).add_effect(&effect.blue());
             light.red(j).add_effect(&solid.red());
             light.green(j).add_effect(&solid.green());
             light.blue(j).add_effect(&solid.blue());
+            // light.red(j).add_effect(&blend);
+            // light.green(j).add_effect(&blend);
+            // light.blue(j).add_effect(&blend);
         }
     }
 
     offset += 100;
     universe->missyee[2].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[2].add_rgb_effect(solid);
+    universe->missyee[2].brightness.set_value(0);
+    universe->missyee[2].brightness.add_effect(&hat_trigger);
+    universe->missyee[2].add_effect(blend);
 
     offset += 100;
     universe->missyee[3].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[3].add_rgb_effect(solid);
+    universe->missyee[2].add_effect(blend);
 
     solid.trigger(millis());
 
     PaletteConfig config;
-    config.type = PaletteConfig::TransitionType::STEP_SWEEP;
+    config.type = PaletteConfig::TransitionType::STEP;
     const auto rgb = [](uint8_t r, uint8_t g, uint8_t b){
         return PaletteConfig::Color{.r=r / 255.0f, .g=g / 255.0f, .b=b / 255.0f};
     };
@@ -229,14 +285,21 @@ void setup() {
     };
     config.palettes["hues"] = {
         rgb(255, 0, 0),
+        rgb(128, 128, 0),
         rgb(0, 255, 0),
+        rgb(0, 128, 128),
         rgb(0, 0, 255),
     };
     config.palettes["fire"] = {
         rgb(255, 0, 0),
+        rgb(200, 0, 0),
         rgb(255, 25, 0),
+        rgb(230, 10, 0),
         rgb(200, 50, 0),
-        rgb(255, 100, 0),
+        rgb(255, 60, 0),
+        rgb(230, 75, 0),
+        rgb(255, 50, 0),
+        rgb(255, 40, 0),
     };
     config.palettes["neon"] = {
         rgb(255, 10, 10),
@@ -253,9 +316,9 @@ void setup() {
         rgb(0, 75, 200),
     };
 
-    config.palette = "red";
+    config.palette = "neon";
 
-    config.fade_time_ms = 50;
+    config.fade_time_ms = 250;
     palette.set_config(config);
 
     //

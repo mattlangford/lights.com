@@ -7,6 +7,30 @@ public:
     virtual ~ChannelEffect() = default;
 
     uint8_t process(uint8_t value, uint32_t now_ms) {
+        if (pass_) { return value; }
+        if (multiply_) {
+            float min_level = min_ / 255.0;
+            float max_level = max_ / 255.0;
+            float l = level(now_ms);
+
+            uint8_t result = std::clamp(static_cast<float>(value) * (l * (max_level - min_level) + min_level), 0.0f, 255.0f);
+
+            if (value > 0 && false) {
+                Serial.print("min: ");
+                Serial.print(min_level);
+                Serial.print(" max: ");
+                Serial.print(max_level);
+                Serial.print(" level: ");
+                Serial.print(l);
+                Serial.print(" value: ");
+                Serial.print(value);
+                Serial.print(" multipler: ");
+                Serial.print((l * (max_level - min_level) + min_level));
+                Serial.print(" result: ");
+                Serial.println(result);
+            }
+            return result;
+        }
         return clip((max_ - min_) * level(now_ms) + min_ + input_gain_ * value);
     }
 
@@ -14,10 +38,15 @@ public:
     void set_min(uint8_t min) { min_ = min; }
     void set_max(uint8_t max) { max_ = max; }
     void set_input_gain(float gain) { input_gain_ = gain; }
+    void set_multiply(bool multiply) { multiply_ = multiply; }
+    void set_passthrough(bool pass) { pass_ = pass; }
 
     uint8_t min_value() const { return min_; }
     uint8_t max_value() const { return max_; }
     float input_gain() const { return input_gain_; }
+    bool multiply() const { return multiply_; }
+    bool passthrough() const { return pass_; }
+
 protected:
     uint8_t clip(float in) const { return in < 0 ? 0 : in > 255 ? 255 : static_cast<uint8_t>(in); }
 
@@ -28,6 +57,8 @@ private:
     float input_gain_ = 1.0;
     uint8_t min_ = 0;
     uint8_t max_ = 255;
+    bool multiply_ = false;
+    bool pass_ = false;
 };
 
 ///

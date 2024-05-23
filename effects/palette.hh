@@ -23,7 +23,7 @@ struct PaletteConfig {
     std::map<std::string, std::vector<Color>> palettes;
     std::string palette;
 
-    uint32_t fade_time_ms = 100;
+    uint32_t fade_time_ms = 1000;
 };
 
 class Palette : public EffectBase {
@@ -75,7 +75,10 @@ public:
         }
 
         result.maybe_set(json, "fade_time_ms", config_.fade_time_ms);
-        trigger(now()); // Do a transition to the next color
+
+        if (result.type != SetConfigResult::ErrorType::NO_VALUES) {
+            trigger(now()); // Do a transition to the next color
+        }
         return result;
     };
 
@@ -136,7 +139,7 @@ public:
 
     void clear(uint32_t now_ms) {
         for (auto& effect : effects_) {
-            effect->clear(now_ms);
+            effect->clear(now_ms + config_.fade_time_ms);
         }
     }
 

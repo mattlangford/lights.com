@@ -18,6 +18,7 @@ protected:
         for (size_t i = 0; i < config_.freq.size(); ++i) {
             value += generate(config_.phase0[i] + config_.freq[i] * now_s, 0.0, 1.0);
         }
+
         return value / config_.freq.size();
     }
 
@@ -35,10 +36,11 @@ public:
             return result;
         }
 
-        if (freq.size() >= 0) {
-            result.consider(SetConfigResult::okay());
+        if (freq.size() == 0) {
+            return result;
         }
 
+        result.consider(SetConfigResult::okay());
         CosBlendConfig config;
         config.freq.resize(json["freq"].size());
         config.phase0.resize(json["phase0"].size());

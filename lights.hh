@@ -61,6 +61,10 @@ public:
         blue_.set_value(b);
     }
 
+    Channel& red() { return red_; }
+    Channel& green() { return green_; }
+    Channel& blue() { return blue_; }
+
 private:
     Channel& red_;
     Channel& green_;

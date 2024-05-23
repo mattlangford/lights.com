@@ -114,48 +114,65 @@ void MidiManager::dispatch_note_on(byte channel, byte note, byte velocity) {
 template <typename Effect>
 class MidiTrigger final : public NestedEffect<Effect> {
 public:
-    MidiTrigger() {
+    explicit MidiTrigger(byte note) : note_(note) {
         midi.add_callback([this](byte channel, byte note, byte velocity, bool on){
             on_note(channel, note, velocity, on);
         });
     }
+    MidiTrigger(char base, byte octive, bool sharp = false) :
+        MidiTrigger(MidiManager::MidiNote{base, octive, sharp}.note()) { }
+    MidiTrigger() : MidiTrigger(-1, true) { }
+
+    ~MidiTrigger() override = default;
 
     void set_note(byte note) { note_ = note; }
     void set_any_node(bool enable=true) { any_ = enable; }
 
 protected:
     String parent_type() const override { return "MidiTrigger"; }
-    void set_parent_config_json(const JsonObject& json) override {
-        this->maybe_set(json, "note", note_);
-        this->maybe_set(json, "any", any_);
+
+    SetConfigResult set_parent_config_json(const JsonObject& json) override {
+        SetConfigResult result = SetConfigResult::no_values_set();
+        result.maybe_set(json, "note", note_);
+        result.maybe_set(json, "any", any_);
+        result.maybe_set(json, "enabled", enabled_);
+        result.maybe_set(json, "ignore_clear", ignore_clear_);
+        return result;
     }
     void get_parent_config_json(JsonObject& json) const override {
         json["note"] = note_;
         json["any"] = any_;
+        json["enabled"] = enabled_;
+        json["ignore_clear"] = ignore_clear_;
     };
 
 private:
     void on_note(byte channel, byte note, byte velocity, bool on) {
+        if (!enabled_) {
+            return;
+        }
         if (!any_ && note != note_) {
             return;
         }
 
         if (on) {
-            this->trigger(this->now(), static_cast<float>(velocity) / 255.0);
-        } else {
+            this->trigger(this->now());
+        } else if (!ignore_clear_) {
             this->clear(this->now());
         }
     }
 
     uint8_t note_ = 0;
     bool any_ = false;
+    bool enabled_ = true;
+    bool ignore_clear_ = true;
 };
 
 /// @brief Similar to MidiTrigger, but aggregates many instances of Effect 
 template <typename Effect>
 class MidiMap final : public CompositeEffect<Effect> {
 public:
-    MidiMap() {
+    MidiMap(byte channel=-1) : channel_(channel) {
         midi.add_callback([this](byte channel, byte note, byte velocity, bool on){
             on_note(channel, note, velocity, on);
         });
@@ -165,6 +182,11 @@ public:
 
     Effect& add_effect_for_note(uint8_t note) {
         note_to_effect_[note] = this->size();
+        return this->add();
+    }
+
+    Effect& add_effect_for_note(char base, byte octive, bool sharp = false) {
+        note_to_effect_[MidiManager::MidiNote{base, octive, sharp}.note()] = this->size();
         return this->add();
     }
 
@@ -188,9 +210,9 @@ private:
         }
 
         if (on) {
-        effect->trigger(this->now());
+            effect->trigger(this->now());
         } else {
-            effect->clear(this->now());
+            // effect->clear(this->now());
         }
     }
 

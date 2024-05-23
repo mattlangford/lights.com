@@ -39,12 +39,16 @@ public:
         set_min(result.value_or(json, "min", min_value()));
         set_max(result.value_or(json, "max", max_value()));
         set_input_gain(result.value_or(json, "gain", input_gain()));
+        set_passthrough(result.value_or(json, "multiply", multiply()));
+        set_passthrough(result.value_or(json, "pass", passthrough()));
         return result;
     }
     void get_config_json(JsonObject& json) const override {
         json["min"] = min_value();
         json["max"] = max_value();
         json["gain"] = input_gain();
+        json["multiply"] = multiply();
+        json["pass"] = passthrough();
     }
 };
 
@@ -254,7 +258,7 @@ public:
     String type() const override { return parent_type() + "(" + effect_.type() + ")"; }
 
     SetConfigResult set_config_json(const JsonObject& json) override {
-        SetConfigResult result = SetConfigResult::no_values_set();
+        SetConfigResult result = SetConfigResult::okay();
         result.consider(set_parent_config_json(json), "parent");
         result.consider(effect().set_config_json(json), "nested");
         return result;
@@ -294,7 +298,7 @@ class EffectMap {
 public:
     template <typename Effect, typename... Args>
     Effect& add_effect(const String& name, Args&&...args) {
-        auto effect_ptr = std::make_unique<Effect>(args...);
+        auto effect_ptr = std::make_unique<Effect>(std::forward<Args>(args)...);
         Effect& effect = *effect_ptr;
         effects_[name] = std::move(effect_ptr);
         return effect;

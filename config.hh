@@ -57,6 +57,10 @@ public:
     }
 
     SetConfigResult& consider(const SetConfigResult& rhs, const String& name="") {
+        if (is_okay() && type == SetConfigResult::ErrorType::NO_VALUES) {
+            return *this;
+        }
+
         if (rhs.is_okay()) {
             // If there were no values, but the latest is okay we're okay too!
             if (type == SetConfigResult::ErrorType::NO_VALUES) {
