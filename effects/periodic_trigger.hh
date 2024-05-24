@@ -31,6 +31,7 @@ public:
     }
 
     void set_enabled(bool enabled) { enabled_ = enabled; }
+    bool get_enabled() const { return enabled_; }
 
 protected:
     void set_rate(uint32_t rate) { rate_ = rate; next_ = millis() + rate_; }
@@ -69,9 +70,21 @@ protected:
         if (result.maybe_set(json, "rate_ms", rate)) {
             set_rate(rate);
         }
+        bool enabled = false;
+        if (result.maybe_set(json, "enabled", enabled)) {
+            set_enabled(enabled);
+            if (enabled) {
+                this->trigger(millis());
+            } else {
+                this->clear(millis());
+            }
+        }
         return result;
     }
-    void get_parent_config_json(JsonObject& json) const { json["rate_ms"] = get_rate(); }
+    void get_parent_config_json(JsonObject& json) const {
+        json["rate_ms"] = get_rate();
+        json["enabled"] = get_enabled();
+    }
 
     String parent_type() const override { return "PeriodicTrigger"; }
 

@@ -137,7 +137,13 @@ protected:
         SetConfigResult result = SetConfigResult::no_values_set();
         result.maybe_set(json, "note", note_);
         result.maybe_set(json, "any", any_);
-        result.maybe_set(json, "enabled", enabled_);
+        if (result.maybe_set(json, "enabled", enabled_)) {
+            if (enabled_) {
+                this->trigger(millis());
+            } else {
+                this->clear(millis());
+            }
+        }
         result.maybe_set(json, "ignore_clear", ignore_clear_);
         result.maybe_set(json, "every_n", every_n_);
         return result;

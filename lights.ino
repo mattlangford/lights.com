@@ -253,6 +253,10 @@ void setup() {
         rgb(255, 0, 0),
         rgb(0, 0, 0),
     };
+    config.palettes["yed"] = {
+        rgb(255, 0, 0),
+        rgb(255, 100, 0),
+    };
     config.palettes["bled"] = {
         rgb(0, 0, 255),
         rgb(255, 0, 0),
@@ -328,19 +332,20 @@ void setup() {
     }
 
     blank.clear(millis() + 1000);
-    palette.trigger(0);
-    solid.trigger(0);
-    twinkle.trigger(0);
+    palette.trigger(millis());
+    solid.trigger(millis());
+    twinkle.trigger(millis());
 
     midi.add_callback([&palette,
                        &kick_palette,
                        w=true,
                        n = MidiManager::MidiNote{'C', 3}.note()](byte channel, byte note, byte velocity, bool on){
         if (on && note == n) {
-            palette.next_palette();
+            auto p = palette.next_palette();
+            kick_palette.set_palette(p);
 
             Serial.print("Switching to ");
-            Serial.println(kick_palette.next_palette(100));
+            Serial.println(p);
         }
     });
     midi.add_callback([&palette_trigger,

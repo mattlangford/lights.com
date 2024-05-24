@@ -149,7 +149,7 @@ public:
         return *effects_.back();
     }
 
-    String next_palette(uint32_t delay = 0) {
+    String next_palette() {
         size_t index = 0;
         for (const auto& it : config_.palettes) {
             if (it.first == config_.palette) {
@@ -158,17 +158,19 @@ public:
             index++;
         }
         index = (index + 1) % config_.palettes.size();
-        config_.palette = std::next(config_.palettes.begin(), index)->first;
+        set_palette(std::next(config_.palettes.begin(), index)->first);
+        return config_.palette;
+    }
+    void set_palette(String palette) {
+        config_.palette = palette;
 
         // Fast fade to this color
         auto fade = config_.fade_time_ms;
         config_.fade_time_ms = 100;
 
-        trigger(millis() + delay);
+        trigger(millis());
 
         config_.fade_time_ms = fade;
-
-        return config_.palette;
     }
 
 private:
