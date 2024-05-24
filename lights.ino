@@ -125,27 +125,32 @@ void setup() {
     // Panning the mover light.
     //
     auto* pan = &effects.add_effect<CosBlend>("pan");
-    pan->set_config(CosBlendConfig{.freq={1.0}});
-    pan->set_values(210, 240); // sweep the room!
+    pan->set_config(CosBlendConfig{.freq={0.25}});
+    pan->set_values(40, 80); // sweep the room!
     universe->mover.y.set_value(10);
     universe->mover.x.add_effect(pan);
     pan->trigger(0);
 
-    auto& kick_palette = effects.add_effect<MidiTrigger<Palette>>("kick_palette", 'C', 2).effect();
-    auto& palette = effects.add_effect<Palette>("palette");
+    auto& kick_palette_trigger = effects.add_effect<MidiTrigger<Palette>>("kick_palette", 'C', 2);
+    auto& kick_palette = kick_palette_trigger.effect();
+    kick_palette_trigger.set_enabled(false);
+
+    auto& palette = effects.add_effect<PeriodicTrigger<Palette>>("palette", 4000).effect();
     auto& solid = effects.add_effect<Solid>("rgb");
-    // auto& twinkle = effects.add_effect<CompositeEffect<Twinkle>>("twinkle");
+    auto& twinkle = effects.add_effect<CompositeEffect<Twinkle>>("twinkle");
 
     uint32_t offset = 0;
 
     universe->litake[0].add_rgb_effect(kick_palette.add_effect(offset));
     universe->litake[0].add_rgb_effect(palette.add_effect(offset));
     universe->litake[0].add_rgb_effect(solid);
+    universe->litake[0].add_effect(twinkle.add());
 
     offset += 100;
     universe->litake[1].add_rgb_effect(kick_palette.add_effect(offset));
     universe->litake[1].add_rgb_effect(palette.add_effect(offset));
     universe->litake[1].add_rgb_effect(solid);
+    universe->litake[1].add_effect(twinkle.add());
 
     offset += 100;
     auto& hat_trigger = effects.add_effect<MidiTrigger<LinearPulse>>("hat_midi", 'D', 2).effect();
@@ -157,6 +162,7 @@ void setup() {
     universe->missyee[0].add_rgb_effect(kick_palette.add_effect(offset));
     universe->missyee[0].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[0].add_rgb_effect(solid);
+    universe->missyee[0].add_effect(twinkle.add());
     universe->missyee[0].brightness.set_value(0);
     universe->missyee[0].brightness.add_effect(&hat_trigger);
 
@@ -164,6 +170,7 @@ void setup() {
     universe->missyee[1].add_rgb_effect(kick_palette.add_effect(offset));
     universe->missyee[1].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[1].add_rgb_effect(solid);
+    universe->missyee[1].add_effect(twinkle.add());
 
     offset += 100;
     universe->mover.add_rgb_effect(kick_palette.add_effect(offset));
@@ -177,6 +184,7 @@ void setup() {
     auto& kick_3 = kick_step.add();
     auto& kick_4 = kick_step.add();
     auto& kick_5 = kick_step.add();
+    auto& kick_6 = kick_step.add();
     kick_step.set_config(LinearPulseConfig{
         .rise_dt_ms=10,
         .hold_dt_ms=100,
@@ -198,32 +206,40 @@ void setup() {
                     light.white(j).add_effect(it->second);
                 }
                 light.add_rgb_effect(j, effect);
+                light.add_effect(j, twinkle.add());
             }
         }
         universe->bar[index].add_rgb_effect(palette.add_effect(offset));
         universe->bar[index].add_rgb_effect(solid);
     };
 
-    add_bar_light(0, {{2, &kick_4}});
+    add_bar_light(0, {{2, &kick_4}, {6, &kick_6}});
     add_bar_light(1, {{4, &kick_1}, {2, &kick_3}});
     add_bar_light(2, {{1, &kick_5}, {3, &kick_2}});
 
     offset += 100;
+    auto& kick_pulse = effects.add_effect<MidiTrigger<LinearPulse>>("kick_pulse", 'C', 2).effect();
+    kick_pulse.set_config(LinearPulseConfig{
+        .rise_dt_ms=10,
+        .hold_dt_ms=100,
+        .fall_dt_ms=500
+    });
     universe->missyee[2].add_rgb_effect(kick_palette.add_effect(offset));
     universe->missyee[2].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[2].add_rgb_effect(solid);
+    universe->missyee[2].add_effect(twinkle.add());
     universe->missyee[2].brightness.set_value(0);
-    universe->missyee[2].brightness.add_effect(&hat_trigger);
+    universe->missyee[2].brightness.add_effect(&kick_pulse);
 
     offset += 100;
     universe->missyee[3].add_rgb_effect(kick_palette.add_effect(offset));
     universe->missyee[3].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[3].add_rgb_effect(solid);
+    universe->missyee[3].add_effect(twinkle.add());
 
-    solid.trigger(millis());
 
     PaletteConfig config;
-    config.type = PaletteConfig::TransitionType::STEP;
+    config.type = PaletteConfig::TransitionType::RANDOM;
     const auto rgb = [](uint8_t r, uint8_t g, uint8_t b){
         return PaletteConfig::Color{.r=r / 255.0f, .g=g / 255.0f, .b=b / 255.0f};
     };
@@ -263,11 +279,22 @@ void setup() {
         rgb(75, 0, 200),
         rgb(0, 75, 200),
     };
+    config.palettes["green"] = {
+        rgb(0, 255, 0),
+        rgb(0, 255, 25),
+        rgb(75, 255, 0),
+        rgb(128, 128, 0),
+        rgb(50, 200, 0),
+        rgb(200, 128, 0),
+        rgb(255, 230, 0),
+    };
 
-    config.palette = "neon";
+    config.palette = "green";
 
     config.fade_time_ms = 250;
     kick_palette.set_config(config);
+
+    config.fade_time_ms = 2000;
     palette.set_config(config);
 
     //
@@ -289,7 +316,12 @@ void setup() {
             bar.white(l).add_effect(&blank);
         }
     }
+
     blank.clear(0);
+    palette.trigger(0);
+    solid.trigger(0);
+    twinkle.trigger(0);
+
 }
 
 void loop() {

@@ -39,7 +39,7 @@ public:
         set_min(result.value_or(json, "min", min_value()));
         set_max(result.value_or(json, "max", max_value()));
         set_input_gain(result.value_or(json, "gain", input_gain()));
-        set_passthrough(result.value_or(json, "multiply", multiply()));
+        set_multiply(result.value_or(json, "multiply", multiply()));
         set_passthrough(result.value_or(json, "pass", passthrough()));
         return result;
     }

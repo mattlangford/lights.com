@@ -14,21 +14,6 @@ public:
             float l = level(now_ms);
 
             uint8_t result = std::clamp(static_cast<float>(value) * (l * (max_level - min_level) + min_level), 0.0f, 255.0f);
-
-            if (value > 0 && false) {
-                Serial.print("min: ");
-                Serial.print(min_level);
-                Serial.print(" max: ");
-                Serial.print(max_level);
-                Serial.print(" level: ");
-                Serial.print(l);
-                Serial.print(" value: ");
-                Serial.print(value);
-                Serial.print(" multipler: ");
-                Serial.print((l * (max_level - min_level) + min_level));
-                Serial.print(" result: ");
-                Serial.println(result);
-            }
             return result;
         }
         return clip((max_ - min_) * level(now_ms) + min_ + input_gain_ * value);

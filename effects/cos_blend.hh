@@ -75,6 +75,10 @@ public:
             // Start at phase=0 if not specified
             config_.phase0.push_back(0.0);
         }
+
+        for (auto& phase : config_.phase0) {
+            phase = std::fmod(phase, 2 * 3.14159265);
+        }
     }
 
     void trigger(uint32_t) override { enabled_ = true; }
@@ -90,9 +94,15 @@ private:
     uint32_t last_time_ms_ = 0;
 };
 
-/*
-class Twinkle : public CosBlend {
-    Twinkle(double speed = 1.0) { set_speed(speed); }
+class Twinkle final : public CosBlend {
+public:
+    Twinkle(float speed = 1.0) {
+        set_speed(speed);
+        set_multiply(true);
+        set_min(75);
+        set_max(255);
+    }
+    ~Twinkle() override = default;
 
 public:
     SetConfigResult set_config_json(const JsonObject& json) override {
@@ -108,16 +118,18 @@ public:
         json["speed"] = speed_;
     }
 
-    void set_speed(double speed) {
+    void set_speed(float speed) {
         speed_ = speed;
 
         CosBlendConfig config;
-        config.freq = {0.1 * speed, 0.5 * speed, 1.0 * speed};
-        config.phase0 = {random(), random(), random()};
+        config.freq = {0.5f * speed, 0.7f * speed, 1.3f * speed, 3.1f * speed};
+        for (size_t i = 0; i < config.freq.size(); ++i) {
+            float f = random(0, 10000) / 1000.0;
+            config.phase0.push_back(f);
+        }
         CosBlend::set_config(config);
     }
 
 private:
-    double speed_ = 1.0;
+    float speed_ = 1.0;
 };
-*/

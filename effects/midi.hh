@@ -127,6 +127,7 @@ public:
 
     void set_note(byte note) { note_ = note; }
     void set_any_node(bool enable=true) { any_ = enable; }
+    void set_enabled(bool enabled) { enabled_ = enabled; }
 
 protected:
     String parent_type() const override { return "MidiTrigger"; }

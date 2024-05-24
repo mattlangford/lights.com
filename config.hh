@@ -57,7 +57,7 @@ public:
     }
 
     SetConfigResult& consider(const SetConfigResult& rhs, const String& name="") {
-        if (is_okay() && type == SetConfigResult::ErrorType::NO_VALUES) {
+        if (is_okay() && rhs.type == SetConfigResult::ErrorType::NO_VALUES) {
             return *this;
         }
 
