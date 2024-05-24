@@ -135,7 +135,8 @@ void setup() {
     auto& kick_palette = kick_palette_trigger.effect();
     kick_palette_trigger.set_enabled(false);
 
-    auto& palette = effects.add_effect<PeriodicTrigger<Palette>>("palette", 4000).effect();
+    auto& palette_trigger = effects.add_effect<PeriodicTrigger<Palette>>("palette", 4000);
+    auto& palette = palette_trigger.effect();
     auto& solid = effects.add_effect<Solid>("rgb");
     auto& twinkle = effects.add_effect<CompositeEffect<Twinkle>>("twinkle");
 
@@ -153,18 +154,11 @@ void setup() {
     universe->litake[1].add_effect(twinkle.add());
 
     offset += 100;
-    auto& hat_trigger = effects.add_effect<MidiTrigger<LinearPulse>>("hat_midi", 'D', 2).effect();
-    hat_trigger.set_config(LinearPulseConfig{
-        .rise_dt_ms=10,
-        .hold_dt_ms=100,
-        .fall_dt_ms=100
-    });
+
     universe->missyee[0].add_rgb_effect(kick_palette.add_effect(offset));
     universe->missyee[0].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[0].add_rgb_effect(solid);
     universe->missyee[0].add_effect(twinkle.add());
-    universe->missyee[0].brightness.set_value(0);
-    universe->missyee[0].brightness.add_effect(&hat_trigger);
 
     offset += 300;
     universe->missyee[1].add_rgb_effect(kick_palette.add_effect(offset));
@@ -173,8 +167,17 @@ void setup() {
     universe->missyee[1].add_effect(twinkle.add());
 
     offset += 100;
+    auto& kick_pulse = effects.add_effect<MidiTrigger<LinearPulse>>("kick_pulse", 'C', 2).effect();
+    kick_pulse.set_config(LinearPulseConfig{
+        .rise_dt_ms=10,
+        .hold_dt_ms=100,
+        .fall_dt_ms=500
+    });
+    kick_pulse.set_multiply(true);
+    kick_pulse.set_min(100);
     universe->mover.add_rgb_effect(kick_palette.add_effect(offset));
     universe->mover.add_rgb_effect(palette.add_effect(offset));
+    universe->mover.add_effect(kick_pulse);
 
     offset += 20;
 
@@ -218,25 +221,26 @@ void setup() {
     add_bar_light(2, {{1, &kick_5}, {3, &kick_2}});
 
     offset += 100;
-    auto& kick_pulse = effects.add_effect<MidiTrigger<LinearPulse>>("kick_pulse", 'C', 2).effect();
-    kick_pulse.set_config(LinearPulseConfig{
+
+    auto& hat_pulse = effects.add_effect<MidiTrigger<LinearPulse>>("hat_pulse", 'D', 2).effect();
+    hat_pulse.set_config(LinearPulseConfig{
         .rise_dt_ms=10,
         .hold_dt_ms=100,
-        .fall_dt_ms=500
+        .fall_dt_ms=100
     });
+    hat_pulse.set_min(100);
     universe->missyee[2].add_rgb_effect(kick_palette.add_effect(offset));
     universe->missyee[2].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[2].add_rgb_effect(solid);
     universe->missyee[2].add_effect(twinkle.add());
     universe->missyee[2].brightness.set_value(0);
-    universe->missyee[2].brightness.add_effect(&kick_pulse);
+    universe->missyee[2].brightness.add_effect(&hat_pulse);
 
     offset += 100;
     universe->missyee[3].add_rgb_effect(kick_palette.add_effect(offset));
     universe->missyee[3].add_rgb_effect(palette.add_effect(offset));
     universe->missyee[3].add_rgb_effect(solid);
     universe->missyee[3].add_effect(twinkle.add());
-
 
     PaletteConfig config;
     config.type = PaletteConfig::TransitionType::RANDOM;
@@ -246,6 +250,10 @@ void setup() {
     config.palettes["red"] = {
         rgb(255, 0, 0),
         rgb(0, 0, 0),
+    };
+    config.palettes["bled"] = {
+        rgb(0, 0, 255),
+        rgb(255, 0, 0),
     };
     config.palettes["hues"] = {
         rgb(255, 0, 0),
@@ -289,7 +297,7 @@ void setup() {
         rgb(255, 230, 0),
     };
 
-    config.palette = "green";
+    config.palette = "neon";
 
     config.fade_time_ms = 250;
     kick_palette.set_config(config);
@@ -317,10 +325,32 @@ void setup() {
         }
     }
 
-    blank.clear(0);
+    blank.clear(millis() + 1000);
     palette.trigger(0);
     solid.trigger(0);
     twinkle.trigger(0);
+
+    midi.add_callback([&palette,
+                       &kick_palette,
+                       w=true,
+                       n = MidiManager::MidiNote{'C', 3}.note()](byte channel, byte note, byte velocity, bool on){
+        if (on && note == n) {
+            palette.next_palette();
+
+            Serial.print("Switching to ");
+            Serial.println(kick_palette.next_palette());
+        }
+    });
+    midi.add_callback([&palette_trigger,
+                       &kick_palette_trigger,
+                       w=true,
+                       n = MidiManager::MidiNote{'D', 3}.note()](byte channel, byte note, byte velocity, bool on) mutable {
+        if (on && note == n) {
+            palette_trigger.set_enabled(w);
+            kick_palette_trigger.set_enabled(!w);
+            w = !w;
+        }
+    });
 
 }
 

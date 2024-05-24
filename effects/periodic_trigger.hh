@@ -24,11 +24,13 @@ public:
     virtual ~PeriodicBase() = default;
 
     void tick(uint32_t now) {
-        if (now >= next_) {
+        if (now >= next_ && enabled_) {
             trigger_ready(now);
             next_ += rate_;
         }
     }
+
+    void set_enabled(bool enabled) { enabled_ = enabled; }
 
 protected:
     void set_rate(uint32_t rate) { rate_ = rate; next_ = millis() + rate_; }
@@ -39,6 +41,7 @@ protected:
 private:
     uint32_t rate_;
     uint32_t next_ = 0;
+    bool enabled_ = true;
 };
 
 void PeriodicManager::tick() {

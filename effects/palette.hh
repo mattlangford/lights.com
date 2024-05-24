@@ -20,8 +20,8 @@ struct PaletteConfig {
 
     TransitionType type = TransitionType::RANDOM;
 
-    std::map<std::string, std::vector<Color>> palettes;
-    std::string palette;
+    std::map<String, std::vector<Color>> palettes;
+    String palette;
 
     uint32_t fade_time_ms = 1000;
 };
@@ -51,7 +51,7 @@ public:
 
         const auto& palette = json["palette"];
         if (!palette.isNull()) {
-            std::string palette = json["palette"].as<std::string>();
+            String palette = json["palette"].as<String>();
             if (config_.palettes.find(palette) == config_.palettes.end()) {
                 result.consider(SetConfigResult::error("Unknown palette type."));
             } else {
@@ -147,6 +147,28 @@ public:
         offsets_.push_back(offset_ms);
         effects_.push_back(std::make_unique<Effect>());
         return *effects_.back();
+    }
+
+    String next_palette() {
+        size_t index = 0;
+        for (const auto& it : config_.palettes) {
+            if (it.first == config_.palette) {
+                break;
+            }
+            index++;
+        }
+        index = (index + 1) % config_.palettes.size();
+        config_.palette = std::next(config_.palettes.begin(), index)->first;
+
+        // Fast fade to this color
+        auto fade = config_.fade_time_ms;
+        config_.fade_time_ms = 100;
+
+        trigger(millis());
+
+        config_.fade_time_ms = fade;
+
+        return config_.palette;
     }
 
 private:
