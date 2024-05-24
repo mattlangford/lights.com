@@ -128,6 +128,7 @@ public:
     void set_note(byte note) { note_ = note; }
     void set_any_node(bool enable=true) { any_ = enable; }
     void set_enabled(bool enabled) { enabled_ = enabled; }
+    void set_every_n(uint8_t every_n) { every_n_ = every_n; }
 
 protected:
     String parent_type() const override { return "MidiTrigger"; }
@@ -138,6 +139,7 @@ protected:
         result.maybe_set(json, "any", any_);
         result.maybe_set(json, "enabled", enabled_);
         result.maybe_set(json, "ignore_clear", ignore_clear_);
+        result.maybe_set(json, "every_n", every_n_);
         return result;
     }
     void get_parent_config_json(JsonObject& json) const override {
@@ -145,6 +147,7 @@ protected:
         json["any"] = any_;
         json["enabled"] = enabled_;
         json["ignore_clear"] = ignore_clear_;
+        json["every_n"] = every_n_;
     };
 
 private:
@@ -157,6 +160,9 @@ private:
         }
 
         if (on) {
+            // How do we do this for the trigger too?
+            if (++n_ < every_n_) { return; }
+            n_ = 0;
             this->trigger(this->now());
         } else if (!ignore_clear_) {
             this->clear(this->now());
@@ -167,6 +173,9 @@ private:
     bool any_ = false;
     bool enabled_ = true;
     bool ignore_clear_ = true;
+
+    uint8_t every_n_ = 1;
+    uint8_t n_ = 0;
 };
 
 /// @brief Similar to MidiTrigger, but aggregates many instances of Effect 

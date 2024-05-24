@@ -167,7 +167,9 @@ void setup() {
     universe->missyee[1].add_effect(twinkle.add());
 
     offset += 100;
-    auto& kick_pulse = effects.add_effect<MidiTrigger<LinearPulse>>("kick_pulse", 'C', 2).effect();
+    auto& kick_pulse_trigger = effects.add_effect<MidiTrigger<LinearPulse>>("kick_pulse", 'C', 2);
+    kick_pulse_trigger.set_every_n(2);
+    auto& kick_pulse = kick_pulse_trigger.effect();
     kick_pulse.set_config(LinearPulseConfig{
         .rise_dt_ms=10,
         .hold_dt_ms=100,
@@ -338,12 +340,12 @@ void setup() {
             palette.next_palette();
 
             Serial.print("Switching to ");
-            Serial.println(kick_palette.next_palette());
+            Serial.println(kick_palette.next_palette(100));
         }
     });
     midi.add_callback([&palette_trigger,
                        &kick_palette_trigger,
-                       w=true,
+                       w=false,
                        n = MidiManager::MidiNote{'D', 3}.note()](byte channel, byte note, byte velocity, bool on) mutable {
         if (on && note == n) {
             palette_trigger.set_enabled(w);

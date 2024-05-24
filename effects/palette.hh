@@ -149,7 +149,7 @@ public:
         return *effects_.back();
     }
 
-    String next_palette() {
+    String next_palette(uint32_t delay = 0) {
         size_t index = 0;
         for (const auto& it : config_.palettes) {
             if (it.first == config_.palette) {
@@ -164,7 +164,7 @@ public:
         auto fade = config_.fade_time_ms;
         config_.fade_time_ms = 100;
 
-        trigger(millis());
+        trigger(millis() + delay);
 
         config_.fade_time_ms = fade;
 
