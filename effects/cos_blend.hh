@@ -5,7 +5,7 @@ struct CosBlendConfig {
     std::vector<float> phase0;
 };
 
-class CosBlend final : public SingleChannelEffect {
+class CosBlend : public SingleChannelEffect {
 public:
     ~CosBlend() override = default;
 
@@ -90,3 +90,34 @@ private:
     uint32_t last_time_ms_ = 0;
 };
 
+/*
+class Twinkle : public CosBlend {
+    Twinkle(double speed = 1.0) { set_speed(speed); }
+
+public:
+    SetConfigResult set_config_json(const JsonObject& json) override {
+        SetConfigResult result = SingleChannelEffect::set_config_json(json);
+        if (result.maybe_set(json, "speed", speed_)) {
+            set_speed(speed_);
+        }
+        return result;
+    }
+
+    void get_config_json(JsonObject& json) const override {
+        SingleChannelEffect::get_config_json(json);
+        json["speed"] = speed_;
+    }
+
+    void set_speed(double speed) {
+        speed_ = speed;
+
+        CosBlendConfig config;
+        config.freq = {0.1 * speed, 0.5 * speed, 1.0 * speed};
+        config.phase0 = {random(), random(), random()};
+        CosBlend::set_config(config);
+    }
+
+private:
+    double speed_ = 1.0;
+};
+*/

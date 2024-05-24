@@ -150,6 +150,38 @@ public:
         }
     }
 
+    template <typename Effect>
+    void add_rgb_effect(uint8_t index, RgbEffect<Effect>& effect) {
+        red(index).add_effect(&effect.red());
+        green(index).add_effect(&effect.green());
+        blue(index).add_effect(&effect.blue());
+    }
+
+    template <typename Effect>
+    void add_effect(uint8_t index, Effect& effect) {
+        red(index).add_effect(&effect);
+        green(index).add_effect(&effect);
+        blue(index).add_effect(&effect);
+    }
+
+    template <typename Effect>
+    void add_rgb_effect(RgbEffect<Effect>& effect) {
+        for (auto& rgb : rgb_) {
+            rgb.r->add_effect(&effect.red());
+            rgb.g->add_effect(&effect.green());
+            rgb.b->add_effect(&effect.blue());
+        }
+    }
+
+    template <typename Effect>
+    void add_effect(Effect& effect) {
+        for (auto& rgb : rgb_) {
+            rgb.r->add_effect(&effect);
+            rgb.g->add_effect(&effect);
+            rgb.b->add_effect(&effect);
+        }
+    }
+
     Channel& red(uint8_t index) { return *rgb_[index].r; }
     Channel& green(uint8_t index) { return *rgb_[index].g; }
     Channel& blue(uint8_t index) { return *rgb_[index].b; }
