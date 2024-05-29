@@ -133,9 +133,9 @@ void setup() {
 
     auto& kick_palette_trigger = effects.add_effect<MidiTrigger<Palette>>("kick_palette", 'C', 2);
     auto& kick_palette = kick_palette_trigger.effect();
-    kick_palette_trigger.set_enabled(false);
 
     auto& palette_trigger = effects.add_effect<PeriodicTrigger<Palette>>("palette", 4000);
+    palette_trigger.set_enabled(false);
     auto& palette = palette_trigger.effect();
     auto& solid = effects.add_effect<Solid>("rgb");
     auto& twinkle = effects.add_effect<CompositeEffect<Twinkle>>("twinkle");
@@ -350,7 +350,7 @@ void setup() {
     });
     midi.add_callback([&palette_trigger,
                        &kick_palette_trigger,
-                       w=false,
+                       w=true,
                        n = MidiManager::MidiNote{'D', 3}.note()](byte channel, byte note, byte velocity, bool on) mutable {
         if (on && note == n) {
             palette_trigger.set_enabled(w);
