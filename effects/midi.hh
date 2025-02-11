@@ -4,6 +4,9 @@
 #include <functional>
 #include <unordered_map>
 
+// #include <MIDI.h>
+// MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, SerialMIDI);
+
 class MidiManager {
 private:
     using Callback = std::function<void(byte channel, byte note, byte velocity, bool on)>;
@@ -18,6 +21,24 @@ public:
     void read() {
         usbMIDI.read();
     }
+
+    // void setup() {
+    //     SerialMIDI.begin(MIDI_CHANNEL_OMNI);
+    // }
+    // void read() {
+    //     if (SerialMIDI.read()) { 
+    //         switch (SerialMIDI.getType()) {
+    //         case midi::NoteOn:
+    //             note_on(SerialMIDI.getChannel(), SerialMIDI.getData1(), SerialMIDI.getData2());
+    //             break;
+    //         case midi::NoteOff:
+    //             note_off(SerialMIDI.getChannel(), SerialMIDI.getData1(), SerialMIDI.getData2());
+    //             break;
+    //         default:
+    //             break;
+    //         }
+    //     }
+    // }
 
     bool active(byte channel) const { return active_channels_.find(channel) != active_channels_.end(); }
     bool active(std::vector<byte> channels) const {
@@ -47,7 +68,7 @@ public:
     }
 
 public:
-struct MidiNote {
+    struct MidiNote {
         char base = 'A';
         byte octive = 0;
         bool sharp = false;
@@ -99,13 +120,13 @@ private:
     std::vector<Callback> callbacks_;
 };
 
-MidiManager midi;
+MidiManager midi_manager;
 
 void MidiManager::dispatch_note_off(byte channel, byte note, byte velocity) {
-    midi.note_off(channel, note, velocity);
+    midi_manager.note_off(channel, note, velocity);
 }
 void MidiManager::dispatch_note_on(byte channel, byte note, byte velocity) {
-    midi.note_on(channel, note, velocity);
+    midi_manager.note_on(channel, note, velocity);
 }
 
 ///
@@ -115,7 +136,7 @@ template <typename Effect>
 class MidiTrigger final : public NestedEffect<Effect> {
 public:
     explicit MidiTrigger(byte note) : note_(note) {
-        midi.add_callback([this](byte channel, byte note, byte velocity, bool on){
+        midi_manager.add_callback([this](byte channel, byte note, byte velocity, bool on){
             on_note(channel, note, velocity, on);
         });
     }
@@ -189,7 +210,7 @@ template <typename Effect>
 class MidiMap final : public CompositeEffect<Effect> {
 public:
     MidiMap(byte channel=-1) : channel_(channel) {
-        midi.add_callback([this](byte channel, byte note, byte velocity, bool on){
+        midi_manager.add_callback([this](byte channel, byte note, byte velocity, bool on){
             on_note(channel, note, velocity, on);
         });
     }

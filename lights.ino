@@ -117,7 +117,7 @@ void setup() {
     controller = new DMXController(41, 40);
 
     // audio.setup();
-    midi.setup();
+    midi_manager.setup();
 
     universe = new Universe(*controller);
 
@@ -336,10 +336,9 @@ void setup() {
     solid.trigger(millis());
     twinkle.trigger(millis());
 
-    midi.add_callback([&palette,
-                       &kick_palette,
-                       w=true,
-                       n = MidiManager::MidiNote{'C', 3}.note()](byte channel, byte note, byte velocity, bool on){
+    midi_manager.add_callback(
+        [&palette, &kick_palette, w=true, n = MidiManager::MidiNote{'C', 3}.note()]
+        (byte channel, byte note, byte velocity, bool on){
         if (on && note == n) {
             auto p = palette.next_palette();
             kick_palette.set_palette(p);
@@ -348,10 +347,9 @@ void setup() {
             Serial.println(p);
         }
     });
-    midi.add_callback([&palette_trigger,
-                       &kick_palette_trigger,
-                       w=true,
-                       n = MidiManager::MidiNote{'D', 3}.note()](byte channel, byte note, byte velocity, bool on) mutable {
+    midi_manager.add_callback(
+        [&palette_trigger, &kick_palette_trigger, w=true, n = MidiManager::MidiNote{'D', 3}.note()]
+        (byte channel, byte note, byte velocity, bool on) mutable {
         if (on && note == n) {
             palette_trigger.set_enabled(w);
             kick_palette_trigger.set_enabled(!w);
@@ -363,7 +361,7 @@ void setup() {
 
 void loop() {
     periodic.tick();
-    midi.read();
+    midi_manager.read();
     // audio.read();
     interface.handle_serial();
     controller->write_frame();
