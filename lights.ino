@@ -114,17 +114,17 @@ void setup() {
     uint32_t offset = 0;
 
     offset += 100;
-    auto& kick_pulse_trigger = effects.add_effect<MidiTrigger<LinearPulse>>("kick_pulse", 'C', 2);
-    kick_pulse_trigger.set_every_n(2);
-    kick_pulse_trigger.set_enabled(false);
-    auto& kick_pulse = kick_pulse_trigger.effect();
-    kick_pulse.set_config(LinearPulseConfig{
+    auto& snare_pulse_trigger = effects.add_effect<MidiTrigger<LinearPulse>>("snare_pulse", 'C', 2, true);
+    snare_pulse_trigger.set_every_n(2);
+    snare_pulse_trigger.set_enabled(false);
+    auto& snare_pulse = snare_pulse_trigger.effect();
+    snare_pulse.set_config(LinearPulseConfig{
         .rise_dt_ms=10,
         .hold_dt_ms=100,
         .fall_dt_ms=500
     });
-    kick_pulse.set_multiply(true);
-    kick_pulse.set_min(100);
+    snare_pulse.set_multiply(true);
+    snare_pulse.set_min(100);
 
     offset += 20;
 
