@@ -8,6 +8,17 @@
         "system_error": "cpp",
         "tuple": "cpp",
         "cstddef": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "unordered_map": "cpp",
+        "set": "cpp",
+        "functional": "cpp",
+        "istream": "cpp",
+        "__hash_table": "cpp",
+        "__tree": "cpp",
+        "array": "cpp",
+        "limits": "cpp",
+        "ratio": "cpp",
+        "variant": "cpp",
+        "type_traits": "cpp"
     }
 }
