@@ -299,5 +299,5 @@ void loop() {
     midi_manager.read();
     // audio.read();
     interface.handle_serial();
-    controller->write_frame();
+    // controller->write_frame();
 }

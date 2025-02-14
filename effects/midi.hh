@@ -4,8 +4,8 @@
 #include <functional>
 #include <unordered_map>
 
-// #include <MIDI.h>
-// MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, SerialMIDI);
+#include <MIDI.h>
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, SerialMIDI);
 
 class MidiManager {
 private:
@@ -14,31 +14,34 @@ private:
     static void dispatch_note_off(byte channel, byte note, byte velocity);
     static void dispatch_note_on(byte channel, byte note, byte velocity);
 public:
-    void setup() {
-        usbMIDI.setHandleNoteOff(dispatch_note_off);
-        usbMIDI.setHandleNoteOn(dispatch_note_on);
-    }
-    void read() {
-        usbMIDI.read();
-    }
-
     // void setup() {
-    //     SerialMIDI.begin(MIDI_CHANNEL_OMNI);
+    //     usbMIDI.setHandleNoteOff(dispatch_note_off);
+    //     usbMIDI.setHandleNoteOn(dispatch_note_on);
     // }
     // void read() {
-    //     if (SerialMIDI.read()) { 
-    //         switch (SerialMIDI.getType()) {
-    //         case midi::NoteOn:
-    //             note_on(SerialMIDI.getChannel(), SerialMIDI.getData1(), SerialMIDI.getData2());
-    //             break;
-    //         case midi::NoteOff:
-    //             note_off(SerialMIDI.getChannel(), SerialMIDI.getData1(), SerialMIDI.getData2());
-    //             break;
-    //         default:
-    //             break;
-    //         }
-    //     }
+    //     usbMIDI.read();
     // }
+
+    void setup() {
+        SerialMIDI.begin(10);
+    }
+
+    void read() {
+        if (SerialMIDI.read()) { 
+            switch (SerialMIDI.getType()) {
+            case midi::NoteOn: {
+                note_on(SerialMIDI.getChannel(), SerialMIDI.getData1(), SerialMIDI.getData2());
+                break;
+            }
+            case midi::NoteOff: {
+                note_off(SerialMIDI.getChannel(), SerialMIDI.getData1(), SerialMIDI.getData2());
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
 
     bool active(byte channel) const { return active_channels_.find(channel) != active_channels_.end(); }
     bool active(std::vector<byte> channels) const {
@@ -190,8 +193,12 @@ private:
             // How do we do this for the trigger too?
             if (++n_ < every_n_) { return; }
             n_ = 0;
+            Serial.print("TRIGGER ");
+            Serial.println(this->type());
             this->trigger(this->now());
         } else if (!ignore_clear_) {
+            Serial.print("CLEAR ");
+            Serial.println(this->type());
             this->clear(this->now());
         }
     }
