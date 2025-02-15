@@ -27,7 +27,7 @@ public:
     }
 
     void read() {
-        if (SerialMIDI.read()) { 
+        while (SerialMIDI.read()) { 
             switch (SerialMIDI.getType()) {
             case midi::NoteOn: {
                 note_on(SerialMIDI.getChannel(), SerialMIDI.getData1(), SerialMIDI.getData2());
@@ -193,12 +193,12 @@ private:
             // How do we do this for the trigger too?
             if (++n_ < every_n_) { return; }
             n_ = 0;
-            Serial.print("TRIGGER ");
-            Serial.println(this->type());
+            // Serial.print("TRIGGER ");
+            // Serial.println(this->type());
             this->trigger(this->now());
         } else if (!ignore_clear_) {
-            Serial.print("CLEAR ");
-            Serial.println(this->type());
+            // Serial.print("CLEAR ");
+            // Serial.println(this->type());
             this->clear(this->now());
         }
     }

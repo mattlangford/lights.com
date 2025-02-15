@@ -23,7 +23,7 @@ struct Universe {
         missyee{{10, controller}, {17, controller}, {31, controller}, {24, controller}},
         bar{{162, controller}, {274, controller}, {50, controller}} {
 
-        controller.set_max_channel(512);
+        controller.set_max_channel(3 * 112);
     }
 };
 Universe* universe;
@@ -83,6 +83,10 @@ void values(const String& json) {
         Serial.print(", ");
     }
     Serial.println();
+}
+
+void read_midi() {
+    midi_manager.read();
 }
 
 void setup() {
@@ -294,10 +298,58 @@ void setup() {
     });
 }
 
+constexpr size_t COUNT = 100;
+static size_t i = 0;
+uint32_t periodic_timer[COUNT];
+uint32_t midi_manager_timer[COUNT];
+uint32_t interface_timer[COUNT];
+uint32_t controller_timer[COUNT];
+
 void loop() {
+    uint32_t start, end;
+
+    start = micros();
     periodic.tick();
+    end = micros();
+    periodic_timer[i] = end - start;
+
+    start = end;
     midi_manager.read();
+    end = micros();
+    midi_manager_timer[i] = end - start;
+
     // audio.read();
+    start = end;
     interface.handle_serial();
-    // controller->write_frame();
+    end = micros();
+    interface_timer[i] = end - start;
+
+    start = end;
+    controller->write_frame(&read_midi);
+    end = micros();
+    controller_timer[i] = end - start;
+
+    if (i++ >= COUNT) {
+        float avg = 0.0;
+        for (uint32_t mic : periodic_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
+        Serial.print("Periodic Timer (us): ");
+        Serial.println(avg);
+        avg = 0.0;
+
+        for (uint32_t mic : midi_manager_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
+        Serial.print("Midi Timer (us): ");
+        Serial.println(avg);
+        avg = 0.0;
+
+        for (uint32_t mic : interface_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
+        Serial.print("Interface Timer (us): ");
+        Serial.println(avg);
+        avg = 0.0;
+
+        for (uint32_t mic : controller_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
+        Serial.print("Controller Timer (us): ");
+        Serial.println(avg);
+
+        i = 0;
+    }
 }

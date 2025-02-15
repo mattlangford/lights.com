@@ -101,7 +101,7 @@ public:
         return channels_[index];
     }
 
-    void write_frame()
+    void write_frame(void(*call)())
     {
         uint32_t dt_us = dt();
 
@@ -127,6 +127,7 @@ public:
             // Compute the value of this channel, the time between slots is arbitrary so do the processing here.
             uint8_t value = channels_[i].get_value(now_ms);
             write_byte(value);
+            call();
         }
 
         // Padding, it seems some lights don't like being the last channel.
