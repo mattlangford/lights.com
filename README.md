@@ -10,6 +10,16 @@ arduino-cli compile -u -p /dev/tty.usbmodem101
 arduino-cli monitor -p /dev/tty.usbmodem101
 ```
 
+## PlatformIO
+My current plan is to put all teensy specific code in `src/` - these interact with FreeRTOS or other teensy specific hardware calls. Supporting  libraries will be in `lib/<name>` - these don't have specific teensy calls and can be tested locally.
+```bash
+# Test using gtest on the native arch
+pio test -e native
+
+# Build for teensy target
+pio run -e teensy41
+```
+
 ## Libraries
  * ArduinoJson
  * ArduinoSTL
