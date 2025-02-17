@@ -10,101 +10,92 @@
 #include <map>
 #include <sstream>
 
-class Ports {
-public:
-    void set(size_t port, float value) const { values_->at(outputs_.at(port)) = value; }
-    float get(size_t port) const { return values_->at(inputs_.at(port)); }
-private:
-    friend class Runner;
-    std::vector<float>* values_;
-    std::vector<size_t> inputs_;
-    std::vector<size_t> outputs_;
-};
+#include "node.hh"
+#include "context.hh"
 
 class Runner {
 private:
-    struct Node {
-        std::string name;
-        size_t index;
-        size_t inputs;
-        size_t outputs;
-        std::function<void(Ports&)> callback;
-    };
-    struct NodeId { size_t index; };
-    static constexpr size_t INVALID_INPUT = -1;
+    struct NodeId;
 
 public:
-    NodeId add_node(std::string name, size_t inputs, size_t outputs, std::function<void(Ports&)> callback) {
-        size_t index = nodes_.size();
-        nodes_.push_back({
-            .name = std::move(name),
-            .index = index,
-            .inputs=inputs,
-            .outputs=outputs,
-            .callback=std::move(callback)
-        });
+    template <typename T, typename...Args>
+    NodeId add_node(std::string name, Args&&... args) {
+        static_assert(std::is_base_of_v<Node, T>, "Nodes must derive from base class Node");
+        return add_node(std::make_shared<T>(std::forward<Args>(args)...), std::move(name));
+    }
 
-        auto& ports = ports_.emplace_back();
-        ports.values_ = &values_;
-        for (size_t out = 0; out < outputs; out++) {
-            ports.outputs_.push_back(values_.size());
+    NodeId add_node(std::shared_ptr<Node> instance, std::string name) {
+        if (instance == nullptr) throw std::runtime_error("Can not add null node");
+        const NodeId id{.index = wrappers_.size() };
+        Wrapper& wrapper = wrappers_.emplace_back();
+        wrapper.name = std::move(name);
+        wrapper.node = std::move(instance);
+        for (size_t out = 0; out < wrapper.node->output_count(); out++) {
+            wrapper.outputs.push_back(values_.size());
             values_.push_back(0.0);
         }
-        for (size_t in = 0; in < inputs; in++) {
-            ports.inputs_.push_back(INVALID_INPUT);
+        for (size_t in = 0; in < wrapper.node->input_count(); in++) {
+            wrapper.inputs.push_back(INVALID_INPUT);
         }
-
-        return {index};
+        return id;
     }
 
     void connect(NodeId from_node, size_t from_output, NodeId to_node, size_t to_input) {
-        if (ports_.size() != nodes_.size()) throw std::logic_error("Ports and node sizes don't match");
-        if (from_node.index >= nodes_.size()) throw std::runtime_error(std::format("Unable to load output node index={}", from_node.index));
-        if (from_output >= ports_.at(from_node.index).outputs_.size()) throw std::runtime_error(std::format("Unable to load node output={} from node='{}'", from_output, nodes_.at(from_node.index).name));
-        if (to_node.index >= nodes_.size()) throw std::runtime_error(std::format("Unable to load input node index={}", to_node.index));
-        if (to_input >= ports_.at(to_node.index).inputs_.size()) throw std::runtime_error(std::format("Unable to load node input={} from node='{}'", to_input, nodes_.at(to_node.index).name));
+        if (from_node.index >= wrappers_.size()) throw std::runtime_error(std::format("Unable to load output node index={}", from_node.index));
+        if (from_output >= wrappers_.at(from_node.index).outputs.size()) throw std::runtime_error(std::format("Unable to load node output={} from node='{}'", from_output, wrappers_.at(from_node.index).name));
+        if (to_node.index >= wrappers_.size()) throw std::runtime_error(std::format("Unable to load input node index={}", to_node.index));
+        if (to_input >= wrappers_.at(to_node.index).inputs.size()) throw std::runtime_error(std::format("Unable to load node input={} from node='{}'", to_input, wrappers_.at(to_node.index).name));
 
-        const auto& from_outputs = ports_.at(from_node.index).outputs_;
-        auto& to_inputs = ports_.at(to_node.index).inputs_;
+        const auto& from_outputs = wrappers_.at(from_node.index).outputs;
+        auto& to_inputs = wrappers_.at(to_node.index).inputs;
         to_inputs.at(to_input) = from_outputs.at(from_output);
     }
 
-    void validate() {
-        for (size_t i = 0; i < ports_.size(); ++i)
-            for (size_t in = 0; in < ports_[i].inputs_.size(); ++in)
-                if (ports_[i].inputs_[in] == INVALID_INPUT)
+    void validate() const {
+        for (const Wrapper& wrapper : wrappers_)
+            for (size_t in = 0; in < wrapper.inputs.size(); ++in)
+                if (wrapper.inputs[in] == INVALID_INPUT)
                     throw std::runtime_error(
-                        std::format("Node '{}' is missing input {}", nodes_.at(i).name, in));
+                        std::format("Node '{}' is missing input {}", wrapper.name, in));
     }
 
-    void run() {
+    void run(uint32_t now) {
         validate();
-        for (size_t i = 0; i < nodes_.size(); ++i) {
-            nodes_[i].callback(ports_[i]);
+        for (Wrapper& wrapper : wrappers_) {
+            Context context(now, values_, wrapper.inputs, wrapper.outputs);
+            wrapper.node->callback(context);
         }
     }
 
     std::string dot() const {
         std::map<size_t, std::vector<std::string>> inputs_to_nodes;
-        for (const auto& node : nodes_) {
-            for (size_t input : ports_.at(node.index).inputs_) {
-                inputs_to_nodes[input].push_back(node.name);
+        for (const auto& wrapper : wrappers_) {
+            for (size_t input : wrapper.inputs) {
+                inputs_to_nodes[input].push_back(wrapper.name);
             }
         }
 
         std::stringstream ss;
         ss << "digraph runner {\n";
-        for (const auto& node : nodes_)
-            for (size_t output : ports_.at(node.index).outputs_)
+        for (const auto& wrapper : wrappers_)
+            for (size_t output : wrapper.outputs)
                 for (const auto& name : inputs_to_nodes.at(output))
-                    ss << "  " << node.name << " -> " << name << " [label=value" << output << "]\n";
+                    ss << "  " << wrapper.name << " -> " << name << " [label=value" << output << "]\n";
 
         ss << "}";
         return ss.str();
     }
 
 private:
-    std::vector<Node> nodes_;
-    std::vector<Ports> ports_;
+    struct NodeId { size_t index; };
+    struct Wrapper {
+        std::string name;
+        std::shared_ptr<Node> node;
+        std::vector<size_t> inputs;
+        std::vector<size_t> outputs;
+    };
+    static constexpr size_t INVALID_INPUT = -1;
+    std::vector<Wrapper> wrappers_;
     std::vector<float> values_;
+
 };
