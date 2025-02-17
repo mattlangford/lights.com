@@ -6,7 +6,7 @@ public:
     float input(size_t port) const { return values_.at(inputs_.at(port)); }
     void output(size_t port, float value) const { values_.at(outputs_.at(port)) = value; }
 
-    uint32_t now() const { return now_; }
+    inline uint32_t now() const { return now_; }
 
 private:
     friend class Runner;
