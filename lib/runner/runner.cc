@@ -1,7 +1,6 @@
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
-#include <format>
 #include <iostream>
 #include <map>
 #include <sstream>
@@ -10,7 +9,6 @@
 #include "context.hh"
 
 auto Runner::add_node(std::shared_ptr<Node> instance, std::string name) -> NodeId {
-    if (instance == nullptr) throw std::runtime_error("Can not add null node");
     const NodeId id{.index = wrappers_.size() };
     Wrapper& wrapper = wrappers_.emplace_back();
     wrapper.name = std::move(name);
@@ -26,10 +24,26 @@ auto Runner::add_node(std::shared_ptr<Node> instance, std::string name) -> NodeI
 }
 
 void Runner::connect(NodeId from_node, size_t from_output, NodeId to_node, size_t to_input) {
-    if (from_node.index >= wrappers_.size()) throw std::runtime_error(std::format("Unable to load output node index={}", from_node.index));
-    if (from_output >= wrappers_.at(from_node.index).outputs.size()) throw std::runtime_error(std::format("Unable to load node output={} from node='{}'", from_output, wrappers_.at(from_node.index).name));
-    if (to_node.index >= wrappers_.size()) throw std::runtime_error(std::format("Unable to load input node index={}", to_node.index));
-    if (to_input >= wrappers_.at(to_node.index).inputs.size()) throw std::runtime_error(std::format("Unable to load node input={} from node='{}'", to_input, wrappers_.at(to_node.index).name));
+    if (from_node.index >= wrappers_.size()) {
+        std::stringstream ss;
+        ss << "Unable to load output node index=" << from_node.index;
+        throw std::runtime_error(ss.str());
+    }
+    if (from_output >= wrappers_.at(from_node.index).outputs.size()) {
+        std::stringstream ss;
+        ss << "Unable to load node output=" << from_output << " from node ='" << wrappers_.at(from_node.index).name << "'";
+        throw std::runtime_error(ss.str());
+    }
+    if (to_node.index >= wrappers_.size()) {
+        std::stringstream ss;
+        ss << "Unable to load input node index=" << to_node.index;
+        throw std::runtime_error(ss.str());
+    }
+    if (to_input >= wrappers_.at(to_node.index).inputs.size()) {
+        std::stringstream ss;
+        ss << "Unable to load node input=" << to_input << " from node ='" << wrappers_.at(to_node.index).name << "'";
+        throw std::runtime_error(ss.str());
+    }
 
     const auto& from_outputs = wrappers_.at(from_node.index).outputs;
     auto& to_inputs = wrappers_.at(to_node.index).inputs;
@@ -39,9 +53,11 @@ void Runner::connect(NodeId from_node, size_t from_output, NodeId to_node, size_
 void Runner::validate() const {
     for (const Wrapper& wrapper : wrappers_)
         for (size_t in = 0; in < wrapper.inputs.size(); ++in)
-            if (wrapper.inputs[in] == INVALID_INPUT)
-                throw std::runtime_error(
-                    std::format("Node '{}' is missing input {}", wrapper.name, in));
+            if (wrapper.inputs[in] == INVALID_INPUT) {
+                std::stringstream ss;
+                ss << "Node '" << wrapper.name << "' is missing input " << in;
+                throw std::runtime_error(ss.str());
+            }
 }
 
 void Runner::run(uint32_t now) {

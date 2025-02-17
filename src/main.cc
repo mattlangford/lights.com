@@ -2,7 +2,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
-#include "a_file.hh"
+#include "runner.hh"
 
 // put function declarations here:
 int myFunction(int, int);
@@ -13,8 +13,6 @@ void setup() {
 }
 
 void loop() {
-  Tester t;
-  t.test() = 32;
   vTaskDelete(NULL);
   // put your main code here, to run repeatedly:
 }
