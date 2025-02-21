@@ -3,6 +3,7 @@
 #include "context.hh"
 #include <string>
 
+namespace runner {
 class Node {
 public:
     virtual ~Node() = default;
@@ -12,3 +13,4 @@ public:
 
     virtual bool callback(Context& context) = 0;
 };
+}

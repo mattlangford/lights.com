@@ -1,12 +1,13 @@
 #pragma once
 #include <vector>
 
+namespace runner {
 class Context {
 public:
     float input(size_t port) const { return values_.at(inputs_.at(port)); }
     void output(size_t port, float value) const { values_.at(outputs_.at(port)) = value; }
 
-    inline uint32_t now() const { return now_; }
+    uint32_t now() const { return now_; }
 
 private:
     friend class Runner;
@@ -22,3 +23,4 @@ private:
     const std::vector<size_t>& inputs_;
     const std::vector<size_t>& outputs_;
 };
+}

@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+namespace runner {
 class Constants final : public Node {
 public:
     Constants(float v0, float v1) : v0(v0), v1(v1) { }
@@ -76,6 +77,7 @@ TEST(RunnerTest, BasicRunner) {
     EXPECT_FLOAT_EQ(saver_ptr->v0, 4.1);
     EXPECT_FLOAT_EQ(saver_ptr->v1, -1.9);
     EXPECT_EQ(saver_ptr->time, 123);
+}
 }
 
 int main(int argc, char **argv) {

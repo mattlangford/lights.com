@@ -8,6 +8,7 @@
 
 #include "node.hh"
 
+namespace runner {
 class Runner {
 private:
     struct NodeId;
@@ -42,3 +43,4 @@ private:
     std::vector<float> values_;
 
 };
+}

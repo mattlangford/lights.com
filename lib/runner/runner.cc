@@ -8,6 +8,7 @@
 #include "runner.hh"
 #include "context.hh"
 
+namespace runner {
 auto Runner::add_node(std::shared_ptr<Node> instance, std::string name) -> NodeId {
     const NodeId id{.index = wrappers_.size() };
     Wrapper& wrapper = wrappers_.emplace_back();
@@ -85,4 +86,5 @@ std::string Runner::dot() const {
 
     ss << "}";
     return ss.str();
+}
 }
