@@ -1,27 +1,11 @@
 #include "runner.hh"
 #include "node.hh"
 #include "dijector.hh"
+#include "math.hh"
 
 #include <gtest/gtest.h>
 
 namespace runner {
-class Adder final : public Node {
-public:
-    size_t input_count() const override { return 2; }
-    size_t output_count() const override { return 1; }
-    void callback(Context& context) override  {
-        context.output(0, context.input(0) + context.input(1));
-    }
-};
-
-class Subtractor final : public Node {
-public:
-    size_t input_count() const override { return 2; }
-    size_t output_count() const override { return 1; }
-    void callback(Context& context) override {
-        context.output(0, context.input(0) - context.input(1));
-    }
-};
 
 TEST(RunnerTest, BasicRunner) {
     Runner runner;
