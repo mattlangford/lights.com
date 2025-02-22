@@ -44,14 +44,14 @@ void Runner::run(Time now) {
 
 void Runner::write(NodeId node, size_t input, float value) {
     check_node_and_port(node, &input, nullptr);
-    auto& inputs = wrappers_[node.index].inputs;
-    inputs[input] = value;
+    auto& inputs = wrappers_.at(node.index).inputs;
+    values_.at(inputs.at(input)) = value;
 }
 
 float Runner::read(NodeId node, size_t output) {
     check_node_and_port(node, nullptr, &output);
-    auto& outputs = wrappers_[node.index].outputs;
-    return outputs[output];
+    auto& outputs = wrappers_.at(node.index).outputs;
+    return values_.at(outputs.at(output));
 }
 
 std::string Runner::dot() const {
