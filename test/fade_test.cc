@@ -6,8 +6,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-using namespace std::chrono_literals;
-
 TEST(FadeTest, BasicFade) {
     runner::Runner runner;
     constexpr float FADE_START = 9.1; 
