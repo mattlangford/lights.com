@@ -7,7 +7,7 @@ class Fade : public runner::Node {
 public:
     explicit Fade(float duration, float min = 0.0f, float max = 1.0f);
 
-    ~Fade() = default;
+    ~Fade() override = default;
 
     size_t input_count() const override { return 1; }
     size_t output_count() const override { return 1; }

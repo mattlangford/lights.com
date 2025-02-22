@@ -68,6 +68,7 @@ void Runner::run(Time now) {
         Context context(now, dt, values_, wrapper.inputs, wrapper.outputs);
         wrapper.node->callback(context);
     }
+    previous_ = now;
 }
 
 std::string Runner::dot() const {

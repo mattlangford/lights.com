@@ -11,7 +11,7 @@ public:
         float min = 0.0f,
         float max = 1.0f);
 
-    ~Pulse() = default;
+    ~Pulse() override = default;
 
     size_t input_count() const override { return 1; }
     size_t output_count() const override { return 1; }
