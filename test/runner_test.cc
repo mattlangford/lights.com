@@ -12,7 +12,7 @@ TEST(RunnerTest, BasicRunner) {
 
     constexpr float IN0 = 1.1;
     constexpr float IN1 = 3.0;
-    const auto constants = runner.add_node<Constant<2>>("constants_1", std::array{IN0, IN1});
+    const auto constants = runner.add_node<Constant<2>>("constants", std::array{IN0, IN1});
     const auto adder = runner.add_node<Adder>("adder");
     const auto subtractor = runner.add_node<Subtractor>("subtractor");
     auto saver_ptr = std::make_shared<Saver<2>>();
@@ -31,5 +31,37 @@ TEST(RunnerTest, BasicRunner) {
     EXPECT_FLOAT_EQ(saver_ptr->value<0>(), 4.1);
     EXPECT_FLOAT_EQ(saver_ptr->value<1>(), -1.9);
     EXPECT_EQ(saver_ptr->time, time);
+}
+
+class TestNode : public Node {
+public:
+    TestNode(size_t in, size_t out) : inputs_(in), outputs_(out) { }
+    size_t input_count() const override { return inputs_; }
+    size_t output_count() const override { return outputs_; }
+    void callback(runner::Context& context) override {}
+
+private:
+    size_t inputs_;
+    size_t outputs_;
+};
+
+TEST(RunnerTest, NoInputs) {
+    Runner runner;
+    auto n0 = runner.add_node<TestNode>("test", 0, 1);
+    auto n1 = runner.add_node<TestNode>("test2", 0, 1);
+    EXPECT_ANY_THROW(runner.connect(n0, 0, n1, 0));
+}
+
+TEST(RunnerTest, NoOutputs) {
+    Runner runner;
+    auto n0 = runner.add_node<TestNode>("test", 0, 0);
+    auto n1 = runner.add_node<TestNode>("test2", 1, 1);
+    EXPECT_ANY_THROW(runner.connect(n0, 0, n1, 0));
+}
+
+TEST(RunnerTest, InvalidNode) {
+    Runner runner;
+    auto n0 = runner.add_node<TestNode>("test", 1, 1);
+    EXPECT_ANY_THROW(runner.connect({.index=500}, 0, n0, 0));
 }
 }

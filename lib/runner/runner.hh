@@ -26,13 +26,16 @@ public:
 
     void connect(NodeId from_node, size_t from_output, NodeId to_node, size_t to_input);
 
-    void validate() const;
-
     void run(Time now);
+
+    void write(NodeId node, size_t input, float value);
+    float read(NodeId node, size_t output);
 
     std::string dot() const;
 
 private:
+    void check_node_and_port(NodeId node, size_t* input, size_t* output);
+
     struct NodeId { size_t index; };
     struct Wrapper {
         std::string name;

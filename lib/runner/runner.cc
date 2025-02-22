@@ -3,12 +3,13 @@
 #include <stdexcept>
 #include <iostream>
 #include <map>
-#include <sstream>
+#include <format>
 
 #include "runner.hh"
 #include "context.hh"
 
 namespace runner {
+
 auto Runner::add_node(std::shared_ptr<Node> instance, std::string name) -> NodeId {
     const NodeId id{.index = wrappers_.size() };
     Wrapper& wrapper = wrappers_.emplace_back();
@@ -25,50 +26,32 @@ auto Runner::add_node(std::shared_ptr<Node> instance, std::string name) -> NodeI
 }
 
 void Runner::connect(NodeId from_node, size_t from_output, NodeId to_node, size_t to_input) {
-    if (from_node.index >= wrappers_.size()) {
-        std::stringstream ss;
-        ss << "Unable to load output node index=" << from_node.index;
-        throw std::runtime_error(ss.str());
-    }
-    if (from_output >= wrappers_.at(from_node.index).outputs.size()) {
-        std::stringstream ss;
-        ss << "Unable to load node output=" << from_output << " from node ='" << wrappers_.at(from_node.index).name << "'";
-        throw std::runtime_error(ss.str());
-    }
-    if (to_node.index >= wrappers_.size()) {
-        std::stringstream ss;
-        ss << "Unable to load input node index=" << to_node.index;
-        throw std::runtime_error(ss.str());
-    }
-    if (to_input >= wrappers_.at(to_node.index).inputs.size()) {
-        std::stringstream ss;
-        ss << "Unable to load node input=" << to_input << " from node ='" << wrappers_.at(to_node.index).name << "'";
-        throw std::runtime_error(ss.str());
-    }
-
+    check_node_and_port(from_node, nullptr, &from_output);
+    check_node_and_port(to_node, &to_input, nullptr);
     const auto& from_outputs = wrappers_.at(from_node.index).outputs;
     auto& to_inputs = wrappers_.at(to_node.index).inputs;
     to_inputs.at(to_input) = from_outputs.at(from_output);
 }
 
-void Runner::validate() const {
-    for (const Wrapper& wrapper : wrappers_)
-        for (size_t in = 0; in < wrapper.inputs.size(); ++in)
-            if (wrapper.inputs[in] == INVALID_INPUT) {
-                std::stringstream ss;
-                ss << "Node '" << wrapper.name << "' has an unconnected input " << in;
-                throw std::runtime_error(ss.str());
-            }
-}
-
 void Runner::run(Time now) {
-    validate();
     Duration dt = now - previous_.value_or(now);
     for (Wrapper& wrapper : wrappers_) {
         Context context(now, dt, values_, wrapper.inputs, wrapper.outputs);
         wrapper.node->callback(context);
     }
     previous_ = now;
+}
+
+void Runner::write(NodeId node, size_t input, float value) {
+    check_node_and_port(node, &input, nullptr);
+    auto& inputs = wrappers_[node.index].inputs;
+    inputs[input] = value;
+}
+
+float Runner::read(NodeId node, size_t output) {
+    check_node_and_port(node, nullptr, &output);
+    auto& outputs = wrappers_[node.index].outputs;
+    return outputs[output];
 }
 
 std::string Runner::dot() const {
@@ -88,5 +71,22 @@ std::string Runner::dot() const {
 
     ss << "}";
     return ss.str();
+}
+
+void Runner::check_node_and_port(NodeId node, size_t* input, size_t* output) {
+    if (node.index >= wrappers_.size()) { throw std::runtime_error(std::format("Invalid node index={}", node.index)); }
+    if (input) {
+        auto& inputs = wrappers_[node.index].inputs;
+        if (*input >= inputs.size()) { throw std::runtime_error(std::format("Invalid input={} from node='{}'", *input, wrappers_[node.index].name)); }
+        size_t input_index = inputs[*input];
+        if (input_index != INVALID_INPUT && inputs[*input] >= values_.size()) {
+            throw std::logic_error(std::format("Invalid access into values {} >= {}", inputs[*input], values_.size()));
+        }
+    }
+    if (output) {
+        auto& outputs = wrappers_[node.index].outputs;
+        if (*output >= outputs.size()) { throw std::runtime_error(std::format("Invalid output={} from node='{}'", *output, wrappers_[node.index].name)); }
+        if (outputs[*output] >= values_.size()) { throw std::logic_error("Invalid access into values"); }
+    }
 }
 }
