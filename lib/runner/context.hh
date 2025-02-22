@@ -1,4 +1,6 @@
 #pragma once
+
+#include "time.hh"
 #include <vector>
 
 namespace runner {
@@ -7,18 +9,21 @@ public:
     float input(size_t port) const { return values_.at(inputs_.at(port)); }
     void output(size_t port, float value) const { values_.at(outputs_.at(port)) = value; }
 
-    uint32_t now() const { return now_; }
+    Time now() const { return now_; }
+    Duration dt() const { return dt_; };
 
 private:
     friend class Runner;
     Context(
-        uint32_t now,
+        Time now,
+        Duration dt,
         std::vector<float>& values,
         const std::vector<size_t>& in,
         const std::vector<size_t>& out
-    ) : now_(now), values_(values), inputs_(in), outputs_(out) { }
+    ) : now_(now), dt_(dt), values_(values), inputs_(in), outputs_(out) { }
 
-    const uint32_t now_;
+    const Time now_;
+    const Duration dt_;
     std::vector<float>& values_;
     const std::vector<size_t>& inputs_;
     const std::vector<size_t>& outputs_;

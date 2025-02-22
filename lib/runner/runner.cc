@@ -56,15 +56,16 @@ void Runner::validate() const {
         for (size_t in = 0; in < wrapper.inputs.size(); ++in)
             if (wrapper.inputs[in] == INVALID_INPUT) {
                 std::stringstream ss;
-                ss << "Node '" << wrapper.name << "' is missing input " << in;
+                ss << "Node '" << wrapper.name << "' has an unconnected input " << in;
                 throw std::runtime_error(ss.str());
             }
 }
 
-void Runner::run(uint32_t now) {
+void Runner::run(Time now) {
     validate();
+    Duration dt = now - previous_.value_or(now);
     for (Wrapper& wrapper : wrappers_) {
-        Context context(now, values_, wrapper.inputs, wrapper.outputs);
+        Context context(now, dt, values_, wrapper.inputs, wrapper.outputs);
         wrapper.node->callback(context);
     }
 }

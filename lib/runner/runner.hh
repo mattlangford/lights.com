@@ -3,10 +3,12 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <optional>
 #include <cstddef>
 #include <stdexcept>
 
 #include "node.hh"
+#include "time.hh"
 
 namespace runner {
 class Runner {
@@ -26,7 +28,7 @@ public:
 
     void validate() const;
 
-    void run(uint32_t now);
+    void run(Time now);
 
     std::string dot() const;
 
@@ -42,5 +44,6 @@ private:
     std::vector<Wrapper> wrappers_;
     std::vector<float> values_;
 
+    std::optional<Time> previous_;
 };
 }

@@ -11,6 +11,6 @@ public:
     virtual size_t input_count() const { return 0; }
     virtual size_t output_count() const { return 0; }
 
-    virtual bool callback(Context& context) = 0;
+    virtual void callback(Context& context) = 0;
 };
 }
