@@ -3,6 +3,7 @@
 #include "node.hh"
 #include "time.hh"
 #include <optional>
+#include <iostream>
 #include <array>
 
 // Thoughts
@@ -19,6 +20,14 @@ public:
         for (uint8_t i = 0; i < Count; ++i) {
             context.output(i, values_[i]);
         }
+    }
+
+    void set(uint8_t index, float value) { values_[index] = value; }
+
+    template <uint8_t I>
+    void set(float value) {
+        static_assert(I < Count, "Index out of bounds!");
+        values_[I] = value;
     }
 
 private:
