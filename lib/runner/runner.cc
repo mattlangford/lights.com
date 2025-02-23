@@ -3,10 +3,10 @@
 #include <stdexcept>
 #include <iostream>
 #include <map>
-#include <format>
 
 #include "runner.hh"
 #include "context.hh"
+#include "log.hh"
 
 namespace runner {
 
@@ -62,31 +62,28 @@ std::string Runner::dot() const {
         }
     }
 
-    std::stringstream ss;
-    ss << "digraph runner {\n";
+    std::string s;
+    s + "digraph runner {\n";
     for (const auto& wrapper : wrappers_)
         for (size_t output : wrapper.outputs)
             for (const auto& name : inputs_to_nodes.at(output))
-                ss << "  " << wrapper.name << " -> " << name << " [label=value" << output << "]\n";
-
-    ss << "}";
-    return ss.str();
+                s += std::string("  ") + wrapper.name + " -> " + name + " [label=value" + std::to_string(output) + "]\n";
+    s + "}";
+    return s;
 }
 
 void Runner::check_node_and_port(NodeId node, size_t* input, size_t* output) {
-    if (node.index >= wrappers_.size()) { throw std::runtime_error(std::format("Invalid node index={}", node.index)); }
+    CHECK(node.index < wrappers_.size(), "Invalid node index {}", node.index);
     if (input) {
         auto& inputs = wrappers_[node.index].inputs;
-        if (*input >= inputs.size()) { throw std::runtime_error(std::format("Invalid input={} from node='{}'", *input, wrappers_[node.index].name)); }
+        CHECK(*input < inputs.size(), "Invalid input={} from node='{}'", *input, wrappers_[node.index].name);
         size_t input_index = inputs[*input];
-        if (input_index != INVALID_INPUT && inputs[*input] >= values_.size()) {
-            throw std::logic_error(std::format("Invalid access into values {} >= {}", inputs[*input], values_.size()));
-        }
+        CHECK(input_index == INVALID_INPUT || input_index < values_.size(), "Invalid access into values {} >= {}", inputs[*input], values_.size());
     }
     if (output) {
         auto& outputs = wrappers_[node.index].outputs;
-        if (*output >= outputs.size()) { throw std::runtime_error(std::format("Invalid output={} from node='{}'", *output, wrappers_[node.index].name)); }
-        if (outputs[*output] >= values_.size()) { throw std::logic_error("Invalid access into values"); }
+        CHECK(*output < outputs.size(), "Invalid output={} from node='{}'", *output, wrappers_[node.index].name);
+        CHECK(outputs[*output] < values_.size(), "Invalid access into values {} >= {}", outputs[*output], values_.size());
     }
 }
 }
