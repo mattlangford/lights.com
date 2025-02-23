@@ -3,7 +3,6 @@
 #include "node.hh"
 #include "time.hh"
 #include <optional>
-#include <iostream>
 #include <array>
 
 // Thoughts

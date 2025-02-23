@@ -65,6 +65,7 @@
         "sstream": "cpp",
         "stack": "cpp",
         "streambuf": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "random": "cpp"
     }
 }

@@ -1,7 +1,6 @@
 #include "shimmer.hh"
 #include <random>
 #include <algorithm>
-#include <iostream>
 #include <cmath>
 #include <random>
 

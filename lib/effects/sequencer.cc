@@ -2,8 +2,6 @@
 #include "sequencer.hh"
 #include "node.hh"
 
-#include <iostream>
-
 namespace effects {
 
 Sequencer::Sequencer(size_t count, Mode mode, size_t seed) : count_(count), mode_(mode), rng_(seed) { }
