@@ -5,17 +5,17 @@
 
 namespace config {
 
-struct AdderNode { size_t inputs = 2; };
-struct SubtractorNode { size_t inputs = 2; };
-struct MultiplerNode { size_t inputs = 2; };
-struct DividerNode { size_t inputs = 2; };
+struct AdderNode { uint8_t inputs = 2; };
+struct SubtractorNode { uint8_t inputs = 2; };
+struct MultiplierNode { uint8_t inputs = 2; };
+struct DividerNode { uint8_t inputs = 2; };
 
 struct Node {
     std::string name;
     std::variant<
         AdderNode,
         SubtractorNode,
-        MultiplerNode,
+        MultiplierNode,
         DividerNode
     > config;
 };

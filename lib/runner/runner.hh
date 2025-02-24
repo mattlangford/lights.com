@@ -12,8 +12,8 @@
 
 namespace runner {
 class Runner {
-private:
-    struct NodeId;
+public:
+    struct NodeId { size_t index; };
 
 public:
     template <typename T, typename...Args>
@@ -35,8 +35,6 @@ public:
 
 private:
     void check_node_and_port(NodeId node, size_t* input, size_t* output);
-
-    struct NodeId { size_t index; };
     struct Wrapper {
         std::string name;
         std::shared_ptr<Node> node;
