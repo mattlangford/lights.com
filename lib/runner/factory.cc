@@ -2,11 +2,16 @@
 #include "log.hh"
 #include "factory.hh"
 #include "math.hh"
+#include "utils.hh"
 
 namespace runner {
 namespace {
 struct Visitor {
-    std::shared_ptr<Node> operator()(const config::AdderNode& adder) const { return std::make_shared<Adder>(); }
+    std::shared_ptr<Node> operator()(const config::ConstantNode& c) const { return std::make_shared<Constant>(c); }
+    std::shared_ptr<Node> operator()(const config::AdderNode& c) const { return std::make_shared<Adder>(c); }
+    std::shared_ptr<Node> operator()(const config::SubtractorNode& c) const { return std::make_shared<Subtractor>(c); }
+    std::shared_ptr<Node> operator()(const config::MultiplierNode& c) const { return std::make_shared<Multiplier>(c); }
+    std::shared_ptr<Node> operator()(const config::DividerNode& c) const { return std::make_shared<Divider>(c); }
 
     template <typename T>
     std::shared_ptr<Node> operator()(const T& err) const {
@@ -31,7 +36,7 @@ Runner build(const config::Runner& runner_config) {
     }
 
     for (const config::Connection& connection : runner_config.connections) {
-        runner.connect(nodes.at(connection.input_node), connection.output_port, nodes.at(connection.output_node), connection.input_port);
+        runner.connect(nodes.at(connection.from_node), connection.from_output, nodes.at(connection.to_node), connection.to_input);
     }
 
     return runner;

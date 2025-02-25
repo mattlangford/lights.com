@@ -1,4 +1,6 @@
 #include "math.hh"
+#include "log.hh"
+#include <iostream>
 
 namespace runner {
 namespace {

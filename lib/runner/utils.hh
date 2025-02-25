@@ -2,6 +2,7 @@
 
 #include "node.hh"
 #include "time.hh"
+#include "config.hh"
 #include <optional>
 #include <array>
 
@@ -13,7 +14,9 @@ namespace runner {
 class Constant final : public Node {
 public:
     Constant(float value) : Constant(std::vector{value}) {}
+    Constant(config::ConstantNode config) : Constant(std::move(config.values)) {}
     Constant(std::vector<float> values) : values_(std::move(values)) { }
+
     size_t output_count() const override { return values_.size(); }
     void callback(Context& context) override {
         for (uint8_t i = 0; i < values_.size(); ++i) {

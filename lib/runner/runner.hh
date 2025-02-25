@@ -33,6 +33,9 @@ public:
 
     std::string dot() const;
 
+    // Assumes there is only one per name.
+    NodeId id_from_name(const std::string& name) const;
+
 private:
     void check_node_and_port(NodeId node, size_t* input, size_t* output);
     struct Wrapper {

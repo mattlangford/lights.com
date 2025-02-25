@@ -5,6 +5,7 @@
 
 namespace config {
 
+struct ConstantNode { std::vector<float> values; };
 struct AdderNode { uint8_t inputs = 2; };
 struct SubtractorNode { uint8_t inputs = 2; };
 struct MultiplierNode { uint8_t inputs = 2; };
@@ -13,6 +14,7 @@ struct DividerNode { uint8_t inputs = 2; };
 struct Node {
     std::string name;
     std::variant<
+        ConstantNode,
         AdderNode,
         SubtractorNode,
         MultiplierNode,
@@ -21,11 +23,10 @@ struct Node {
 };
 
 struct Connection {
-    size_t input_node;
-    size_t output_port;
-
-    size_t output_node;
-    size_t input_port;
+    size_t from_node;
+    uint8_t from_output;
+    size_t to_node;
+    uint8_t to_input;
 };
 
 struct Runner {

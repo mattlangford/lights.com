@@ -26,7 +26,7 @@
     #define CHECK(cond, fmt, ...) do { \
         if (!(cond)) { \
             std::stringstream ss; \
-            ss << #cond << " check failed with " << std::format(fmt, ##__VA_ARGS__); \
+            ss << #cond << " check failed with: " << std::format(fmt, ##__VA_ARGS__); \
             throw std::runtime_error(ss.str()); \
         } \
     } while (0)

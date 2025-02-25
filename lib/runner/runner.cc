@@ -10,7 +10,7 @@
 
 namespace runner {
 
-auto Runner::add_node(std::shared_ptr<Node> instance, std::string name) -> NodeId {
+Runner::NodeId Runner::add_node(std::shared_ptr<Node> instance, std::string name) {
     const NodeId id{.index = wrappers_.size() };
     Wrapper& wrapper = wrappers_.emplace_back();
     wrapper.name = std::move(name);
@@ -66,10 +66,20 @@ std::string Runner::dot() const {
     s + "digraph runner {\n";
     for (const auto& wrapper : wrappers_)
         for (size_t output : wrapper.outputs)
-            for (const auto& name : inputs_to_nodes.at(output))
-                s += std::string("  ") + wrapper.name + " -> " + name + " [label=value" + std::to_string(output) + "]\n";
+            if (inputs_to_nodes.contains(output))
+                for (const auto& name : inputs_to_nodes.at(output))
+                    s += std::string("  ") + wrapper.name + " -> " + name + " [label=value" + std::to_string(output) + "]\n";
     s + "}";
     return s;
+}
+
+Runner::NodeId Runner::id_from_name(const std::string& name) const {
+    for (size_t i = 0; i < wrappers_.size(); ++i) {
+        if (wrappers_[i].name == name) {
+            return {.index=i};
+        }
+    }
+    return {.index=INVALID_INPUT};
 }
 
 void Runner::check_node_and_port(NodeId node, size_t* input, size_t* output) {
