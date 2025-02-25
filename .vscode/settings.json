@@ -67,6 +67,8 @@
         "streambuf": "cpp",
         "algorithm": "cpp",
         "random": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "span": "cpp",
+        "unordered_set": "cpp"
     }
 }

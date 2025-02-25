@@ -17,8 +17,13 @@ struct SubtractorNode : public MathConfig {};
 struct MultiplierNode : public MathConfig {};
 struct DividerNode : public MathConfig {};
 
-struct LightUniverseNode  {
-    std::vector<std::vector<uint16_t>> channels;
+struct UniverseNode {
+    struct Light {
+        std::string name;
+        std::vector<uint16_t> channels;
+    };
+    std::vector<Light> lights;
+    uint16_t max_channel;
 };
 
 struct Node {
@@ -28,7 +33,8 @@ struct Node {
         AdderNode,
         SubtractorNode,
         MultiplierNode,
-        DividerNode
+        DividerNode,
+        UniverseNode
     > config;
 };
 
