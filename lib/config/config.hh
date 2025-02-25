@@ -6,10 +6,16 @@
 namespace config {
 
 struct ConstantNode { std::vector<float> values; };
-struct AdderNode { uint8_t inputs = 2; };
-struct SubtractorNode { uint8_t inputs = 2; };
-struct MultiplierNode { uint8_t inputs = 2; };
-struct DividerNode { uint8_t inputs = 2; };
+
+struct MathConfig {
+    bool saturating = false;
+    uint8_t inputs = 2;
+};
+
+struct AdderNode : public MathConfig {};
+struct SubtractorNode : public MathConfig {};
+struct MultiplierNode : public MathConfig {};
+struct DividerNode : public MathConfig {};
 
 struct Node {
     std::string name;

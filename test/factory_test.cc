@@ -8,7 +8,7 @@
 TEST(FactoryTest, BuildAdder) {
     config::Node node_config;
     node_config.name = "adder";
-    node_config.config = config::AdderNode{3};
+    node_config.config = config::AdderNode{config::MathConfig{.inputs=3}};
 
     auto ptr = runner::build(node_config);
     ASSERT_NE(ptr, nullptr);
@@ -23,11 +23,11 @@ TEST(FactoryTest, BuildRunner) {
     });
     runner_config.nodes.push_back({
         .name = "adder",
-        .config = config::AdderNode{3},
+        .config = config::AdderNode{config::MathConfig{.inputs=3}},
     });
     runner_config.nodes.push_back({
         .name = "multiplier",
-        .config = config::MultiplierNode{2},
+        .config = config::MultiplierNode{config::MathConfig{.saturating=true, .inputs=2}},
     });
 
     runner_config.connections.push_back({
@@ -55,5 +55,5 @@ TEST(FactoryTest, BuildRunner) {
     std::cout << runner.dot() << "\n";
     runner.run({});
     EXPECT_FLOAT_EQ(runner.read(runner.id_from_name("adder"), 0), 6.6);
-    EXPECT_FLOAT_EQ(runner.read(runner.id_from_name("multiplier"), 0), 2.42);
+    EXPECT_FLOAT_EQ(runner.read(runner.id_from_name("multiplier"), 0), 1.0);
 }
