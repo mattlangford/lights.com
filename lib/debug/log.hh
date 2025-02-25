@@ -15,19 +15,15 @@
     #include <Arduino.h>
     #define CHECK(cond, fmt, ...) do { \
         if (!(cond)) { \
-            Serial.printf("[CHECK FAILED] " fmt "\n", ##__VA_ARGS__); \
+            Serial.printf(#cond " failed '" fmt "'\n", ##__VA_ARGS__); \
             abort(); \
         } \
     } while (0)
 #else
-    #include <string>
-    #include <format>
-    #include <sstream>
     #define CHECK(cond, fmt, ...) do { \
         if (!(cond)) { \
-            std::stringstream ss; \
-            ss << #cond << " check failed with: " << std::format(fmt, ##__VA_ARGS__); \
-            throw std::runtime_error(ss.str()); \
+            LOG_ERROR(#cond " failed '" #fmt "'", ##__VA_ARGS__); \
+            throw std::runtime_error("Check failed!"); \
         } \
     } while (0)
 #endif

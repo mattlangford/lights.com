@@ -10,7 +10,7 @@ Shimmer::Shimmer(float frequency_min, float frequency_max, uint8_t depth, float 
     std::uniform_real_distribution<float> phase_dist(0.f, M_2_PI);
     std::uniform_real_distribution<float> freq_dist(frequency_min, frequency_max);
     for (uint8_t i = 0; i < depth; ++i) {
-        params_.emplace_back(phase_dist(rng), freq_dist(rng));
+        params_.push_back(Params{.phase=phase_dist(rng), .freq=freq_dist(rng)});
     }
 }
 

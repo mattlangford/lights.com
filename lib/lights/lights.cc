@@ -4,7 +4,7 @@ namespace lights {
 
 namespace {
 std::vector<uint16_t> from_base(uint16_t base, uint16_t count) {
-    std::vector<uint8_t> output(count);
+    std::vector<uint16_t> output(count);
     for (uint16_t i = 0; i < count; ++i) {
         output[i] = i + base;
     }

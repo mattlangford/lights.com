@@ -65,10 +65,13 @@ std::string Runner::dot() const {
     std::string s;
     s + "digraph runner {\n";
     for (const auto& wrapper : wrappers_)
-        for (size_t output : wrapper.outputs)
-            if (inputs_to_nodes.contains(output))
-                for (const auto& name : inputs_to_nodes.at(output))
+        for (size_t output : wrapper.outputs) {
+            auto it = inputs_to_nodes.find(output);
+            if (it != inputs_to_nodes.end())
+                for (const auto& name : it->second)
                     s += std::string("  ") + wrapper.name + " -> " + name + " [label=value" + std::to_string(output) + "]\n";
+        }
+
     s + "}";
     return s;
 }
@@ -83,17 +86,17 @@ Runner::NodeId Runner::id_from_name(const std::string& name) const {
 }
 
 void Runner::check_node_and_port(NodeId node, size_t* input, size_t* output) {
-    CHECK(node.index < wrappers_.size(), "Invalid node index {}", node.index);
+    CHECK(node.index < wrappers_.size(), "Invalid node index %u", node.index);
     if (input) {
         auto& inputs = wrappers_[node.index].inputs;
-        CHECK(*input < inputs.size(), "Invalid input={} from node='{}'", *input, wrappers_[node.index].name);
+        CHECK(*input < inputs.size(), "Invalid input=%u from node='%s'", *input, wrappers_[node.index].name.data());
         size_t input_index = inputs[*input];
-        CHECK(input_index == INVALID_INPUT || input_index < values_.size(), "Invalid access into values {} >= {}", inputs[*input], values_.size());
+        CHECK(input_index == INVALID_INPUT || input_index < values_.size(), "Invalid access into values %u >= %u", inputs[*input], values_.size());
     }
     if (output) {
         auto& outputs = wrappers_[node.index].outputs;
-        CHECK(*output < outputs.size(), "Invalid output={} from node='{}'", *output, wrappers_[node.index].name);
-        CHECK(outputs[*output] < values_.size(), "Invalid access into values {} >= {}", outputs[*output], values_.size());
+        CHECK(*output < outputs.size(), "Invalid output=%u from node='%s'", *output, wrappers_[node.index].name.data());
+        CHECK(outputs[*output] < values_.size(), "Invalid access into values %u >= %u", outputs[*output], values_.size());
     }
 }
 }

@@ -31,7 +31,7 @@ Runner build(const config::Runner& runner_config) {
 
     for (const config::Node& node_config : runner_config.nodes) {
         auto ptr = build(node_config);
-        CHECK(ptr != nullptr, "Node '{}' has an invalid config.", node_config.name);
+        CHECK(ptr != nullptr, "Node '%s' has an invalid config.", node_config.name.data());
         nodes.push_back(runner.add_node(ptr, node_config.name));
     }
 
