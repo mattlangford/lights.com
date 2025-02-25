@@ -17,6 +17,10 @@ struct SubtractorNode : public MathConfig {};
 struct MultiplierNode : public MathConfig {};
 struct DividerNode : public MathConfig {};
 
+struct LightUniverseNode  {
+    std::vector<std::vector<uint16_t>> channels;
+};
+
 struct Node {
     std::string name;
     std::variant<
