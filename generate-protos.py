@@ -11,7 +11,7 @@ def generate_protos():
     nanopb_plugin = subprocess.run(
         ["python3", "-c", "import nanopb; print(nanopb.__path__[0])"], 
         capture_output=True, text=True
-    ).stdout.strip() + "/generator/protoc-gen-nanopb"
+    ).stdout.strip()
 
     # Find all .proto files
     proto_files = [os.path.join(root, f) for root, _, files in os.walk(PROTO_DIR) for f in files if f.endswith(".proto")]
@@ -20,8 +20,9 @@ def generate_protos():
         # Run protoc command
         protoc_cmd = [
             "protoc",
-            f"-I{PROTO_DIR}",
-            f"--plugin=protoc-gen-nanopb={nanopb_plugin}",
+            f"-I{PROTO_DIR}", # Make includes relative to the root folder
+            f"-I{nanopb_plugin + '/generator/proto'}", # Allow nanopb specific includes
+            f"--plugin=protoc-gen-nanopb={nanopb_plugin + '/generator/protoc-gen-nanopb'}",
             f"--nanopb_out={PROTO_DIR}"
         ] + proto_files
 

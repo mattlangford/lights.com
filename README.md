@@ -30,6 +30,7 @@ And then generate with:
 ```bash
 protoc \
     -Ilib/config \
+    -I$(python3 -c "import nanopb; print(nanopb.__path__[0])")/generator/proto \
     --plugin=protoc-gen-nanopb=$(python3 -c "import nanopb; print(nanopb.__path__[0])")/generator/protoc-gen-nanopb \
     --nanopb_out=lib/config \
     $(find lib/config -name "*.proto")
