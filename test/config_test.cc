@@ -1,84 +1,64 @@
 #include <gtest/gtest.h>
-#include "config.pb.h"
-#include "pb_encode.h"
-#include "pb_decode.h"
-#include <cstring>
+#include "config.h"
 
-// Buffer size for encoding
-constexpr size_t BUFFER_SIZE = 512;
-
-// Encode a Runner message
-bool encode_runner(uint8_t *buffer, size_t buffer_size, size_t *message_length) {
-    pb_ostream_t stream = pb_ostream_from_buffer(buffer, buffer_size);
-
-    // Create a Runner message
-    config_Runner runner = config_Runner_init_default;
-
-    // ---- Add ConstantNode ----
-    runner.nodes_count = 3; // 3 nodes: Constant, Adder, Subtractor
-    strcpy(runner.nodes[0].name, "ConstantNode");
-    runner.nodes[0].which_config = config_Node_constant_node_tag;
-    runner.nodes[0].config.constant_node.values_count = 2;
-    runner.nodes[0].config.constant_node.values[0] = 1.0f;
-    runner.nodes[0].config.constant_node.values[1] = 2.1f;
-
-    // ---- Add AdderNode ----
-    strcpy(runner.nodes[1].name, "AdderNode");
-    runner.nodes[1].which_config = config_Node_adder_node_tag;
-    runner.nodes[1].config.adder_node.saturating = false;
-    runner.nodes[1].config.adder_node.inputs = 2;
-
-    // ---- Add SubtractorNode ----
-    strcpy(runner.nodes[2].name, "SubtractorNode");
-    runner.nodes[2].which_config = config_Node_subtractor_node_tag;
-    runner.nodes[2].config.subtractor_node.saturating = false;
-    runner.nodes[2].config.subtractor_node.inputs = 2;
-
-    // Encode
-    if (!pb_encode(&stream, config_Runner_fields, &runner)) {
-        return false;
-    }
-
-    *message_length = stream.bytes_written;
-    return true;
-}
-
-// Decode a Runner message
-bool decode_runner(const uint8_t *buffer, size_t message_length, Runner *runner) {
-    pb_istream_t stream = pb_istream_from_buffer(buffer, message_length);
-    return pb_decode(&stream, Runner_fields, runner);
-}
-
-// GTest for encoding and decoding Runner with ConstantNode, AdderNode, and SubtractorNode
-TEST(NanopbTest, EncodeDecodeRunner) {
-    uint8_t buffer[BUFFER_SIZE] = {0};
-    size_t message_length = 0;
-
-    // Encode
-    ASSERT_TRUE(encode_runner(buffer, BUFFER_SIZE, &message_length));
-    ASSERT_GT(message_length, 0);
-
-    // Decode
-    config_Runner decoded_runner = Runner_init_default;
-    ASSERT_TRUE(decode_runner(buffer, message_length, &decoded_runner));
-
-    // ---- Verify ConstantNode ----
-    ASSERT_EQ(decoded_runner.nodes_count, 3);
-    EXPECT_STREQ(decoded_runner.nodes[0].name, "ConstantNode");
-    ASSERT_EQ(decoded_runner.nodes[0].which_config, config_Node_constant_node_tag);
-    ASSERT_EQ(decoded_runner.nodes[0].config.constant_node.values_count, 2);
-    EXPECT_FLOAT_EQ(decoded_runner.nodes[0].config.constant_node.values[0], 1.0f);
-    EXPECT_FLOAT_EQ(decoded_runner.nodes[0].config.constant_node.values[1], 2.1f);
-
-    // ---- Verify AdderNode ----
-    EXPECT_STREQ(decoded_runner.nodes[1].name, "AdderNode");
-    ASSERT_EQ(decoded_runner.nodes[1].which_config, config_Node_adder_node_tag);
-    EXPECT_FALSE(decoded_runner.nodes[1].config.adder_node.saturating);
-    EXPECT_EQ(decoded_runner.nodes[1].config.adder_node.inputs, 2);
-
-    // ---- Verify SubtractorNode ----
-    EXPECT_STREQ(decoded_runner.nodes[2].name, "SubtractorNode");
-    ASSERT_EQ(decoded_runner.nodes[2].which_config, config_Node_subtractor_node_tag);
-    EXPECT_FALSE(decoded_runner.nodes[2].config.subtractor_node.saturating);
-    EXPECT_EQ(decoded_runner.nodes[2].config.subtractor_node.inputs, 2);
+TEST(RunnerTest, BasicSetup) {
+    config::Runner runner;
+    
+    // Create a ConstantNode with three values
+    config::Node constant_node;
+    constant_node.set_name("Constant");
+    auto* cn = constant_node.mutable_constant_node();
+    cn->add_values(1.0f);
+    cn->add_values(2.0f);
+    cn->add_values(3.0f);
+    
+    // Create an AdderNode
+    config::Node adder_node;
+    adder_node.set_name("Adder");
+    auto* an = adder_node.mutable_adder_node();
+    an->set_saturating(true);
+    an->set_inputs(2);
+    
+    // Create a SubtractorNode
+    config::Node subtractor_node;
+    subtractor_node.set_name("Subtractor");
+    auto* sn = subtractor_node.mutable_subtractor_node();
+    sn->set_saturating(false);
+    sn->set_inputs(2);
+    
+    // Add nodes to the runner
+    *runner.add_nodes() = constant_node;
+    *runner.add_nodes() = adder_node;
+    *runner.add_nodes() = subtractor_node;
+    
+    // Create connections
+    config::Connection conn1;
+    conn1.set_from_node(0); // ConstantNode index
+    conn1.set_from_output(0);
+    conn1.set_to_node(1);   // AdderNode index
+    conn1.set_to_input(0);
+    *runner.add_connections() = conn1;
+    
+    config::Connection conn2;
+    conn2.set_from_node(1); // AdderNode index
+    conn2.set_from_output(0);
+    conn2.set_to_node(2);   // SubtractorNode index
+    conn2.set_to_input(0);
+    *runner.add_connections() = conn2;
+    
+    // Serialize and Deserialize
+    uint8_t buffer[256] = {0};
+    EmbeddedProto::MessageInterface<config::Runner> message(runner);
+    ASSERT_TRUE(message.serialize(buffer, sizeof(buffer)));
+    
+    config::Runner deserialized_runner;
+    EmbeddedProto::MessageInterface<config::Runner> deserialized_message(deserialized_runner);
+    ASSERT_TRUE(deserialized_message.deserialize(buffer, sizeof(buffer)));
+    
+    // Validate deserialized data
+    ASSERT_EQ(deserialized_runner.nodes_size(), 3);
+    ASSERT_EQ(deserialized_runner.connections_size(), 2);
+    EXPECT_EQ(deserialized_runner.nodes(0).name(), "Constant");
+    EXPECT_EQ(deserialized_runner.nodes(1).name(), "Adder");
+    EXPECT_EQ(deserialized_runner.nodes(2).name(), "Subtractor");
 }

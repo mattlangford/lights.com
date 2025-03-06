@@ -1,11 +1,10 @@
 syntax = "proto3";
 
-import "nanopb.proto";
 
 package config;
 
 message ConstantNode {
-    repeated float values = 1 [(nanopb).max_count = 32];
+    repeated float values = 1;
 }
 
 message AdderNode {
@@ -30,16 +29,16 @@ message DividerNode {
 
 message UniverseNode {
     message Light {
-        string name = 1 [(nanopb).max_length = 64];
-        repeated uint32 channels = 2 [(nanopb).max_count = 64];
+        string name = 1;
+        repeated uint32 channels = 2;
     }
 
-    repeated Light lights = 1 [(nanopb).max_count = 32];
+    repeated Light lights = 1;
     uint32 max_channel = 2;
 }
 
 message Node {
-    string name = 1 [(nanopb).max_length = 64];
+    string name = 1;
 
     oneof config {
         ConstantNode constant_node = 2;
@@ -59,6 +58,6 @@ message Connection {
 }
 
 message Runner {
-    repeated Node nodes = 1 [(nanopb).max_count = 128];
-    repeated Connection connections = 2 [(nanopb).max_count = 128];
+    repeated Node nodes = 1;
+    repeated Connection connections = 2;
 }
