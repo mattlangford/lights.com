@@ -20,6 +20,21 @@ pio test -e native
 pio run -e teensy41
 ```
 
+## NanoPB
+Protobuf messages are generated with protoc. Install with:
+```bash
+pip3 install --upgrade protobuf nanopb
+```
+
+And then generate with:
+```bash
+protoc \
+    -Ilib/config \
+    --plugin=protoc-gen-nanopb=$(python3 -c "import nanopb; print(nanopb.__path__[0])")/generator/protoc-gen-nanopb \
+    --nanopb_out=lib/config \
+    $(find lib/config -name "*.proto")
+```
+
 ## Libraries
  * ArduinoJson
  * ArduinoSTL

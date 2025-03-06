@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+message SensorData {
+  int32 id = 1;
+  float temperature = 2;
+  float humidity = 3;
+}
+
+message ControlCommand {
+  int32 device_id = 1;
+}
+
+message SystemMessage {
+  oneof payload {
+    SensorData sensor_data = 2;
+    ControlCommand control_command = 3;
+  }
+}
