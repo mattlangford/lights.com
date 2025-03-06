@@ -86,17 +86,17 @@ Runner::NodeId Runner::id_from_name(const std::string& name) const {
 }
 
 void Runner::check_node_and_port(NodeId node, size_t* input, size_t* output) {
-    CHECK(node.index < wrappers_.size(), "Invalid node index %u", node.index);
+    CHECK(node.index < wrappers_.size(), "Invalid node index %zu", node.index);
     if (input) {
         auto& inputs = wrappers_[node.index].inputs;
-        CHECK(*input < inputs.size(), "Invalid input=%u from node='%s'", *input, wrappers_[node.index].name.data());
+        CHECK(*input < inputs.size(), "Invalid input=%zu from node='%s'", *input, wrappers_[node.index].name.data());
         size_t input_index = inputs[*input];
-        CHECK(input_index == INVALID_INPUT || input_index < values_.size(), "Invalid access into values %u >= %u", inputs[*input], values_.size());
+        CHECK(input_index == INVALID_INPUT || input_index < values_.size(), "Invalid access into values %zu >= %zu", inputs[*input], values_.size());
     }
     if (output) {
         auto& outputs = wrappers_[node.index].outputs;
-        CHECK(*output < outputs.size(), "Invalid output=%u from node='%s'", *output, wrappers_[node.index].name.data());
-        CHECK(outputs[*output] < values_.size(), "Invalid access into values %u >= %u", outputs[*output], values_.size());
+        CHECK(*output < outputs.size(), "Invalid output=%zu from node='%s'", *output, wrappers_[node.index].name.data());
+        CHECK(outputs[*output] < values_.size(), "Invalid access into values %zu >= %zu", outputs[*output], values_.size());
     }
 }
 }

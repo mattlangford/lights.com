@@ -1,23 +1,20 @@
 #include <Arduino.h>
-#include <FreeRTOS.h>
-#include <task.h>
 
 #include "runner.hh"
+#include "universe.hh"
+#include "lights.hh"
 
-// put function declarations here:
-int myFunction(int, int);
+std::shared_ptr<light::Universe> universe = nullptr;
+runner::Runner* active_runner = nullptr;
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  config::UniverseNode config;
+  config.lights.push_back({.name = "misseye1", .channels=lights::misseye(1)});
+  config.lights.push_back({.name = "misseye2", .channels=lights::misseye(100)});
+
+  universe = std::make_shared<light::Universe>(config);
+
+  active_runner = new runner::Runner();
 }
 
-void loop() {
-  vTaskDelete(NULL);
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
-}
+void loop() { }

@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <cstdint>
 
 namespace lights {
 std::vector<uint16_t> misseye(uint16_t base);

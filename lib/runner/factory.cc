@@ -15,7 +15,7 @@ struct Visitor {
 
     template <typename T>
     std::shared_ptr<Node> operator()(const T& err) const {
-        LOG_ERROR("Unknown config!");
+        LERROR("Unknown config!");
         return nullptr;
     }
 };

@@ -1,4 +1,5 @@
 #include "universe.hh"
+#include <algorithm>
 
 namespace light {
 Universe::Universe(const config::UniverseNode& config) {
