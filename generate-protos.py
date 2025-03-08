@@ -15,9 +15,10 @@ def generate_protos():
     # Define the protoc command
     command = [
         "protoc",
-        "--plugin=protoc-gen-eams=lib/EmbeddedProto/protoc-gen-eams",
+        # "--plugin=protoc-gen-eams=lib/EmbeddedProto/protoc-gen-eams",
+        # f"--eams_out={PROTO_DIR}",
         f"-I{PROTO_DIR}",
-        f"--eams_out={PROTO_DIR}",
+        f"--cpp_out={PROTO_DIR}",
     ] + proto_files
 
     subprocess.run(command, check=True)

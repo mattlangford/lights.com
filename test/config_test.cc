@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "config.h"
+#include "config.pb.h"
 
-TEST(RunnerTest, BasicSetup) {
+std::string serialize() {
     config::Runner runner;
     
     // Create a ConstantNode with three values
@@ -45,20 +45,26 @@ TEST(RunnerTest, BasicSetup) {
     conn2.set_to_node(2);   // SubtractorNode index
     conn2.set_to_input(0);
     *runner.add_connections() = conn2;
-    
-    // Serialize and Deserialize
-    uint8_t buffer[256] = {0};
-    EmbeddedProto::MessageInterface<config::Runner> message(runner);
-    ASSERT_TRUE(message.serialize(buffer, sizeof(buffer)));
-    
-    config::Runner deserialized_runner;
-    EmbeddedProto::MessageInterface<config::Runner> deserialized_message(deserialized_runner);
-    ASSERT_TRUE(deserialized_message.deserialize(buffer, sizeof(buffer)));
+
+    std::string output;
+    if (!runner.SerializeToString(&output)) {
+        std::cerr << "Failed to serialize message.\n";
+    } else {
+        std::cout << "Message serialized to string (" << output.size() << " bytes).\n";
+    }
+    return output;
+}
+
+TEST(RunnerTest, BasicSetup) {
+    std::string s = serialize();
+
+    config::Runner msg;
+    EXPECT_TRUE(!msg.ParseFromString(s));
     
     // Validate deserialized data
-    ASSERT_EQ(deserialized_runner.nodes_size(), 3);
-    ASSERT_EQ(deserialized_runner.connections_size(), 2);
-    EXPECT_EQ(deserialized_runner.nodes(0).name(), "Constant");
-    EXPECT_EQ(deserialized_runner.nodes(1).name(), "Adder");
-    EXPECT_EQ(deserialized_runner.nodes(2).name(), "Subtractor");
+    ASSERT_EQ(msg.nodes_size(), 3);
+    ASSERT_EQ(msg.connections_size(), 2);
+    EXPECT_EQ(msg.nodes(0).name(), "Constant");
+    EXPECT_EQ(msg.nodes(1).name(), "Adder");
+    EXPECT_EQ(msg.nodes(2).name(), "Subtractor");
 }
