@@ -31,6 +31,25 @@ const GraphEditor: React.FC = () => {
     []
   );
 
+  const onEdgeContextMenu: EdgeMouseHandler = useCallback(
+    (event: MouseEvent, edge: Edge) => {
+      event.preventDefault();
+      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    },
+    [setEdges]
+  );
+
+  const onNodeContextMenu: NodeMouseHandler = useCallback(
+    (event: MouseEvent, node: Node) => {
+      event.preventDefault();
+      // Remove the node
+      setNodes((nds) => nds.filter((n) => n.id !== node.id));
+      // Remove any edges connected to this node
+      setEdges((eds) => eds.filter((e) => e.source !== node.id && e.target !== node.id));
+    },
+    [setNodes, setEdges]
+  );
+
   const onDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -72,15 +91,24 @@ const GraphEditor: React.FC = () => {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onEdgeContextMenu={onEdgeContextMenu}
+          onNodeContextMenu={onNodeContextMenu}
           snapToGrid={true}
           snapGrid={SNAP_GRID}
           style={{
-            backgroundColor: theme.colors.bg
+            backgroundColor: theme.colors.bg,
+            width: "100%",
+            height: "100%",
           }}
           defaultEdgeOptions={{
-            style: { stroke: theme.colors.primary },
-            animated: true,
+            style: { 
+              stroke: theme.colors.primary, 
+              strokeWidth: 2,
+            },
+            animated: false,
+            type: 'default',
           }}
+          fitView
         >
           <Background 
             gap={GRID_SIZE} 

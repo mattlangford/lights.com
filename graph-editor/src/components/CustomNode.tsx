@@ -3,10 +3,11 @@ import { Handle, Position } from "reactflow";
 import { theme } from "../theme";
 
 interface CustomNodeProps {
+  id: string;
   data: { label: string; config: Record<string, number | boolean | string> };
 }
 
-const CustomNode: React.FC<CustomNodeProps> = ({ data }) => {
+const CustomNode: React.FC<CustomNodeProps> = ({ id, data }) => {
   const inputs = typeof data.config.inputs === 'number' ? data.config.inputs : 0;
   const outputs = typeof data.config.outputs === 'number' ? data.config.outputs : 0;
 
@@ -21,6 +22,7 @@ const CustomNode: React.FC<CustomNodeProps> = ({ data }) => {
         minWidth: "150px",
         position: "relative",
         color: theme.colors.nodeColor,
+        fontFamily: theme.fonts.primary,
         boxShadow: theme.shadows.node,
       }}
     >
@@ -28,6 +30,7 @@ const CustomNode: React.FC<CustomNodeProps> = ({ data }) => {
       {Array.from({ length: Number(inputs) }).map((_, index) => (
         <Handle
           key={`input-${index}`}
+          id={`input-${index}`}
           type="target"
           position={Position.Left}
           style={{ 
@@ -44,6 +47,7 @@ const CustomNode: React.FC<CustomNodeProps> = ({ data }) => {
       {Array.from({ length: Number(outputs) }).map((_, index) => (
         <Handle
           key={`output-${index}`}
+          id={`output-${index}`}
           type="source"
           position={Position.Right}
           style={{ 
