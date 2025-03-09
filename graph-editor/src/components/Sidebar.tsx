@@ -1,5 +1,6 @@
 import React from "react";
 import nodeConfigs from "../nodeConfigs";
+import { theme } from "../theme";
 
 const Sidebar: React.FC = () => {
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string) => {
@@ -8,7 +9,12 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside style={{ padding: 10, width: 150, background: "#f4f4f4" }}>
+    <aside style={{
+        padding: 10,
+        width: 150,
+        background: theme.colors.sidebar_bg,
+        color: theme.colors.primary,
+        fontFamily: theme.fonts.primary }}>
       <h3>Nodes</h3>
       {Object.keys(nodeConfigs).map((key) => (
         <div
@@ -19,7 +25,7 @@ const Sidebar: React.FC = () => {
             borderRadius: 5,
             padding: 10,
             margin: "5px 0",
-            background: "#ddd",
+            background: theme.colors.nodeBg,
             cursor: "grab",
           }}
         >

@@ -6,21 +6,28 @@ import ReactFlow, {
   Controls,
   Node,
   Edge,
+  Background,
+  Connection,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import nodeConfigs from "../nodeConfigs";
-import { GraphNode } from "../types";
+import { GraphNode, GraphNodeData } from "../types";
 import CustomNode from "./CustomNode"
+import { theme } from "../theme";
 
 const nodeTypes = {custom: CustomNode};
 
+// Grid configuration
+const GRID_SIZE = 20; // Size of each grid cell in pixels
+const SNAP_GRID: [number, number] = [GRID_SIZE, GRID_SIZE];
+
 const GraphEditor: React.FC = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState<GraphNode[]>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<GraphNodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     []
   );
 
@@ -30,10 +37,13 @@ const GraphEditor: React.FC = () => {
       const nodeData = JSON.parse(event.dataTransfer.getData("application/reactflow"));
       if (!nodeData) return;
 
-      const position = { x: event.clientX - 250, y: event.clientY - 50 };
+      // Snap the initial position to grid
+      const x = Math.round((event.clientX - 250) / GRID_SIZE) * GRID_SIZE;
+      const y = Math.round((event.clientY - 50) / GRID_SIZE) * GRID_SIZE;
+      const position = { x, y };
       const config = nodeConfigs[nodeData.id] || { name: nodeData.label, config: {} };
 
-      const newNode: GraphNode = {
+      const newNode: Node<GraphNodeData> = {
         id: `${nodeData.id}-${nodes.length}`,
         type: "custom",
         position,
@@ -45,33 +55,15 @@ const GraphEditor: React.FC = () => {
     [setNodes, nodes]
   );
 
-  const saveGraphToJson = () => {
-    const graphData = { nodes, edges };
-    const jsonString = JSON.stringify(graphData, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "graph.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const loadGraphFromJson = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const graphData = JSON.parse(e.target?.result as string);
-      setNodes(graphData.nodes || []);
-      setEdges(graphData.edges || []);
-    };
-    reader.readAsText(file);
-  };
-
   return (
-    <div style={{ display: "flex", height: "100vh", width: "100%"}}>
+    <div style={{ 
+      display: "flex", 
+      height: "100vh", 
+      width: "100%",
+      fontFamily: theme.fonts.primary,
+      background: theme.colors.bg,
+      color: theme.colors.primary 
+    }}>
       <div style={{ flexGrow: 1, height: "100vh" }} onDrop={onDrop} onDragOver={(event) => event.preventDefault()}>
         <ReactFlow
           nodes={nodes}
@@ -80,14 +72,29 @@ const GraphEditor: React.FC = () => {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          snapToGrid={true}
+          snapGrid={SNAP_GRID}
+          style={{
+            backgroundColor: theme.colors.bg
+          }}
+          defaultEdgeOptions={{
+            style: { stroke: theme.colors.primary },
+            animated: true,
+          }}
         >
-          <Controls />
+          <Background 
+            gap={GRID_SIZE} 
+            size={1} 
+            color={theme.colors.gridColor}
+          />
+          <Controls 
+            style={{
+              backgroundColor: theme.colors.controlsBg,
+              color: theme.colors.controlsColor,
+              borderColor: theme.colors.nodeBorder,
+            }}
+          />
         </ReactFlow>
-
-        <div style={{ position: "absolute", top: 10, left: 10, zIndex: 10 }}>
-          <button onClick={saveGraphToJson} style={{ marginRight: 10 }}>Save as JSON</button>
-          <input type="file" onChange={loadGraphFromJson} accept=".json" />
-        </div>
       </div>
     </div>
   );
