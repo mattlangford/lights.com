@@ -1,6 +1,7 @@
 #pragma once
 
 #include "node.hh"
+#include "port.hh"
 #include "config.hh"
 
 namespace runner {
@@ -42,5 +43,34 @@ public:
     void callback(Context& context) override;
 private:
     const config::DividerNode config_;
+};
+
+
+class OpNode final : public Inputs<ValuePort, ValuePort, OptionPort>, public Outputs<ValuePort> {
+public:
+    enum Ops : uint8_t {
+        ADD = 0,
+        SUBTRACT,
+        SATURATE_ADD,
+        SATURATE_SUBTRACT,
+        UNKNOWN
+    };
+
+    void callback() {
+        if (!writeable<0>()) {
+            return;
+        }
+
+        Value lhs = read<0>();
+        Value rhs = read<1>();
+        switch (read<2, Ops>()) {
+        case ADD:
+            write<0>(lhs + rhs);
+            return;
+        default:
+            break;
+        }
+
+    }
 };
 }

@@ -11,7 +11,7 @@
 namespace runner {
 
 Runner::NodeId Runner::add_node(std::shared_ptr<Node> instance, std::string name) {
-    const NodeId id{.index = wrappers_.size() };
+    const NodeId id{.index = wrappers_.size()};
     Wrapper& wrapper = wrappers_.emplace_back();
     wrapper.name = std::move(name);
     wrapper.node = std::move(instance);
