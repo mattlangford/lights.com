@@ -1,4 +1,4 @@
-import { NodeConfig } from "../types";
+import { NodeConfig } from "./types";
 
 const nodeConfigs: Record<string, NodeConfig> = {
   adder: {

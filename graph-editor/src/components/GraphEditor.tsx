@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, MouseEvent, DragEvent, useRef } from "react";
 import ReactFlow, {
   addEdge,
   useNodesState,
@@ -8,6 +8,7 @@ import ReactFlow, {
   Edge,
   Background,
   Connection,
+  ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import nodeConfigs from "../nodeConfigs";
@@ -25,13 +26,15 @@ const GraphEditor: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState<GraphNodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     []
   );
 
-  const onEdgeContextMenu: EdgeMouseHandler = useCallback(
+  const onEdgeContextMenu = useCallback(
     (event: MouseEvent, edge: Edge) => {
       event.preventDefault();
       setEdges((eds) => eds.filter((e) => e.id !== edge.id));
@@ -39,7 +42,7 @@ const GraphEditor: React.FC = () => {
     [setEdges]
   );
 
-  const onNodeContextMenu: NodeMouseHandler = useCallback(
+  const onNodeContextMenu = useCallback(
     (event: MouseEvent, node: Node) => {
       event.preventDefault();
       // Remove the node
@@ -50,40 +53,69 @@ const GraphEditor: React.FC = () => {
     [setNodes, setEdges]
   );
 
+  const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
   const onDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
+    (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
+
+      if (!reactFlowInstance || !reactFlowWrapper.current) return;
+
       const nodeData = JSON.parse(event.dataTransfer.getData("application/reactflow"));
       if (!nodeData) return;
 
-      // Snap the initial position to grid
-      const x = Math.round((event.clientX - 250) / GRID_SIZE) * GRID_SIZE;
-      const y = Math.round((event.clientY - 50) / GRID_SIZE) * GRID_SIZE;
-      const position = { x, y };
+      // Get the position relative to the ReactFlow wrapper
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      
+      // Calculate the position where the node should be placed
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      // Snap to grid
+      const x = Math.round(position.x / GRID_SIZE) * GRID_SIZE;
+      const y = Math.round(position.y / GRID_SIZE) * GRID_SIZE;
+      
       const config = nodeConfigs[nodeData.id] || { name: nodeData.label, config: {} };
 
       const newNode: Node<GraphNodeData> = {
         id: `${nodeData.id}-${nodes.length}`,
         type: "custom",
-        position,
+        position: { x, y },
         data: { label: config.name, config: config.config },
       };
 
       setNodes((nds) => [...nds, newNode]);
     },
-    [setNodes, nodes]
+    [reactFlowInstance, setNodes, nodes]
   );
 
   return (
     <div style={{ 
       display: "flex", 
-      height: "100vh", 
-      width: "100%",
+      height: "100vh",
+      width: "100vw",
+      margin: 0,
+      padding: 0,
+      overflow: "hidden",
       fontFamily: theme.fonts.primary,
       background: theme.colors.bg,
       color: theme.colors.primary 
     }}>
-      <div style={{ flexGrow: 1, height: "100vh" }} onDrop={onDrop} onDragOver={(event) => event.preventDefault()}>
+      <div 
+        ref={reactFlowWrapper}
+        style={{ 
+          flexGrow: 1, 
+          height: "100%",
+          margin: 0,
+          padding: 0,
+          position: "relative",
+        }} 
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -93,6 +125,9 @@ const GraphEditor: React.FC = () => {
           onConnect={onConnect}
           onEdgeContextMenu={onEdgeContextMenu}
           onNodeContextMenu={onNodeContextMenu}
+          onInit={setReactFlowInstance}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
           snapToGrid={true}
           snapGrid={SNAP_GRID}
           style={{
@@ -108,7 +143,7 @@ const GraphEditor: React.FC = () => {
             animated: false,
             type: 'default',
           }}
-          fitView
+          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         >
           <Background 
             gap={GRID_SIZE} 
