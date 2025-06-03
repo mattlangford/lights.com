@@ -46,7 +46,8 @@ private:
 };
 
 
-class OpNode final : public Inputs<ValuePort, ValuePort, OptionPort>, public Outputs<ValuePort> {
+class OpNode final : public TypedNode<
+    std::tuple<ValuePort, ValuePort, OptionPort>, std::tuple<ValuePort>> {
 public:
     enum Ops : uint8_t {
         ADD = 0,
@@ -57,20 +58,18 @@ public:
     };
 
     void callback() {
-        if (!writeable<0>()) {
-            return;
-        }
-
-        Value lhs = read<0>();
-        Value rhs = read<1>();
-        switch (read<2, Ops>()) {
+        float lhs = read_or<0>(0.0);
+        float rhs = read_or<1>(0.0);
+        switch (read_or<2, Ops>(ADD)) {
         case ADD:
             write<0>(lhs + rhs);
+            return;
+        case SUBTRACT:
+            write<0>(lhs - rhs);
             return;
         default:
             break;
         }
-
     }
 };
 }

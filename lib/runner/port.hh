@@ -16,41 +16,44 @@ enum class PortType {
     OPTION = 2,
 };
 
-struct ValuePort : PortTag {
-    using Storage = float;
-    static constexpr PortType type = PortType::VALUE;
-    std::string_view name;
-    Storage data;
+/// @brief The port represents a connection between two nodes. The producer writes to the storage, readers read from it.
+template <PortType Type, typename StorageT>
+struct Port : PortTag {
+    static constexpr PortType type = Type;
+    using Storage = StorageT;
 
-    void write(Storage in) { data = in; }
-    const Storage& read() const { return data; }
+    constexpr Port(std::string_view name) : name(name), storage(nullptr) {}
+
+    std::string_view name;
+    Storage* storage;
 };
-using Value = ValuePort::Storage;
 
-struct GatePort : PortTag {
-    using Storage = Time;
-    static constexpr PortType type = PortType::GATE;
-    std::string_view name;
-    Storage trigger{std::chrono::seconds(0)};
+/// @brief A Value port, contains a single value
+struct Value {
+    float data;
+    void write(float in) { data = in; }
+    float read() const { return data; }
+};
+using ValuePort = Port<PortType::VALUE, Value>;
 
+/// @brief A Gate port, contains the time the gate was activated.
+struct Gate {
+    Time trigger{std::chrono::seconds(0)};
     void write() { trigger = std::chrono::steady_clock::now(); }
-    const Storage& read() const { return trigger; }
+    Time read() const { return trigger; }
 };
-using Gate = GatePort::Storage;
+using GatePort = Port<PortType::GATE, Gate>;
 
-struct OptionPort : PortTag {
-    using Storage = uint8_t;
-    static constexpr PortType type = PortType::OPTION;
-    std::string_view name;
-    Storage data;
+/// @brief An Option port, allows reading enum values
+struct Option {
+    uint8_t data;
 
-    void write(Storage in) { data = in; }
-    template <typename Enum>
-    Enum read() const {
-        static_assert(std::is_enum_v<Enum> && std::is_same_v<std::underlying_type_t<Enum>, Storage>, "Can only read Enum options.");
-        return static_cast<Enum>(data);
-    }
+    void write(uint8_t in) { data = in; }
+    uint8_t read() const { return data; }
 };
-using Option = OptionPort::Storage;
+using OptionPort = Port<PortType::OPTION, Option>;
 
+/// @brief Here we store all possible ports, which is used for generic interfaces.
+using PortVariant = std::variant<
+    ValuePort*, GatePort*, OptionPort*>;
 }
