@@ -1,11 +1,9 @@
 #pragma once
 
 #include <vector>
-#include <string>
+#include <string_view>
 #include <memory>
-#include <optional>
 #include <cstddef>
-#include <stdexcept>
 
 #include "node.hh"
 #include "time.hh"
@@ -17,37 +15,21 @@ public:
 
 public:
     template <typename T, typename...Args>
-    NodeId add_node(std::string name, Args&&... args) {
-        static_assert(std::is_base_of_v<Node, T>, "Nodes must derive from base class Node");
-        return add_node(std::make_shared<T>(std::forward<Args>(args)...), std::move(name));
+    NodeId add_node(Args&&... args) {
+        static_assert(std::is_base_of_v<NodeBase, T>, "Nodes must derive from base class NodeBase");
+        return add_node(std::make_unique<T>(std::forward<Args>(args)...));
     }
 
-    NodeId add_node(std::shared_ptr<Node> instance, std::string name);
+    NodeId add_node(std::unique_ptr<NodeBase> instance);
 
-    void connect(NodeId from_node, size_t from_output, NodeId to_node, size_t to_input);
+    bool connect(NodeId from_node, uint8_t from_output, NodeId to_node, uint8_t to_input);
 
-    void run(Time now);
-
-    void write(NodeId node, size_t input, float value);
-    float read(NodeId node, size_t output);
+    void tick(Time now);
 
     std::string dot() const;
 
-    // Assumes there is only one per name.
-    NodeId id_from_name(const std::string& name) const;
-
 private:
-    void check_node_and_port(NodeId node, size_t* input, size_t* output);
-    struct Wrapper {
-        std::string name;
-        std::shared_ptr<Node> node;
-        std::vector<size_t> inputs;
-        std::vector<size_t> outputs;
-    };
-    inline static constexpr size_t INVALID_INPUT = -1;
-    std::vector<Wrapper> wrappers_;
-    std::vector<float> values_;
-
+    std::vector<std::unique_ptr<NodeBase>> nodes_;
     std::optional<Time> previous_;
 };
 }

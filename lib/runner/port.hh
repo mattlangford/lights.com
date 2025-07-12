@@ -22,10 +22,7 @@ struct Port : PortTag {
     static constexpr PortType type = Type;
     using Storage = StorageT;
 
-    constexpr Port(std::string_view name) : name(name), storage(nullptr) {}
-
-    std::string_view name;
-    Storage* storage;
+    Storage* storage = nullptr;
 };
 
 /// @brief A Value port, contains a single value

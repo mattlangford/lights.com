@@ -1,40 +1,30 @@
 #include "math.hh"
 #include "log.hh"
-#include <iostream>
 
 namespace runner {
-namespace {
-template <typename F>
-void callback_impl(Context& context, const config::MathConfig& config, F&& f) {
-    float sum = context.input(0);
-    for (uint8_t i = 1; i < config.inputs; ++i) {
-        sum = f(sum, context.input(i));
+
+OpNode::OpNode(Ops default_op, std::string_view name) : TypedNode(name), default_op_(default_op) { }
+
+void OpNode::callback() {
+    float lhs = read_or<0>(0.0);
+    float rhs = read_or<1>(0.0);
+    switch (read_or<2, Ops>(default_op_)) {
+    case ADD:
+        write<0>(lhs + rhs);
+        return;
+    case SUBTRACT:
+        write<0>(lhs - rhs);
+        return;
+    case MULTIPLY:
+        write<0>(lhs * rhs);
+        return;
+    case SATURATE_ADD:
+        write<0>(std::clamp(lhs + rhs, 0.f, 1.f));
+        return;
+    case SATURATE_SUBTRACT:
+        write<0>(std::clamp(lhs - rhs, 0.f, 1.f));
+    default:
+        break;
     }
-    if (config.saturating) {
-        sum = std::clamp(sum, 0.f, 1.f);
-    }
-    context.output(0, sum);
 }
-}
-
-Adder::Adder(const config::AdderNode& config) : config_(config) { }
-void Adder::callback(Context& context) {
-    return callback_impl(context, config_, [](float lhs, float rhs){ return lhs + rhs; });
-}
-
-Subtractor::Subtractor(const config::SubtractorNode& config) : config_(config) { }
-void Subtractor::callback(Context& context) {
-    return callback_impl(context, config_, [](float lhs, float rhs){ return lhs - rhs; });
-}
-
-Multiplier::Multiplier(const config::MultiplierNode& config) : config_(config) { }
-void Multiplier::callback(Context& context) {
-    return callback_impl(context, config_, [](float lhs, float rhs){ return lhs * rhs; });
-}
-
-Divider::Divider(const config::DividerNode& config) : config_(config) { }
-void Divider::callback(Context& context) {
-    return callback_impl(context, config_, [](float lhs, float rhs){ return lhs / rhs; });
-}
-
 }

@@ -1,24 +1,16 @@
 #pragma once
 
-#include "context.hh"
 #include "port.hh"
 
+#include <string_view>
 #include <tuple>
 
 namespace runner {
 
-class Node {
-public:
-    virtual ~Node() = default;
-
-    virtual size_t input_count() const { return 0; }
-    virtual size_t output_count() const { return 0; }
-
-    virtual void callback(Context& context) = 0;
-};
-
 class NodeBase {
 public:
+    NodeBase(std::string_view name) : name_(name) {}
+
     virtual ~NodeBase() = default;
 
     /// @brief Fetch the (generic) input and output ports.
@@ -30,21 +22,29 @@ public:
 
     /// @brief Invoked by the runner.
     virtual void callback() = 0;
+
+    std::string_view name() const { return name_; }
+
+private:
+    std::string_view name_;
 };
 
 template<typename InTuple , typename OutTuple>
 class TypedNode : public NodeBase {
 public:
-    TypedNode(TypedNode&) = delete;
+    TypedNode(std::string_view name) : NodeBase(name) { set_output_ports(); }
+
+    // Other nodes will be holding pointers into our memory.
+    TypedNode(const TypedNode&) = delete;
     TypedNode(TypedNode&&) = delete;
-    TypedNode& operator=(TypedNode&) = delete;
+    TypedNode& operator=(const TypedNode&) = delete;
     TypedNode& operator=(TypedNode&&) = delete;
 
-    std::vector<PortVariant> inputs() override { return to_port_variant_vector(inputs_); }
-    std::vector<PortVariant> outputs() override { return to_port_variant_vector(outputs_); }
+    std::vector<PortVariant> inputs() override { return to_port_vector(inputs_); }
+    std::vector<PortVariant> outputs() override { return to_port_vector(outputs_); }
 
     bool connect(uint8_t output_port, PortVariant& input) override {
-        return set_input_port();
+        return set_input_port(output_port, input);
     }
 
 protected:
@@ -80,11 +80,19 @@ private:
     }
 
     template<class... Ts>
-    std::vector<PortVariant> to_port_variant_vector(std::tuple<Ts...>& t) {
+    std::vector<PortVariant> to_port_vector(std::tuple<Ts...>& t) {
         std::vector<PortVariant> v;
         v.reserve(sizeof...(Ts));
         std::apply([&](auto&... e){ (v.emplace_back(&e), ...); }, t);
         return v;
+    }
+
+    template<uint8_t I = 0>
+    void set_output_ports() {
+        if constexpr (I < std::tuple_size_v<OutTuple>) {
+            std::get<I>(outputs_).storage = &std::get<I>(storage_);
+            set_output_ports<I + 1>();
+        }
     }
 
     template<uint8_t I = 0>
@@ -95,18 +103,20 @@ private:
                 // Continue to iterate through the tuple
                 return set_input_port<I + 1>(output_port, input);
             }
-            auto* port = std::get_if<OutPortT*>(input);
-            if (port == nullptr) {
+            auto maybe_port = std::get_if<OutPortT*>(&input);
+            if (maybe_port == nullptr) {
                 return false; // Mismatched type!
             }
+            OutPortT* port = *maybe_port;
             port->storage = &std::get<I>(storage_);
+            return true;
         }
         return false; // Invalid output port!
     }
 
 private:
     // We store our own outputs.
-    decltype(to_storage_tuple<InTuple>()) storage_ = to_storage_tuple<InTuple>();
+    decltype(to_storage_tuple<OutTuple>()) storage_ = to_storage_tuple<OutTuple>();
 
     InTuple inputs_;
     OutTuple outputs_;
