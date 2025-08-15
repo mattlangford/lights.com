@@ -12,6 +12,7 @@
 DMXController* controller;
 Interface interface;
 EffectMap effects;
+PeriodicTrigger<Palette>* palette_trigger;
 
 struct Universe {
     LitakeLight litake[2];
@@ -27,6 +28,13 @@ struct Universe {
     }
 };
 Universe* universe;
+
+constexpr size_t COUNT = 100;
+static size_t i = 0;
+uint32_t periodic_timer[COUNT];
+uint32_t midi_manager_timer[COUNT];
+uint32_t interface_timer[COUNT];
+uint32_t controller_timer[COUNT];
 
 void list(const String& name) {
     serializeJson(effects.get_json(name), Serial);
@@ -84,6 +92,30 @@ void values(const String& json) {
     }
     Serial.println();
 }
+void timers(const String&) {
+    float avg = 0.0;
+    for (uint32_t mic : periodic_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
+    Serial.print(" Periodic Timer (us): ");
+    Serial.println(avg);
+    avg = 0.0;
+
+    for (uint32_t mic : midi_manager_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
+    Serial.print(" Midi Timer (us): ");
+    Serial.println(avg);
+    avg = 0.0;
+
+    for (uint32_t mic : interface_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
+    Serial.print(" Interface Timer (us): ");
+    Serial.println(avg);
+    avg = 0.0;
+
+    for (uint32_t mic : controller_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
+    Serial.print(" Controller Timer (us): ");
+    Serial.println(avg);
+}
+void bpm(const String&) {
+    Serial.println(midi_manager.bpm());
+}
 
 void read_midi() {
     midi_manager.read();
@@ -98,10 +130,11 @@ void setup() {
     interface.add_handler("clear", "clear the specified effect", &clear);
     interface.add_handler("set", "sets current config from a JSON string", &set);
     interface.add_handler("values", "gets the current values of all channels", &values);
+    interface.add_handler("timers", "show the latest timer data", &timers);
+    interface.add_handler("bpm", "The current estimated BPM", &bpm);
 
     controller = new DMXController(41, 40);
 
-    // audio.setup();
     midi_manager.setup();
 
     universe = new Universe(*controller);
@@ -109,9 +142,10 @@ void setup() {
     auto& kick_palette_trigger = effects.add_effect<MidiTrigger<Palette>>("kick_palette", 'C', 2);
     auto& kick_palette = kick_palette_trigger.effect();
 
-    auto& palette_trigger = effects.add_effect<PeriodicTrigger<Palette>>("palette", 4000);
-    palette_trigger.set_enabled(true);
-    auto& palette = palette_trigger.effect();
+    // Save this to clock it to the BPM
+    palette_trigger = &effects.add_effect<PeriodicTrigger<Palette>>("palette", 4000);
+    palette_trigger->set_enabled(true);
+    auto& palette = palette_trigger->effect();
     auto& solid = effects.add_effect<Solid>("rgb");
     auto& twinkle = effects.add_effect<CompositeEffect<Twinkle>>("twinkle");
 
@@ -165,11 +199,12 @@ void setup() {
             offset += 20;
             auto& kick = kick_palette.add_effect(offset);
             auto& light = universe->bar[index];
-            auto it = kicks.find(i);
+            // auto it = kicks.find(i);
             for (size_t j = start; j < end; ++j) {
-                if (it != kicks.end()) {
-                    light.white(j).add_effect(it->second);
-                }
+                // TODO: Disable this effect
+                // if (it != kicks.end()) {
+                //     light.white(j).add_effect(it->second);
+                // }
                 if (hat.find(i) != hat.end()) {
                     light.red(j).add_effect(&hat_pulse);
                     light.green(j).add_effect(&hat_pulse);
@@ -251,7 +286,7 @@ void setup() {
     config.fade_time_ms = 250;
     kick_palette.set_config(config);
 
-    config.fade_time_ms = 2000;
+    config.fade_time_ms = 1000;
     palette.set_config(config);
 
     //
@@ -267,10 +302,41 @@ void setup() {
         }
     }
 
+    auto& cc_1 = effects.add_effect<Blank>("cc_1");
+    auto& cc_2 = effects.add_effect<Blank>("cc_2");
+    for (auto& bar : universe->bar) {
+        size_t l = 0;
+        for (; l < WashBarLight112::NUM_LIGHTS / 3; l++) {
+            bar.red(l).add_effect(&cc_1);
+            bar.green(l).add_effect(&cc_1);
+            bar.blue(l).add_effect(&cc_1);
+            bar.white(l).add_effect(&cc_1);
+        }
+        for (; l < 2 * WashBarLight112::NUM_LIGHTS / 3; l++) {
+            bar.red(l).add_effect(&cc_2);
+            bar.green(l).add_effect(&cc_2);
+            bar.blue(l).add_effect(&cc_2);
+            bar.white(l).add_effect(&cc_2);
+        }
+        for (; l < WashBarLight112::NUM_LIGHTS; l++) {
+            bar.red(l).add_effect(&cc_1);
+            bar.green(l).add_effect(&cc_1);
+            bar.blue(l).add_effect(&cc_1);
+            bar.white(l).add_effect(&cc_1);
+        }
+    }
+
+
     blank.clear(millis() + 1000);
     palette.trigger(millis());
     solid.trigger(millis());
     twinkle.trigger(millis());
+    cc_1.trigger(millis());
+    cc_2.trigger(millis());
+
+    // TODO: This sets the light up in an interesting pattern
+    kick_palette_trigger.trigger(millis());
+    kick_palette_trigger.set_enabled(false);
 
     midi_manager.add_callback(
         [&palette, &kick_palette, w=true, n = MidiManager::MidiNote{'C', 3}.note()]
@@ -284,29 +350,40 @@ void setup() {
         }
     });
     midi_manager.add_callback(
-        [&palette_trigger, &kick_palette_trigger, &hat_trigger, w=true, n = MidiManager::MidiNote{'D', 3}.note()]
+        [&kick_palette_trigger, &hat_trigger, w=false, n = MidiManager::MidiNote{'D', 3}.note()]
         (byte channel, byte note, byte velocity, bool on) mutable {
         if (on && note == n) {
             Serial.print("Calm mode ");
             Serial.println(w ? "ON" : "OFF");
 
-            palette_trigger.set_enabled(w);
+            palette_trigger->set_enabled(w);
             hat_trigger.set_enabled(!w);
             kick_palette_trigger.set_enabled(!w);
             w = !w;
         }
     });
-}
 
-constexpr size_t COUNT = 100;
-static size_t i = 0;
-uint32_t periodic_timer[COUNT];
-uint32_t midi_manager_timer[COUNT];
-uint32_t interface_timer[COUNT];
-uint32_t controller_timer[COUNT];
+    midi_manager.add_callback([&cc_1, &cc_2](byte channel, byte note) mutable {
+            float value = 0.1 + 0.9 * (static_cast<float>(note) / 128.f);
+            if (channel == 1) {
+                cc_1.set_input_gain(value);
+            } else if (channel == 2) {
+                cc_2.set_input_gain(value);
+            }
+    });
+}
 
 void loop() {
     uint32_t start, end;
+
+    static uint32_t last_update = millis();
+    uint32_t now = millis();
+    if (now > (last_update + 1000)) {
+        last_update = now;
+        // bpm is quarter notes per minute, so set the rate to millseconds per beat
+        uint32_t rate_ms = 3 * (60000.0f / max(1E-3f, midi_manager.bpm()));
+        palette_trigger->set_rate(rate_ms);
+    }
 
     start = micros();
     periodic.tick();
@@ -318,7 +395,6 @@ void loop() {
     end = micros();
     midi_manager_timer[i] = end - start;
 
-    // audio.read();
     start = end;
     interface.handle_serial();
     end = micros();
@@ -329,27 +405,22 @@ void loop() {
     end = micros();
     controller_timer[i] = end - start;
 
-    if (i++ >= COUNT) {
-        float avg = 0.0;
-        for (uint32_t mic : periodic_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
-        Serial.print("Periodic Timer (us): ");
-        Serial.println(avg);
-        avg = 0.0;
-
-        for (uint32_t mic : midi_manager_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
-        Serial.print("Midi Timer (us): ");
-        Serial.println(avg);
-        avg = 0.0;
-
-        for (uint32_t mic : interface_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
-        Serial.print("Interface Timer (us): ");
-        Serial.println(avg);
-        avg = 0.0;
-
-        for (uint32_t mic : controller_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
-        Serial.print("Controller Timer (us): ");
-        Serial.println(avg);
-
+    // Reset the timers
+    if (i++ > COUNT) {
         i = 0;
     }
 }
+
+/*
+Speed of twinkle associated with clock 24 pulse per quater note
+
+Presets:
+ * Neon
+
+Two modes:
+ * Calm (no drums!)
+ * Kick drum 
+
+Control signal
+
+*/

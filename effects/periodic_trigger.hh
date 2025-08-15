@@ -33,8 +33,9 @@ public:
     void set_enabled(bool enabled) { enabled_ = enabled; }
     bool get_enabled() const { return enabled_; }
 
+    void set_rate(uint32_t rate) { rate_ = rate; }
+
 protected:
-    void set_rate(uint32_t rate) { rate_ = rate; next_ = millis() + rate_; }
     uint32_t get_rate() const { return rate_; }
 
     virtual void trigger_ready(uint32_t now) = 0;

@@ -10,6 +10,7 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, SerialMIDI);
 class MidiManager {
 private:
     using Callback = std::function<void(byte channel, byte note, byte velocity, bool on)>;
+    using CCCallback = std::function<void(byte channel, byte data)>;
 
     static void dispatch_note_off(byte channel, byte note, byte velocity);
     static void dispatch_note_on(byte channel, byte note, byte velocity);
@@ -37,6 +38,16 @@ public:
                 note_off(SerialMIDI.getChannel(), SerialMIDI.getData1(), SerialMIDI.getData2());
                 break;
             }
+            case midi::Clock: {
+                on_clock(millis());
+                break;
+            }
+            case midi::ControlChange: {
+                for (auto& cb : cc_callbacks_) {
+                    cb(SerialMIDI.getData1(), SerialMIDI.getData2());
+                }
+                break;
+            }
             default:
                 break;
             }
@@ -56,6 +67,9 @@ public:
     void add_callback(Callback cb) {
         callbacks_.emplace_back(std::move(cb));
     }
+    void add_callback(CCCallback cb) {
+        cc_callbacks_.emplace_back(std::move(cb));
+    }
 
     void note_off(byte channel, byte note, byte velocity) {
         active_channels_.insert(note);
@@ -69,6 +83,15 @@ public:
             cb(channel, note, velocity, true);
         }
     }
+    void on_clock(uint32_t millis) {
+        uint32_t dt_ms = millis - last_clock_ms_;
+        constexpr uint32_t PPQN = 24;
+        constexpr float TO_SECONDS = 1000.f;
+        bpm_ = (60.f * TO_SECONDS) / (PPQN * dt_ms);
+        last_clock_ms_ = millis;
+    }
+
+    float bpm() const { return bpm_; }
 
 public:
     struct MidiNote {
@@ -121,6 +144,11 @@ public:
 private:
     std::set<byte> active_channels_;
     std::vector<Callback> callbacks_;
+    std::vector<CCCallback> cc_callbacks_;
+
+    uint32_t last_clock_ms_ = 0;
+    float bpm_ = 0.0; 
+    uint32_t clock_count_ = 0;
 };
 
 MidiManager midi_manager;
