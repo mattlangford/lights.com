@@ -13,7 +13,7 @@ public:
             float max_level = max_ / 255.0;
             float l = level(now_ms);
 
-            uint8_t result = std::clamp(static_cast<float>(value) * (l * (max_level - min_level) + min_level), 0.0f, 255.0f);
+            uint8_t result = std::clamp(input_gain_ * static_cast<float>(value) * (l * (max_level - min_level) + min_level), 0.0f, 255.0f);
             return result;
         }
         return clip((max_ - min_) * level(now_ms) + min_ + input_gain_ * value);

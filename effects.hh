@@ -33,6 +33,8 @@ class SingleChannelEffect : public ChannelEffect, public EffectBase {
 public:
     ~SingleChannelEffect() override = default;
 
+    String type() const override { return "SingleChannelEffect"; }
+
     // Provide min/max value overloads for config
     SetConfigResult set_config_json(const JsonObject& json) override {
         SetConfigResult result = SetConfigResult::no_values_set();

@@ -8,11 +8,15 @@
 #include <vector>
 #include <memory>
 #include <vector>
+#include <random>
 
 DMXController* controller;
 Interface interface;
 EffectMap effects;
 PeriodicTrigger<Palette>* palette_trigger;
+uint8_t cc_1_last_value = 0;
+uint8_t cc_2_last_value = 0;
+std::array<LinearPulse*, 9> sparkles;
 
 struct Universe {
     LitakeLight litake[2];
@@ -31,10 +35,12 @@ Universe* universe;
 
 constexpr size_t COUNT = 100;
 static size_t i = 0;
-uint32_t periodic_timer[COUNT];
-uint32_t midi_manager_timer[COUNT];
-uint32_t interface_timer[COUNT];
-uint32_t controller_timer[COUNT];
+uint32_t tick_timer[COUNT] {0};
+uint32_t update_timer[COUNT] {0};
+uint32_t periodic_timer[COUNT] {0};
+uint32_t midi_manager_timer[COUNT] {0};
+uint32_t interface_timer[COUNT] {0};
+uint32_t controller_timer[COUNT] {0};
 
 void list(const String& name) {
     serializeJson(effects.get_json(name), Serial);
@@ -99,6 +105,11 @@ void timers(const String&) {
     Serial.println(avg);
     avg = 0.0;
 
+    for (uint32_t mic : update_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
+    Serial.print(" Update Timer (us): ");
+    Serial.println(avg);
+    avg = 0.0;
+
     for (uint32_t mic : midi_manager_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
     Serial.print(" Midi Timer (us): ");
     Serial.println(avg);
@@ -112,13 +123,23 @@ void timers(const String&) {
     for (uint32_t mic : controller_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
     Serial.print(" Controller Timer (us): ");
     Serial.println(avg);
+    avg = 0.0;
+
+    for (uint32_t mic : tick_timer) avg += static_cast<float>(mic) / static_cast<float>(COUNT);
+    Serial.print(" Tick Timer (us): ");
+    Serial.println(avg);
 }
-void bpm(const String&) {
+void show_midi(const String&) {
+    Serial.print(" CC1: ");
+    Serial.println(cc_1_last_value);
+    Serial.print(" CC2: ");
+    Serial.println(cc_2_last_value);
+    Serial.print(" BPM: ");
     Serial.println(midi_manager.bpm());
 }
 
 void read_midi() {
-    midi_manager.read();
+    midi_manager.read(1);
 }
 
 void setup() {
@@ -131,7 +152,7 @@ void setup() {
     interface.add_handler("set", "sets current config from a JSON string", &set);
     interface.add_handler("values", "gets the current values of all channels", &values);
     interface.add_handler("timers", "show the latest timer data", &timers);
-    interface.add_handler("bpm", "The current estimated BPM", &bpm);
+    interface.add_handler("midi", "Shows midi status", &show_midi);
 
     controller = new DMXController(41, 40);
 
@@ -151,21 +172,6 @@ void setup() {
 
     uint32_t offset = 0;
 
-    offset += 100;
-    auto& snare_pulse_trigger = effects.add_effect<MidiTrigger<LinearPulse>>("snare_pulse", 'C', 2, true);
-    snare_pulse_trigger.set_every_n(2);
-    snare_pulse_trigger.set_enabled(false);
-    auto& snare_pulse = snare_pulse_trigger.effect();
-    snare_pulse.set_config(LinearPulseConfig{
-        .rise_dt_ms=10,
-        .hold_dt_ms=100,
-        .fall_dt_ms=500
-    });
-    snare_pulse.set_multiply(true);
-    snare_pulse.set_min(100);
-
-    offset += 20;
-
     auto& kick_step = effects.add_effect<MidiTrigger<StepTrigger<LinearPulse>>>("kick_step", 'C', 2).effect();
     auto& kick_1 = kick_step.add();
     auto& kick_2 = kick_step.add();
@@ -179,17 +185,7 @@ void setup() {
         .fall_dt_ms=1000
     });
 
-    auto& hat_trigger = effects.add_effect<MidiTrigger<LinearPulse>>("hat_pulse", 'D', 2);
-    auto& hat_pulse = hat_trigger.effect();
-    hat_pulse.set_config(LinearPulseConfig{
-        .rise_dt_ms=10,
-        .hold_dt_ms=100,
-        .fall_dt_ms=100
-    });
-    hat_trigger.set_enabled(false);
-    hat_pulse.set_min(10);
-
-    auto add_bar_light = [&](size_t index, std::map<uint8_t, LinearPulse*> kicks, std::set<uint8_t> hat){
+    auto add_bar_light = [&](size_t index, std::map<uint8_t, LinearPulse*> kicks) {
         universe->bar[index].add_rgb_effect(palette.add_effect(offset));
         constexpr size_t NUM_DIVISIONS = 7;
         for (size_t i = 0; i < NUM_DIVISIONS; ++i) {
@@ -199,16 +195,7 @@ void setup() {
             offset += 20;
             auto& kick = kick_palette.add_effect(offset);
             auto& light = universe->bar[index];
-            // auto it = kicks.find(i);
             for (size_t j = start; j < end; ++j) {
-                // TODO: Disable this effect
-                // if (it != kicks.end()) {
-                //     light.white(j).add_effect(it->second);
-                // }
-                if (hat.find(i) != hat.end()) {
-                    light.red(j).add_effect(&hat_pulse);
-                    light.green(j).add_effect(&hat_pulse);
-                }
                 light.add_rgb_effect(j, kick);
                 light.add_effect(j, twinkle.add());
             }
@@ -216,11 +203,9 @@ void setup() {
         universe->bar[index].add_rgb_effect(solid);
     };
 
-    add_bar_light(0, {{2, &kick_4}, {6, &kick_6}}, {1});
-    add_bar_light(1, {{4, &kick_1}, {2, &kick_3}}, {});
-    add_bar_light(2, {{1, &kick_5}, {3, &kick_2}}, {});
-
-    offset += 100;
+    add_bar_light(0, {{2, &kick_4}, {6, &kick_6}});
+    add_bar_light(1, {{4, &kick_1}, {2, &kick_3}});
+    add_bar_light(2, {{1, &kick_5}, {3, &kick_2}});
 
     PaletteConfig config;
     config.type = PaletteConfig::TransitionType::RANDOM;
@@ -289,6 +274,22 @@ void setup() {
     config.fade_time_ms = 1000;
     palette.set_config(config);
 
+    size_t index = 0;
+    for (auto& bar : universe->bar) {
+        for (size_t i = 0; i < 3; ++i, ++index) {
+            sparkles[index] = &effects.add_effect<LinearPulse>("sparkle" + String(index));
+            sparkles[index]->set_config(LinearPulseConfig{
+                .rise_dt_ms=1000,
+                .fall_dt_ms=2000
+            });
+
+            constexpr size_t NUM_LIGHTS = WashBarLight112::NUM_LIGHTS;
+            for (size_t l = i * NUM_LIGHTS / 3; l < NUM_LIGHTS * (i + 1) / 3; ++l) {
+                bar.green(l).add_effect(sparkles[index]);
+            }
+        }
+    }
+
     //
     // Fade in on startup
     //
@@ -302,37 +303,20 @@ void setup() {
         }
     }
 
-    auto& cc_1 = effects.add_effect<Blank>("cc_1");
-    auto& cc_2 = effects.add_effect<Blank>("cc_2");
+    auto& cc_2 = effects.add_effect<SingleChannelEffect>("cc_2");
+    cc_2.set_input_gain(0.0);
     for (auto& bar : universe->bar) {
-        size_t l = 0;
-        for (; l < WashBarLight112::NUM_LIGHTS / 3; l++) {
-            bar.red(l).add_effect(&cc_1);
-            bar.green(l).add_effect(&cc_1);
-            bar.blue(l).add_effect(&cc_1);
-            bar.white(l).add_effect(&cc_1);
-        }
-        for (; l < 2 * WashBarLight112::NUM_LIGHTS / 3; l++) {
+        for (size_t l = WashBarLight112::NUM_LIGHTS / 3; l < 2 * WashBarLight112::NUM_LIGHTS / 3; l++) {
             bar.red(l).add_effect(&cc_2);
             bar.green(l).add_effect(&cc_2);
             bar.blue(l).add_effect(&cc_2);
-            bar.white(l).add_effect(&cc_2);
-        }
-        for (; l < WashBarLight112::NUM_LIGHTS; l++) {
-            bar.red(l).add_effect(&cc_1);
-            bar.green(l).add_effect(&cc_1);
-            bar.blue(l).add_effect(&cc_1);
-            bar.white(l).add_effect(&cc_1);
         }
     }
-
 
     blank.clear(millis() + 1000);
     palette.trigger(millis());
     solid.trigger(millis());
     twinkle.trigger(millis());
-    cc_1.trigger(millis());
-    cc_2.trigger(millis());
 
     // TODO: This sets the light up in an interesting pattern
     kick_palette_trigger.trigger(millis());
@@ -350,42 +334,60 @@ void setup() {
         }
     });
     midi_manager.add_callback(
-        [&kick_palette_trigger, &hat_trigger, w=false, n = MidiManager::MidiNote{'D', 3}.note()]
+        [&kick_palette_trigger, w=false, n = MidiManager::MidiNote{'D', 3}.note()]
         (byte channel, byte note, byte velocity, bool on) mutable {
         if (on && note == n) {
             Serial.print("Calm mode ");
             Serial.println(w ? "ON" : "OFF");
 
             palette_trigger->set_enabled(w);
-            hat_trigger.set_enabled(!w);
             kick_palette_trigger.set_enabled(!w);
             w = !w;
         }
     });
-
-    midi_manager.add_callback([&cc_1, &cc_2](byte channel, byte note) mutable {
-            float value = 0.1 + 0.9 * (static_cast<float>(note) / 128.f);
-            if (channel == 1) {
-                cc_1.set_input_gain(value);
-            } else if (channel == 2) {
-                cc_2.set_input_gain(value);
-            }
+    midi_manager.add_callback([&cc_2](byte channel, byte note) mutable {
+        float value = 0.1 + 0.9 * (static_cast<float>(note) / 128.f);
+        if (channel == 1) {
+            cc_1_last_value = note;
+            // cc_1.set_input_gain(value);
+        } else if (channel == 2) {
+            cc_2_last_value = note;
+            cc_2.set_input_gain(value);
+        }
     });
 }
 
 void loop() {
+    uint32_t tick_start = micros();
     uint32_t start, end;
 
-    static uint32_t last_update = millis();
+    start = micros();
+    static uint32_t palette_last_update = millis();
     uint32_t now = millis();
-    if (now > (last_update + 1000)) {
-        last_update = now;
+    if (now > (palette_last_update + 1000)) {
+        palette_last_update = now;
         // bpm is quarter notes per minute, so set the rate to millseconds per beat
-        uint32_t rate_ms = 3 * (60000.0f / max(1E-3f, midi_manager.bpm()));
+        uint32_t rate_ms = 8 * (60000.0f / max(1E-3f, midi_manager.bpm()));
         palette_trigger->set_rate(rate_ms);
     }
 
-    start = micros();
+    static uint32_t sparkle_last_update = millis();
+    if (now > (sparkle_last_update + 100)) {
+        sparkle_last_update = now;
+        static std::mt19937_64 rng(42);
+        static const double LAMBDA = std::log(3.0/2.0);
+        static std::uniform_real_distribution<double> dist;
+        // Serial.println(cc_1_last_value);
+        const double p = 1.0 - std::exp(-LAMBDA * (static_cast<double>(cc_1_last_value) / 128.0) * 0.1);
+        if (dist(rng) < p) {
+            static std::uniform_int_distribution<size_t> dist(0, sparkles.size() - 1);
+            sparkles[dist(rng)]->trigger(now);
+        }
+    }
+    end = micros();
+    update_timer[i] = end - start;
+
+    start = end;
     periodic.tick();
     end = micros();
     periodic_timer[i] = end - start;
@@ -404,6 +406,8 @@ void loop() {
     controller->write_frame(&read_midi);
     end = micros();
     controller_timer[i] = end - start;
+
+    tick_timer[i] = micros() - tick_start;
 
     // Reset the timers
     if (i++ > COUNT) {

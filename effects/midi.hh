@@ -27,8 +27,11 @@ public:
         SerialMIDI.begin(10);
     }
 
-    void read() {
-        while (SerialMIDI.read()) { 
+    void read(size_t max = 16) {
+        for (size_t i = 0; i < max; ++i) {
+            if (!SerialMIDI.read()) {
+                return;
+            }
             switch (SerialMIDI.getType()) {
             case midi::NoteOn: {
                 note_on(SerialMIDI.getChannel(), SerialMIDI.getData1(), SerialMIDI.getData2());
@@ -147,7 +150,7 @@ private:
     std::vector<CCCallback> cc_callbacks_;
 
     uint32_t last_clock_ms_ = 0;
-    float bpm_ = 0.0; 
+    float bpm_ = 140.0; 
     uint32_t clock_count_ = 0;
 };
 
