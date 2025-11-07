@@ -181,13 +181,21 @@ public:
         if (const Effect* e = effect(0)) {
             e->get_config_json(json);
         }
-    };
+    }
 
     void trigger(uint32_t now_ms) override {
         for (size_t i = 0; i < effects_.size(); ++i) {
             effect(i)->trigger(now_ms);
         }
     }
+
+    void trigger_offset(uint32_t now_ms, uint32_t offset_ms) {
+        for (size_t i = 0; i < effects_.size(); ++i) {
+            effect(i)->trigger(now_ms);
+            now_ms += offset_ms;
+        }
+    }
+
     void clear(uint32_t now_ms) override {
         for (size_t i = 0; i < effects_.size(); ++i) {
             effect(i)->clear(now_ms);

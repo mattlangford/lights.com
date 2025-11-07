@@ -15,6 +15,12 @@ Interface interface;
 EffectMap effects;
 PeriodicTrigger<Palette>* palette_trigger;
 
+enum class Mode {
+    NORMAL = 0,
+    PARTY = 1
+};
+static Mode mode = Mode::NORMAL;
+
 struct Universe {
     LitakeLight litake[2];
     MissyeeLight missyee[4];
@@ -131,6 +137,10 @@ void show_midi(const String&) {
     Serial.println(midi_manager.bpm());
 }
 
+auto rgb(uint8_t r, uint8_t g, uint8_t b){
+    return PaletteConfig::Color{.r=r / 255.0f, .g=g / 255.0f, .b=b / 255.0f};
+};
+
 void read_midi() {
     midi_manager.read(1);
 }
@@ -201,7 +211,6 @@ void setup() {
 
         }
 
-
         universe->bar[index].add_rgb_effect(solid);
     };
 
@@ -209,20 +218,40 @@ void setup() {
     add_bar_light(1, {{4, &kick_1}, {2, &kick_3}});
     add_bar_light(2, {{1, &kick_5}, {3, &kick_2}});
 
+    const LinearPulseConfig kick_pulse_config {.rise_dt_ms=10, .hold_dt_ms=0, .fall_dt_ms=30 };
+    auto& kick_pulse0 = effects.add_effect<CompositeEffect<LinearPulse>>("kick_pulse0");
+    kick_pulse0.set_config(kick_pulse_config);
+    auto& kick_pulse1 = effects.add_effect<CompositeEffect<LinearPulse>>("kick_pulse1");
+    kick_pulse1.set_config(kick_pulse_config);
+    auto& kick_pulse2 = effects.add_effect<CompositeEffect<LinearPulse>>("kick_pulse2");
+    kick_pulse2.set_config(kick_pulse_config);
+    for (size_t k = 0; k < WashBarLight112::NUM_LIGHTS; ++k) {
+        constexpr size_t MID = WashBarLight112::NUM_LIGHTS / 2;
+        size_t i = (k % 2 == 0) ? MID + k / 2 : MID - (k / 2 + 1);
+
+        const uint8_t brightness = 255 / (k + 1);
+        auto& p0 = kick_pulse0.add();
+        auto& p1 = kick_pulse1.add();
+        auto& p2 = kick_pulse2.add();
+        p0.set_max(brightness);
+        p1.set_max(brightness);
+        p2.set_max(brightness);
+        universe->bar[0].white(i).add_effect(&p0);
+        universe->bar[1].white(i).add_effect(&p1);
+        universe->bar[2].white(i).add_effect(&p2);
+    }
+
     PaletteConfig config;
     config.type = PaletteConfig::TransitionType::RANDOM;
-    const auto rgb = [](uint8_t r, uint8_t g, uint8_t b){
-        return PaletteConfig::Color{.r=r / 255.0f, .g=g / 255.0f, .b=b / 255.0f};
-    };
     config.palettes["red"] = {
         rgb(128, 0, 0),
         rgb(64, 0, 0),
         rgb(32, 0, 0),
     };
-    config.palettes["yed"] = {
-        rgb(255, 0, 0),
-        rgb(255, 100, 0),
-    };
+    // config.palettes["yed"] = {
+    //     rgb(255, 0, 0),
+    //     rgb(255, 100, 0),
+    // };
     config.palettes["bled"] = {
         rgb(0, 0, 64),
         rgb(64, 0, 0),
@@ -234,17 +263,17 @@ void setup() {
     //     rgb(0, 128, 128),
     //     rgb(0, 0, 255),
     // };
-    // config.palettes["fire"] = {
-    //     rgb(128, 0, 0),
-    //     rgb(100, 0, 0),
-    //     rgb(128, 12, 0),
-    //     rgb(115, 5, 0),
-    //     rgb(100, 25, 0),
-    //     rgb(128, 30, 0),
-    //     rgb(115, 37, 0),
-    //     rgb(128, 25, 0),
-    //     rgb(128, 20, 0),
-    // };
+    config.palettes["fire"] = {
+        rgb(128, 0, 0),
+        rgb(100, 0, 0),
+        rgb(128, 12, 0),
+        rgb(115, 5, 0),
+        rgb(100, 25, 0),
+        rgb(128, 30, 0),
+        rgb(115, 37, 0),
+        rgb(128, 25, 0),
+        rgb(128, 20, 0),
+    };
     // config.palettes["neon"] = {
     //     rgb(127, 10, 10),
     //     rgb(0, 50, 128),
@@ -312,16 +341,39 @@ void setup() {
         }
     });
     midi_manager.add_callback(
-        [&kick_palette_trigger, &kick_step, calm=false, n = MidiManager::MidiNote{'D', 3}.note()]
+        [&kick_palette_trigger, &kick_step, n = MidiManager::MidiNote{'D', 3}.note()]
         (byte channel, byte note, byte velocity, bool on) mutable {
         if (on && note == n) {
-            Serial.print("Calm mode ");
-            Serial.println(calm ? "ON" : "OFF");
+            Serial.println(static_cast<int>(mode));
+            switch (mode) {
+            case Mode::NORMAL:
+                Serial.println("Mode = PARTY");
+                mode = Mode::PARTY;
+                break;
+            case Mode::PARTY:
+                Serial.println("Mode = NORMAL");
+                mode = Mode::NORMAL;
+                break;
+            }
 
-            palette_trigger->set_enabled(calm);
-            kick_palette_trigger.set_enabled(!calm);
-            kick_step.set_enabled(!calm);
-            calm = !calm;
+            palette_trigger->set_enabled(mode == Mode::NORMAL);
+            kick_palette_trigger.set_enabled(mode == Mode::PARTY);
+            // kick_step.set_enabled(mode == Mode::PARTY);
+        }
+    });
+
+    midi_manager.add_callback(
+        [&kick_pulse0, &kick_pulse1, &kick_pulse2, i = 0, n = MidiManager::MidiNote{'D', 2}.note()]
+        (byte channel, byte note, byte velocity, bool on) mutable {
+        Serial.println(static_cast<int>(mode));
+        if (on && note == n && mode == Mode::PARTY) {
+            switch (i % 6) {
+                case 0: kick_pulse0.trigger_offset(millis(), 10); break;
+                case 2: kick_pulse1.trigger_offset(millis(), 10); break;
+                case 4: kick_pulse2.trigger_offset(millis(), 10); break;
+                default: break;
+            }
+            i++;
         }
     });
 }
