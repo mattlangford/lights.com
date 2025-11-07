@@ -14,10 +14,12 @@ DMXController* controller;
 Interface interface;
 EffectMap effects;
 PeriodicTrigger<Palette>* palette_trigger;
+SingleChannelEffect* strobe;
 
 enum class Mode {
     NORMAL = 0,
-    PARTY = 1
+    PARTY = 1,
+    STROBE = 2,
 };
 static Mode mode = Mode::NORMAL;
 
@@ -173,15 +175,17 @@ void setup() {
     auto& solid = effects.add_effect<Solid>("rgb");
     auto& twinkle = effects.add_effect<CompositeEffect<Twinkle>>("twinkle");
 
+    strobe = &effects.add_effect<SingleChannelEffect>("strobe");
+
     uint32_t offset = 0;
 
     auto& kick_step = effects.add_effect<MidiTrigger<StepTrigger<LinearPulse>>>("kick_step", 'C', 2).effect();
     auto& kick_1 = kick_step.add();
-    auto& kick_2 = kick_step.add();
+    [[maybe_unused]] auto& kick_2 = kick_step.add();
     auto& kick_3 = kick_step.add();
-    auto& kick_4 = kick_step.add();
+    [[maybe_unused]] auto& kick_4 = kick_step.add();
     auto& kick_5 = kick_step.add();
-    auto& kick_6 = kick_step.add();
+    [[maybe_unused]] auto& kick_6 = kick_step.add();
     kick_step.set_config(LinearPulseConfig{
         .rise_dt_ms=10,
         .hold_dt_ms=100,
@@ -203,8 +207,10 @@ void setup() {
             for (size_t j = start; j < end; ++j) {
                 light.add_rgb_effect(j, kick);
                 light.add_effect(j, twinkle.add());
+                light.white(j).add_effect(strobe);
 
                 if (kick_it != kicks.end()) {
+                    kick_it->second->set_max(64);
                     light.white(j).add_effect(kick_it->second);
                 }
             }
@@ -214,13 +220,18 @@ void setup() {
         universe->bar[index].add_rgb_effect(solid);
     };
 
-    add_bar_light(0, {{2, &kick_4}, {6, &kick_6}});
-    add_bar_light(1, {{4, &kick_1}, {2, &kick_3}});
-    add_bar_light(2, {{1, &kick_5}, {3, &kick_2}});
+    add_bar_light(0, {{1, &kick_1}, {3, &kick_3}, {4, &kick_5}}); // top floor
+    add_bar_light(1, {});
+    add_bar_light(2, {});
+
+    universe->missyee[0].add_rgb_effect(palette.add_effect(offset += 20));
+    universe->missyee[1].add_rgb_effect(palette.add_effect(offset += 20));
+    universe->missyee[2].add_rgb_effect(palette.add_effect(offset += 20));
+    universe->missyee[3].add_rgb_effect(palette.add_effect(offset += 20));
 
     const LinearPulseConfig kick_pulse_config {.rise_dt_ms=10, .hold_dt_ms=0, .fall_dt_ms=30 };
-    auto& kick_pulse0 = effects.add_effect<CompositeEffect<LinearPulse>>("kick_pulse0");
-    kick_pulse0.set_config(kick_pulse_config);
+    // auto& kick_pulse0 = effects.add_effect<CompositeEffect<LinearPulse>>("kick_pulse0");
+    // kick_pulse0.set_config(kick_pulse_config);
     auto& kick_pulse1 = effects.add_effect<CompositeEffect<LinearPulse>>("kick_pulse1");
     kick_pulse1.set_config(kick_pulse_config);
     auto& kick_pulse2 = effects.add_effect<CompositeEffect<LinearPulse>>("kick_pulse2");
@@ -229,14 +240,12 @@ void setup() {
         constexpr size_t MID = WashBarLight112::NUM_LIGHTS / 2;
         size_t i = (k % 2 == 0) ? MID + k / 2 : MID - (k / 2 + 1);
 
-        const uint8_t brightness = 255 / (k + 1);
-        auto& p0 = kick_pulse0.add();
+        const uint8_t brightness = 200 / (2 * (k + 1));
         auto& p1 = kick_pulse1.add();
         auto& p2 = kick_pulse2.add();
-        p0.set_max(brightness);
         p1.set_max(brightness);
         p2.set_max(brightness);
-        universe->bar[0].white(i).add_effect(&p0);
+        // universe->bar[0].white(i).add_effect(&p0);
         universe->bar[1].white(i).add_effect(&p1);
         universe->bar[2].white(i).add_effect(&p2);
     }
@@ -350,6 +359,7 @@ void setup() {
                 mode = Mode::PARTY;
                 break;
             case Mode::PARTY:
+            case Mode::STROBE:
                 Serial.println("Mode = NORMAL");
                 mode = Mode::NORMAL;
                 break;
@@ -357,18 +367,25 @@ void setup() {
 
             palette_trigger->set_enabled(mode == Mode::NORMAL);
             kick_palette_trigger.set_enabled(mode == Mode::PARTY);
-            // kick_step.set_enabled(mode == Mode::PARTY);
+            kick_step.set_enabled(mode == Mode::PARTY);
+        } else if (on && note == MidiManager::MidiNote{'E', 3}.note()) {
+            if (mode == Mode::STROBE) {
+                mode = Mode::NORMAL;
+            } else {
+                mode = Mode::STROBE;
+            }
         }
     });
 
     midi_manager.add_callback(
-        [&kick_pulse0, &kick_pulse1, &kick_pulse2, i = 0, n = MidiManager::MidiNote{'D', 2}.note()]
+        [&kick_pulse1, &kick_pulse2, i = 0, n = MidiManager::MidiNote{'C', 2}.note()]
         (byte channel, byte note, byte velocity, bool on) mutable {
         if (on && note == n && mode == Mode::PARTY) {
-            switch (i % 6) {
-                case 0: kick_pulse0.trigger_offset(millis(), 10); break;
-                case 2: kick_pulse1.trigger_offset(millis(), 10); break;
-                case 4: kick_pulse2.trigger_offset(millis(), 10); break;
+            Serial.print("TRIGGER ");
+            Serial.println(i);
+            switch (i % 4) {
+                case 0: kick_pulse1.trigger_offset(millis(), 10); break;
+                case 2: kick_pulse2.trigger_offset(millis(), 10); break;
                 default: break;
             }
             i++;
@@ -377,6 +394,14 @@ void setup() {
 }
 
 void loop() {
+    static size_t counter = 0;
+    if (mode == Mode::STROBE && counter++ > 5) {
+        strobe->set_values(255, 255);
+        counter = 0;
+    } else {
+        strobe->set_values(0, 0);
+    }
+
     uint32_t tick_start = micros();
     uint32_t start, end;
 
