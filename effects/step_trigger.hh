@@ -9,6 +9,9 @@ public:
     String type() const override { return "StepTrigger(" + this->subtype() + ")"; }
 
     void trigger(uint32_t now_ms) override { 
+        if (!enabled_) {
+            return;
+        }
         this->effect(index_)->clear(now_ms);
         index_ = (index_ + 1) % this->size();
         this->effect(index_)->trigger(now_ms);
@@ -18,6 +21,9 @@ public:
         this->effect(index_)->clear(now_ms);
     }
 
+    void set_enabled(bool enabled) { enabled_ = enabled; }
+
 private:
+    bool enabled_ = true;
     size_t index_ = 0;
 };

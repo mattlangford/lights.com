@@ -45,12 +45,6 @@ public:
                 on_clock(millis());
                 break;
             }
-            case midi::ControlChange: {
-                for (auto& cb : cc_callbacks_) {
-                    cb(SerialMIDI.getData1(), SerialMIDI.getData2());
-                }
-                break;
-            }
             default:
                 break;
             }

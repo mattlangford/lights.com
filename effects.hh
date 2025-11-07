@@ -67,6 +67,19 @@ public:
     String type() const override { return "FaderEffect"; }
 
     void fade_to(float end, uint32_t start_ms, uint32_t end_ms) {
+        if (fades_.size() > 30) {
+            Serial.print("buf start ");
+            Serial.print(fades_.front().time_ms);
+            Serial.print(" buf end ");
+            Serial.print(fades_.back().time_ms);
+            Serial.print(" start ");
+            Serial.print(start_ms);
+            Serial.print(" end ");
+            Serial.print(end_ms);
+            Serial.print(" size ");
+            Serial.println(fades_.size());
+            fades_.clear();
+        }
         // If we're starting from scratch or interleveling, reset the future.
         if (fades_.empty() || start_ms < fades_.back().time_ms) {
             // Grab current level before clearing
