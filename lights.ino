@@ -344,7 +344,6 @@ void setup() {
         [&kick_palette_trigger, &kick_step, n = MidiManager::MidiNote{'D', 3}.note()]
         (byte channel, byte note, byte velocity, bool on) mutable {
         if (on && note == n) {
-            Serial.println(static_cast<int>(mode));
             switch (mode) {
             case Mode::NORMAL:
                 Serial.println("Mode = PARTY");
@@ -365,7 +364,6 @@ void setup() {
     midi_manager.add_callback(
         [&kick_pulse0, &kick_pulse1, &kick_pulse2, i = 0, n = MidiManager::MidiNote{'D', 2}.note()]
         (byte channel, byte note, byte velocity, bool on) mutable {
-        Serial.println(static_cast<int>(mode));
         if (on && note == n && mode == Mode::PARTY) {
             switch (i % 6) {
                 case 0: kick_pulse0.trigger_offset(millis(), 10); break;

@@ -110,8 +110,7 @@ public:
             return;
         }
 
-        time_us_ = micros();
-        uint32_t now_ms = time_us_ / 1000;
+        const uint32_t now_ms = millis();
 
         // [1]: https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-11_2008R2018.pdf
         write_bit(0, SPACE_FOR_BREAK_US);
@@ -137,7 +136,6 @@ public:
         }
 
         write_bit(1, MARK_BEFORE_BREAK_US);
-
     }
 
 private:

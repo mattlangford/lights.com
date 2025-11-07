@@ -67,7 +67,7 @@ public:
     String type() const override { return "FaderEffect"; }
 
     void fade_to(float end, uint32_t start_ms, uint32_t end_ms) {
-        if (fades_.size() > 30) {
+        if (fades_.size() > 10) {
             Serial.print("buf start ");
             Serial.print(fades_.front().time_ms);
             Serial.print(" buf end ");
